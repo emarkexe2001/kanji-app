@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* Design tokens from the spec (section 3). The same values live in @kanji/core
+   for the mobile app; keep the two in sync. */
+@theme {
+  --color-onyomi: #1e88e5;
+  --color-kunyomi: #e53935;
+  --color-okurigana: #43a047;
+  --color-common: #eba834;
+
+  --color-jlpt-n5: #10b981;
+  --color-jlpt-n4: #06b6d4;
+  --color-jlpt-n3: #6366f1;
+  --color-jlpt-n2: #8b5cf6;
+  --color-jlpt-n1: #f43f5e;
+
+  --font-jp: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+}
+
+body {
+  font-family: var(--font-jp);
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* ---- Card deck: two blank cards fanned out behind the front card ---- */
+.deck-back {
+  position: absolute;
+  inset: 0 0 32px 0; /* matches the deck's pb-8 so the backs align with the front card */
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px #e2e8f0,
+    0 8px 16px -6px rgb(15 23 42 / 0.35);
+}
+.deck-back-near {
+  transform: translateY(13px) rotate(-2.4deg) scale(0.97);
+  background: #f8fafc;
+}
+.deck-back-far {
+  transform: translateY(26px) rotate(2.8deg) scale(0.94);
+  background: #f1f5f9;
+}
+
+/* ---- Dealing animations for the front card ---- */
+@keyframes deal-next {
+  from { opacity: 0.4; transform: translateY(14px) scale(0.955); }
+  to   { opacity: 1;   transform: none; }
+}
+@keyframes deal-shuffle {
+  0%   { opacity: 0; transform: translate(-40px, -14px) rotate(-9deg) scale(0.95); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+.deal-next    { animation: deal-next 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.deal-shuffle { animation: deal-shuffle 380ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .deal-next, .deal-shuffle { animation: none; }
+}
+
+@utility hl-onyomi {
+  color: var(--color-onyomi);
+  border-bottom: 2px solid var(--color-onyomi);
+  font-weight: 700;
+}
+@utility hl-kunyomi {
+  color: var(--color-kunyomi);
+  border-bottom: 2px solid var(--color-kunyomi);
+  font-weight: 700;
+}
+@utility hl-okurigana {
+  color: var(--color-okurigana);
+  border-bottom: 2px solid var(--color-okurigana);
+  font-weight: 700;
+}
+@utility badge-common {
+  color: var(--color-common);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+@utility meaning-text {
+  font-weight: 700;
+  color: #0f172a;
+}

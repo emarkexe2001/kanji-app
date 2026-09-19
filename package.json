@@ -1,0 +1,19 @@
+{
+  "name": "kanji-app",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w @kanji/web",
+    "build:web": "npm run build -w @kanji/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test -w @kanji/core",
+    "data:build": "tsx scripts/build-deck.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13"
+  }
+}
