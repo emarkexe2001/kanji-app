@@ -4,3 +4,4 @@ dist
 *.log
 # unzipped dictionary JSON (regenerate from the .zip files in data/raw)
 data/raw/*.json
+install.cmd
