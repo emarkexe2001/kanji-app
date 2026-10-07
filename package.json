@@ -10,7 +10,7 @@
     "dev:web": "npm run dev -w @kanji/web",
     "build:web": "npm run build -w @kanji/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm test -w @kanji/core",
+    "test": "npm run test --workspaces --if-present",
     "data:build": "tsx scripts/build-deck.ts"
   },
   "devDependencies": {
