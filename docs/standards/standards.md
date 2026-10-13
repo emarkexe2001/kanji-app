@@ -157,7 +157,18 @@ A document in `docs/` must describe the test types used in the project and how t
 
 ### 5.2 Branches
 - **Never work directly on `main`.** Always branch off an up-to-date `main`.
+- **Every change to `main` goes through a branch and a pull request,** including docs and tickets. Nothing is committed straight to `main`.
 - **Give the branch a clear name,** for example `feature/card-shuffle` or `feature/user-set-card-limit`.
+- **Start the branch name with a prefix** that says what kind of change it is:
+
+  | Prefix | Used for | Example |
+  |---|---|---|
+  | `feature/` | new features | `feature/card-shuffle` |
+  | `fix/` | bug fixes | `fix/card-limit-validation` |
+  | `test/` | adding or changing tests only | `test/ui-component-tests` |
+  | `docs/` | standards, tickets and other documentation | `docs/add-tickets` |
+  | `chore/` | housekeeping that doesn't change how the app behaves | `chore/repo-housekeeping` |
+  | `ci/` | CI and automation | `ci/run-tests-on-pr` |
 
 ### 5.3 Before opening a pull request
 - The feature is fully implemented.
@@ -167,6 +178,8 @@ A document in `docs/` must describe the test types used in the project and how t
 ### 5.4 Pull requests and merging
 - **Every change goes through a pull request,** reviewed by me or someone else before any merging happens.
 - **Only merge once the feature is complete,** properly tested, and all tests pass.
+- **One change per pull request.** A pull request only contains the change it is about, so it is quick to review. A feature PR only contains commits for that feature.
+- **Docs and ticket changes get their own pull request** from a `docs/` branch (e.g. `docs/add-tickets`), rather than being added to a feature PR.
 
 ### 5.5 Commit messages
 Use this format:
