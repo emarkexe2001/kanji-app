@@ -180,6 +180,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - **Only merge once the feature is complete,** properly tested, and all tests pass.
 - **One change per pull request.** A pull request only contains the change it is about, so it is quick to review. A feature PR only contains commits for that feature.
 - **Docs and ticket changes get their own pull request** from a `docs/` branch (e.g. `docs/add-tickets`), rather than being added to a feature PR.
+- **Move finished tickets.** When a ticket is finished, move its file into `docs/tickets/completed_tickets/` and add a `Completed On:` note with the date. Do this in the ticket's own pull request, so merging the PR is what marks the ticket as complete.
 
 ### 5.5 Commit messages
 Use this format:
