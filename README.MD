@@ -16,6 +16,15 @@ To build the project please run the following command
 
 `npm run build -w @kanji/web`
 
+## Checks
+To run the checks locally please run the following commands
+
+`npm run typecheck`
+
+`npm test`
+
+These same checks run automatically on GitHub (see `.github/workflows/ci.yml`) on every pull request to `main` and every push to `main`. The workflow installs the project with `npm ci`, then runs `npm run typecheck` and `npm test`. A pull request can only be merged once this check is green and the pull request has been approved.
+
 ## Further help
 
 Please refer to the docs folder for further information on parts of this project
