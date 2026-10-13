@@ -55,3 +55,7 @@ test('clampDeckSize floors out-of-range sizes to the minimum of 1', () => {
 test('clampDeckSize caps out-of-range sizes to the maximum of 150', () => {
   assert.equal(clampDeckSize(1000), MAX_DECK_SIZE);
 });
+
+test('deliberately failing test to prove CI blocks the merge', () => {
+  assert.equal(1, 2);
+});
