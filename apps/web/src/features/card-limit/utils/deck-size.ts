@@ -1,3 +1,5 @@
+import { readStorage, writeStorage } from '../../../lib/storage';
+
 /** Card-limit rules from docs/tickets/selectable-card_limit_ticket.md: 1–150, no 0, nothing non-numeric. */
 export const MIN_DECK_SIZE = 1;
 export const MAX_DECK_SIZE = 150;
@@ -30,19 +32,11 @@ export function clampDeckSize(n: number): number {
 
 /** Reads the persisted card limit, falling back to the default when absent, invalid or out of range. */
 export function loadDeckSize(): number {
-  try {
-    const n = Number(localStorage.getItem(SIZE_KEY));
-    if (Number.isInteger(n) && n >= MIN_DECK_SIZE && n <= MAX_DECK_SIZE) return n;
-  } catch {
-    /* storage unavailable (private mode etc.) — fall back to the default */
-  }
+  const n = Number(readStorage(SIZE_KEY));
+  if (Number.isInteger(n) && n >= MIN_DECK_SIZE && n <= MAX_DECK_SIZE) return n;
   return DEFAULT_DECK_SIZE;
 }
 
 export function saveDeckSize(size: number): void {
-  try {
-    localStorage.setItem(SIZE_KEY, String(size));
-  } catch {
-    /* not persisted — the size still applies for this session */
-  }
+  writeStorage(SIZE_KEY, String(size));
 }
