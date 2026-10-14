@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MIN_DECK_SIZE, MAX_DECK_SIZE, clampDeckSize, parseDeckSizeInput } from '../utils/deck-size';
 
 const stepBtn =
@@ -18,7 +18,11 @@ export function CardLimitControl({
   const [error, setError] = useState<string | null>(null);
 
   // Keep the field in sync when the committed size changes from elsewhere (e.g. the +/- buttons).
-  useEffect(() => setDraft(String(size)), [size]);
+  const [prevSize, setPrevSize] = useState(size);
+  if (size !== prevSize) {
+    setPrevSize(size);
+    setDraft(String(size));
+  }
 
   const commit = (raw: string) => {
     const result = parseDeckSizeInput(raw);

@@ -2,6 +2,7 @@
   "name": "kanji-app",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -11,10 +12,21 @@
     "build:web": "npm run build -w @kanji/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "lint": "eslint .",
     "data:build": "tsx scripts/build-deck.ts"
   },
   "devDependencies": {
-    "tsx": "^4.23.13"
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-check-file": "^3.3.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "tsx": "^4.23.13",
+    "typescript-eslint": "^8.71.2"
   },
   "dependencies": {
     "nextjs": "^0.0.3"
