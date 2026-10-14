@@ -8,7 +8,7 @@ Origin:
 Discussion of the TEST1 shuffle scenario (PR #12). Today the Shuffle button only jumps to a different card inside the current deck; no card ever enters or leaves the deck. As more decks are added (see card_category_ticket.md), I would like to be able to shuffle cards in from other decks, like a real-life card game where you swap old cards for new ones. This builds on the idea in example_ticket.md (Card Shuffle).
 
 Feature Description:
-As a user studying with several decks, I would like to shuffle one or more new cards into my current deck from another deck, removing old cards to make room, so I get more variety without changing my card limit. I would like to choose which deck the new cards come from: one deck I pick, a random deck, or several decks at once.
+As a user studying with several decks, I would like to shuffle one or more new cards into my current deck from another deck, removing old cards to make room, so I get more variety without changing my card limit. I would like to choose which deck the new cards come from: one deck I pick, a random deck, or several decks at once. I would also like to see the cards that were shuffled out, so I can add them back in if I want them again.
 
 Feature Requirements / Expected Behaviours:
 Buttons:
@@ -33,6 +33,15 @@ What happens on Shuffle In Cards:
 - The deck size stays the same as the card limit
 - The updated deck, including shuffled-in cards, is still the same after a reload. Browser storage is only used through the src/lib/storage.ts helper, and the app still works (without remembering) if storage is blocked.
 
+Shuffled-out cards (adding them back):
+- Every card removed by Shuffle In Cards goes into a "Shuffled-out cards" list, newest first, instead of being lost
+- A "Shuffled-out cards" view (e.g. a panel or page opened from a button with the count, such as "Shuffled out (3)") shows each card's word, reading and meaning
+- The user can pick one or more cards in the view and add them back into the deck. To keep the deck size the same as the card limit, the same number of cards leave the deck (see Open Questions) and go into the shuffled-out list in their place.
+- A card that is added back is removed from the shuffled-out list and shown straight away
+- The shuffled-out list is still there after a reload, like the deck itself
+- The user can clear the list. This is a dangerous action, so it uses a red button and asks for confirmation.
+- When the list is empty, the view says so (e.g. "No cards have been shuffled out yet") instead of being blank
+
 When it can't be done:
 - If the chosen source deck(s) don't have enough new cards for the number asked for, the user sees a clear message saying how many are available, and the deck does not change
 - If there is no other deck to shuffle in from, Shuffle In Cards is disabled with a short explanation
@@ -56,6 +65,12 @@ When I shuffle in cards and reload the app, my deck still has the shuffled-in ca
 
 When I shuffle in cards many times, the same card never appears in my deck twice
 
+When I shuffle in cards, the cards that were removed appear in the Shuffled-out cards view
+
+When I add a card back from the Shuffled-out cards view, it is shown and is part of my deck again, it is no longer in the shuffled-out list, and my deck size still matches my card limit
+
+When I reload the app, the Shuffled-out cards list is still there
+
 Failure paths (see docs/testing.md - each one needs a UI test, and each test must be checked to fail when the code it covers is broken):
 
 When the chosen deck(s) don't have enough new cards left, a message is shown and my deck does not change
@@ -68,21 +83,32 @@ When there is no other deck to shuffle in from, Shuffle In Cards is disabled and
 
 When browser storage is blocked, shuffling in still works for the current session
 
+When no cards have been shuffled out yet, the Shuffled-out cards view shows a message saying so instead of an empty list
+
+When I try to add back more cards than my card limit allows at once, a validation message is shown and my deck does not change
+
+When I clear the shuffled-out list and then cancel the confirmation, nothing is cleared
+
 Decisions already made (2026-10-14):
 - The card removed is always the one on screen
 - Shuffled-in cards stay in the deck after a reload
 - More than one card can be shuffled in at once
 - The existing button becomes "Deck Shuffle", and the new one is "Shuffle In Cards", with a choice of one deck, a random deck, or multiple decks
+- Cards that are shuffled out are kept in a "Shuffled-out cards" view, so the user can add them back into the deck
 
 Open Questions (to confirm before starting, per PROC3):
 - When shuffling in more than one card, which other old cards are removed after the one on screen: random ones, the ones seen longest ago, or the ones next in the deck?
 - Is there a maximum number of cards that can be shuffled in at once below the card limit (example_ticket.md suggested 5-10)?
 - With Random, is one deck chosen for the whole shuffle, or a random deck for each new card? (This ticket assumes a random deck for each card.)
-- If the user changes the card limit after shuffling in cards, which cards are kept?
+- If the user changes the card limit after shuffling in cards, which cards are kept? Should cards dropped by lowering the limit also go into the shuffled-out list?
+- When a card is added back from the shuffled-out list, which card leaves the deck to make room: the card on screen (same as Shuffle In Cards), or one the user picks?
+- Is there a maximum size for the shuffled-out list (e.g. only the last 100 cards are kept)?
+- Should the shuffled-out list only hold cards from shuffle-ins, or also show which deck each card came from?
 
 Notes for the developer:
 - The UI tests in apps/web/test/ui-tests/ find the shuffle button with /shuffle/i. With two shuffle buttons they need updating to use the exact names.
-- Shuffled-in cards mean the deck is no longer just "the first N words", so the saved deck (not just the card limit) needs to be stored.
+- Shuffled-in cards mean the deck is no longer just "the first N words", so the saved deck (not just the card limit) and the shuffled-out list need to be stored.
+- This is a large ticket. It could be split into two PRs: (1) Deck Shuffle rename + Shuffle In Cards, (2) the Shuffled-out cards view.
 
 Dependencies:
 Needs more than one deck to exist first (card_category_ticket.md, or another ticket that adds multiple decks). TEST1 (UI tests) and TOOL1 (ESLint) should be merged first.
