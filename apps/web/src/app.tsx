@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { WordEntry } from '@kanji/core';
-import { WordCard } from './components/WordCard';
-import { useDeck } from './useDeck';
-import { MIN_DECK_SIZE, MAX_DECK_SIZE, clampDeckSize, loadDeckSize, parseDeckSizeInput, saveDeckSize } from './deckSize';
+import { WordCard } from './components/word-card';
+import { useDeck } from './use-deck';
+import { MIN_DECK_SIZE, MAX_DECK_SIZE, clampDeckSize, loadDeckSize, parseDeckSizeInput, saveDeckSize } from './deck-size';
 
 type Move = 'next' | 'shuffle';
 

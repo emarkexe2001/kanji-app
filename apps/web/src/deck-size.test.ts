@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampDeckSize, parseDeckSizeInput, MIN_DECK_SIZE, MAX_DECK_SIZE } from './deckSize';
+import { clampDeckSize, parseDeckSizeInput, MIN_DECK_SIZE, MAX_DECK_SIZE } from './deck-size';
 
 test('accepts a valid card limit, e.g. 5', () => {
   assert.deepEqual(parseDeckSizeInput('5'), { ok: true, value: 5 });
