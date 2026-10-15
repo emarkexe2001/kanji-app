@@ -4,16 +4,11 @@ import { MIN_DECK_SIZE, MAX_DECK_SIZE, clampDeckSize, parseDeckSizeInput } from 
 const stepBtn =
   'grid h-9 w-9 place-items-center rounded-lg border border-slate-300 bg-white text-lg font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 disabled:opacity-40 disabled:hover:bg-white disabled:active:scale-100';
 
-/** Lets the user type a card limit (1–150) directly, or nudge it with the − / + buttons. */
-export function CardLimitControl({
-  size,
-  available,
-  onChange,
-}: {
-  size: number;
-  available: number;
-  onChange: (size: number) => void;
-}) {
+/**
+ * Lets the user type a card limit (1–150) directly, or nudge it with the − / + buttons.
+ * A typed limit is applied on Enter or when leaving the field; the buttons apply straight away.
+ */
+export function CardLimitControl({ size, onChange }: { size: number; onChange: (size: number) => void }) {
   const [draft, setDraft] = useState(String(size));
   const [error, setError] = useState<string | null>(null);
 
@@ -24,13 +19,16 @@ export function CardLimitControl({
     setDraft(String(size));
   }
 
-  const commit = (raw: string) => {
-    const result = parseDeckSizeInput(raw);
+  // On leaving the field, an invalid value is replaced with the current limit so the field always matches the deck.
+  const commit = (resetIfInvalid: boolean) => {
+    const result = parseDeckSizeInput(draft);
     if (result.ok) {
       setError(null);
+      setDraft(String(result.value));
       onChange(result.value);
     } else {
       setError(result.error);
+      if (resetIfInvalid) setDraft(String(size));
     }
   };
 
@@ -43,12 +41,9 @@ export function CardLimitControl({
   return (
     <div className="mt-4 rounded-xl bg-slate-100 px-3 py-2">
       <div className="flex items-center justify-between">
-        <div className="text-sm">
-          <label htmlFor="card-limit" className="font-semibold text-slate-700">
-            Card limit
-          </label>
-          <div className="text-xs text-slate-500">of {available.toLocaleString()} words</div>
-        </div>
+        <label htmlFor="card-limit" className="text-sm font-semibold text-slate-700">
+          Card limit
+        </label>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -66,10 +61,11 @@ export function CardLimitControl({
             min={MIN_DECK_SIZE}
             max={MAX_DECK_SIZE}
             value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              commit(e.target.value);
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit(false);
             }}
+            onBlur={() => commit(true)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? 'card-limit-error' : undefined}
             className="w-14 rounded-lg border border-slate-300 bg-white py-1.5 text-center font-bold tabular-nums"

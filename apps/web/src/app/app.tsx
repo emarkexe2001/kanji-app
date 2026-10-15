@@ -17,7 +17,7 @@ function StudyDeck({ words }: { words: WordEntry[] }) {
 
   return (
     <Deck cards={cards}>
-      <CardLimitControl size={count} available={words.length} onChange={setSize} />
+      <CardLimitControl size={count} onChange={setSize} />
     </Deck>
   );
 }
