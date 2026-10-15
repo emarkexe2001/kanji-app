@@ -1,5 +1,7 @@
-import { screen } from '@testing-library/react';
-import { describe, expect, test } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, test, vi } from 'vitest';
+import { CardLimitControl } from '../../src/features/card-limit/components/card-limit-control';
 import {
   cardLimitInput,
   counter,
@@ -75,7 +77,7 @@ describe('card limit', () => {
     expect(cardLimitInput()).toHaveValue(7);
   });
 
-  test('pressing Enter and then leaving the field applies the typed limit once', async () => {
+  test('pressing Enter and then leaving the field keeps the typed limit and the same card', async () => {
     const user = await renderApp();
     await wordsSeenWithNext(user, 2); // now on card 3 of 10
     const before = currentWord();
@@ -89,7 +91,21 @@ describe('card limit', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  test('a typed limit that has not been applied yet is applied before + or − steps from it', async () => {
+  test('pressing Enter and then leaving the field only ever applies the typed limit', async () => {
+    // The control on its own, with a size that never changes, so leaving the field can't be rescued by the deck.
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(<CardLimitControl size={10} onChange={onChange} />);
+
+    await user.clear(cardLimitInput());
+    await user.keyboard('7{Enter}');
+    await user.tab();
+
+    expect(onChange).toHaveBeenCalledWith(7);
+    for (const [value] of onChange.mock.calls) expect(value).toBe(7);
+  });
+
+  test('a typed limit is applied when + or − is clicked (the click leaves the field first), then the step runs from it', async () => {
     const user = await renderApp();
     await user.clear(cardLimitInput());
     await user.keyboard('20');
@@ -222,10 +238,53 @@ describe('card limit', () => {
       expect(cardLimitInput()).toHaveAttribute('aria-invalid', 'true');
       expect(counter().total).toBe(10);
 
-      // Once I start correcting it, the field no longer holds the rejected value.
+      // Once I start correcting it, the message goes and the field is no longer marked invalid.
       await user.keyboard('{Backspace}');
       expect(cardLimitInput()).toHaveValue(15);
       expect(cardLimitInput()).not.toHaveAttribute('aria-invalid');
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    test('pressing Enter on an invalid limit and then leaving the field puts back the current limit', async () => {
+      const user = await renderApp();
+
+      await enterCardLimit(user, '151');
+      await user.tab();
+
+      expect(cardLimitInput()).toHaveValue(10);
+      expect(cardLimitInput()).not.toHaveAttribute('aria-invalid');
+      expect(screen.getByRole('alert')).toHaveTextContent("Card limit can't be more than 150.");
+      expect(counter().total).toBe(10);
+    });
+
+    test('pressing + after leaving the field with an invalid limit clears the message and steps from the current limit', async () => {
+      const user = await renderApp();
+      await user.clear(cardLimitInput());
+      await user.keyboard('0');
+      await user.tab();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Increase card limit' }));
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(cardLimitInput()).toHaveValue(11);
+      expect(cardLimitInput()).not.toHaveAttribute('aria-invalid');
+      expect(counter().total).toBe(11);
+    });
+
+    test('pressing Enter on an invalid limit, then typing a valid one and leaving the field applies it', async () => {
+      const user = await renderApp();
+      await enterCardLimit(user, '0');
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+
+      await user.clear(cardLimitInput());
+      await user.keyboard('12');
+      await user.tab();
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(cardLimitInput()).toHaveValue(12);
+      expect(cardLimitInput()).not.toHaveAttribute('aria-invalid');
+      expect(counter().total).toBe(12);
     });
 
     test('a decimal card limit shows a validation message and the deck does not change', async () => {
