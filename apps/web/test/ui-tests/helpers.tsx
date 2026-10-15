@@ -49,14 +49,13 @@ export function cardLimitInput() {
   return screen.getByLabelText('Card limit');
 }
 
-/** Replaces the card limit field's value in one go, like pasting it. */
+/** Replaces the card limit field's value in one go, like pasting it, then presses Enter to apply it. */
 export async function enterCardLimit(user: ReturnType<typeof userEvent.setup>, value: string) {
   const input = cardLimitInput();
   await user.clear(input);
-  if (value !== '') {
-    input.focus();
-    await user.paste(value);
-  }
+  input.focus();
+  if (value !== '') await user.paste(value);
+  await user.keyboard('{Enter}');
 }
 
 /** Presses Next `count` times and returns every word shown along the way, starting with the current one. */
