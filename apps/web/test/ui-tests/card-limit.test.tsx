@@ -30,7 +30,51 @@ describe('card limit', () => {
     expect(seen[5]).toBe(seen[0]);
   });
 
-  test('the + and − buttons change the deck size by one', async () => {
+  test('the total number of available words is not shown anywhere', async () => {
+    // Words with no numbers in them, so the only way 2345 could appear is as the total.
+    const words = makeWords(2345).map((w) => ({
+      ...w,
+      word: '単語',
+      reading: 'たんご',
+      segments: [{ text: '単語', reading: 'たんご', kind: 'onyomi' as const }],
+      meaning: 'a word',
+    }));
+
+    await renderApp(words);
+
+    expect(document.body.textContent).not.toMatch(/2,?345/);
+    expect(screen.queryByText(/words/i)).not.toBeInTheDocument();
+  });
+
+  test('typing 150 and pressing Enter goes straight to 150 cards, never 1 or 15', async () => {
+    const user = await renderApp();
+    await user.clear(cardLimitInput());
+
+    for (const key of ['1', '5', '0']) {
+      await user.keyboard(key);
+      expect(counter().total).toBe(10);
+    }
+    expect(cardLimitInput()).toHaveValue(150);
+
+    await user.keyboard('{Enter}');
+
+    expect(counter().total).toBe(150);
+    expect(localStorage.getItem('kanji.deckSize')).toBe('150');
+  });
+
+  test('a typed card limit is applied when I leave the field', async () => {
+    const user = await renderApp();
+    await user.clear(cardLimitInput());
+    await user.keyboard('7');
+    expect(counter().total).toBe(10);
+
+    await user.tab();
+
+    expect(counter().total).toBe(7);
+    expect(cardLimitInput()).toHaveValue(7);
+  });
+
+  test('the + and − buttons change the deck size by one straight away', async () => {
     const user = await renderApp();
 
     await user.click(screen.getByRole('button', { name: 'Increase card limit' }));
@@ -106,6 +150,19 @@ describe('card limit', () => {
 
       expect(screen.getByRole('alert')).toHaveTextContent('Enter a card limit.');
       expect(counter().total).toBe(10);
+    });
+
+    test('typing 0 and leaving the field shows a validation message and puts back the previous card limit', async () => {
+      const user = await renderApp();
+      await enterCardLimit(user, '25');
+
+      await user.clear(cardLimitInput());
+      await user.keyboard('0');
+      await user.tab();
+
+      expect(screen.getByRole('alert')).toHaveTextContent("Card limit can't be 0 — enter at least 1.");
+      expect(cardLimitInput()).toHaveValue(25);
+      expect(counter().total).toBe(25);
     });
 
     test('a decimal card limit shows a validation message and the deck does not change', async () => {
