@@ -11,6 +11,8 @@ const stepBtn =
 export function CardLimitControl({ size, onChange }: { size: number; onChange: (size: number) => void }) {
   const [draft, setDraft] = useState(String(size));
   const [error, setError] = useState<string | null>(null);
+  // Only true while the field still shows the rejected value; the message stays up after a reset.
+  const [invalid, setInvalid] = useState(false);
 
   // Keep the field in sync when the committed size changes from elsewhere (e.g. the +/- buttons).
   const [prevSize, setPrevSize] = useState(size);
@@ -24,10 +26,12 @@ export function CardLimitControl({ size, onChange }: { size: number; onChange: (
     const result = parseDeckSizeInput(draft);
     if (result.ok) {
       setError(null);
+      setInvalid(false);
       setDraft(String(result.value));
       onChange(result.value);
     } else {
       setError(result.error);
+      setInvalid(!resetIfInvalid);
       if (resetIfInvalid) setDraft(String(size));
     }
   };
@@ -35,6 +39,7 @@ export function CardLimitControl({ size, onChange }: { size: number; onChange: (
   const step = (delta: 1 | -1) => {
     const next = clampDeckSize(size + delta);
     setError(null);
+    setInvalid(false);
     onChange(next);
   };
 
@@ -61,13 +66,16 @@ export function CardLimitControl({ size, onChange }: { size: number; onChange: (
             min={MIN_DECK_SIZE}
             max={MAX_DECK_SIZE}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setInvalid(false);
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commit(false);
             }}
             onBlur={() => commit(true)}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? 'card-limit-error' : undefined}
+            aria-invalid={invalid ? true : undefined}
+            aria-describedby={invalid ? 'card-limit-error' : undefined}
             className="w-14 rounded-lg border border-slate-300 bg-white py-1.5 text-center font-bold tabular-nums"
           />
           <button
