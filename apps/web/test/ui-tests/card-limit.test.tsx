@@ -43,7 +43,8 @@ describe('card limit', () => {
     await renderApp(words);
 
     expect(document.body.textContent).not.toMatch(/2,?345/);
-    expect(screen.queryByText(/words/i)).not.toBeInTheDocument();
+    // Checked across the whole page so it still fails if the number and "words" are in separate elements.
+    expect(document.body.textContent).not.toMatch(/of\s*[\d,]+\s*words/i);
   });
 
   test('typing 150 and pressing Enter goes straight to 150 cards, never 1 or 15', async () => {
@@ -72,6 +73,37 @@ describe('card limit', () => {
 
     expect(counter().total).toBe(7);
     expect(cardLimitInput()).toHaveValue(7);
+  });
+
+  test('pressing Enter and then leaving the field applies the typed limit once', async () => {
+    const user = await renderApp();
+    await wordsSeenWithNext(user, 2); // now on card 3 of 10
+    const before = currentWord();
+
+    await enterCardLimit(user, '7');
+    await user.tab();
+
+    expect(counter()).toEqual({ position: 3, total: 7 });
+    expect(currentWord()).toBe(before);
+    expect(cardLimitInput()).toHaveValue(7);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('a typed limit that has not been applied yet is applied before + or − steps from it', async () => {
+    const user = await renderApp();
+    await user.clear(cardLimitInput());
+    await user.keyboard('20');
+
+    await user.click(screen.getByRole('button', { name: 'Increase card limit' }));
+    expect(counter().total).toBe(21);
+    expect(cardLimitInput()).toHaveValue(21);
+
+    await user.clear(cardLimitInput());
+    await user.keyboard('5');
+
+    await user.click(screen.getByRole('button', { name: 'Decrease card limit' }));
+    expect(counter().total).toBe(4);
+    expect(cardLimitInput()).toHaveValue(4);
   });
 
   test('the + and − buttons change the deck size by one straight away', async () => {
@@ -163,6 +195,37 @@ describe('card limit', () => {
       expect(screen.getByRole('alert')).toHaveTextContent("Card limit can't be 0 — enter at least 1.");
       expect(cardLimitInput()).toHaveValue(25);
       expect(counter().total).toBe(25);
+    });
+
+    test('after typing 0 and leaving the field, the field shows the previous limit and is not marked invalid', async () => {
+      const user = await renderApp();
+      await enterCardLimit(user, '25');
+
+      await user.clear(cardLimitInput());
+      await user.keyboard('0');
+      await user.tab();
+
+      expect(cardLimitInput()).toHaveValue(25);
+      expect(cardLimitInput()).not.toHaveAttribute('aria-invalid');
+      expect(cardLimitInput()).not.toHaveAttribute('aria-describedby');
+      // The message itself stays up so the user knows why their value was replaced.
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
+    test('pressing Enter on an invalid limit shows the message and keeps what I typed so I can fix it', async () => {
+      const user = await renderApp();
+
+      await enterCardLimit(user, '151');
+
+      expect(screen.getByRole('alert')).toHaveTextContent("Card limit can't be more than 150.");
+      expect(cardLimitInput()).toHaveValue(151);
+      expect(cardLimitInput()).toHaveAttribute('aria-invalid', 'true');
+      expect(counter().total).toBe(10);
+
+      // Once I start correcting it, the field no longer holds the rejected value.
+      await user.keyboard('{Backspace}');
+      expect(cardLimitInput()).toHaveValue(15);
+      expect(cardLimitInput()).not.toHaveAttribute('aria-invalid');
     });
 
     test('a decimal card limit shows a validation message and the deck does not change', async () => {
