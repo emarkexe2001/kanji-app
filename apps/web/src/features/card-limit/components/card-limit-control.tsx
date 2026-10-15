@@ -68,6 +68,7 @@ export function CardLimitControl({ size, onChange }: { size: number; onChange: (
             value={draft}
             onChange={(e) => {
               setDraft(e.target.value);
+              setError(null);
               setInvalid(false);
             }}
             onKeyDown={(e) => {
