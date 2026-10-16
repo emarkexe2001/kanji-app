@@ -28,10 +28,26 @@ const isKana = (c: string) => /[ぁ-ゟ゠-ヿ]/.test(c);
 
 /** ん+long-vowel mark etc. are not handled; katakana長音 "ー" is matched literally as okurigana. */
 const RENDAKU: Record<string, string[]> = {
-  か: ['が'], き: ['ぎ'], く: ['ぐ'], け: ['げ'], こ: ['ご'],
-  さ: ['ざ'], し: ['じ'], す: ['ず'], せ: ['ぜ'], そ: ['ぞ'],
-  た: ['だ'], ち: ['じ', 'ぢ'], つ: ['ず', 'づ'], て: ['で'], と: ['ど'],
-  は: ['ば', 'ぱ'], ひ: ['び', 'ぴ'], ふ: ['ぶ', 'ぷ'], へ: ['べ', 'ぺ'], ほ: ['ぼ', 'ぽ'],
+  か: ['が'],
+  き: ['ぎ'],
+  く: ['ぐ'],
+  け: ['げ'],
+  こ: ['ご'],
+  さ: ['ざ'],
+  し: ['じ'],
+  す: ['ず'],
+  せ: ['ぜ'],
+  そ: ['ぞ'],
+  た: ['だ'],
+  ち: ['じ', 'ぢ'],
+  つ: ['ず', 'づ'],
+  て: ['で'],
+  と: ['ど'],
+  は: ['ば', 'ぱ'],
+  ひ: ['び', 'ぴ'],
+  ふ: ['ぶ', 'ぷ'],
+  へ: ['べ', 'ぺ'],
+  ほ: ['ぼ', 'ぽ'],
 };
 
 interface Candidate {
@@ -87,11 +103,7 @@ function candidates(info: KanjiInfo, canVoice: boolean, hasNext: boolean): Candi
  * Returns null when the reading can't be explained by KANJIDIC readings
  * (e.g. jukujikun such as 今日 → きょう), so callers can skip or special-case those words.
  */
-export function segmentWord(
-  written: string,
-  reading: string,
-  index: KanjiIndex,
-): AlignedSegment[] | null {
+export function segmentWord(written: string, reading: string, index: KanjiIndex): AlignedSegment[] | null {
   const chars = [...written];
   const rd = toHiragana(reading);
 

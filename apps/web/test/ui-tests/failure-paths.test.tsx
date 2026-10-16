@@ -7,7 +7,10 @@ import { counter, enterCardLimit, makeWords, renderApp, serveDeck } from './help
 
 describe('failure paths', () => {
   test('if the dictionary fails to download, an error message is shown instead of the deck', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => [] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 500, json: async () => [] })),
+    );
 
     render(<App />);
 
@@ -17,7 +20,10 @@ describe('failure paths', () => {
   });
 
   test('if the network request fails, an error message is shown instead of the deck', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))),
+    );
 
     render(<App />);
 
@@ -39,7 +45,11 @@ describe('failure paths', () => {
     expect(screen.getByRole('heading', { name: 'Kanji Reading Highlighter' })).toBeInTheDocument();
     expect(screen.getByText(/Dictionary data from/)).toBeInTheDocument();
     // And the error is logged for debugging.
-    expect(consoleError).toHaveBeenCalledWith('Error while rendering the deck:', expect.any(TypeError), expect.anything());
+    expect(consoleError).toHaveBeenCalledWith(
+      'Error while rendering the deck:',
+      expect.any(TypeError),
+      expect.anything(),
+    );
   });
 
   test('if browser storage is blocked, the app still works with the default card limit', async () => {

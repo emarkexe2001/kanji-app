@@ -27,8 +27,7 @@ const IDX: KanjiIndex = new Map<string, KanjiInfo>([
   ['私', k(['し'], ['わたくし', 'わたし'])],
 ]);
 
-const summary = (w: string, r: string) =>
-  segmentWord(w, r, IDX)?.map((s) => `${s.text}:${s.reading ?? '-'}:${s.kind}`);
+const summary = (w: string, r: string) => segmentWord(w, r, IDX)?.map((s) => `${s.text}:${s.reading ?? '-'}:${s.kind}`);
 
 test('kunyomi stem + okurigana', () => {
   assert.deepEqual(summary('食べる', 'たべる'), ['食:た:kunyomi', 'べる:-:okurigana']);
@@ -43,11 +42,7 @@ test('longest reading wins, then okurigana', () => {
 });
 
 test('okurigana in the middle of a word', () => {
-  assert.deepEqual(summary('飲み物', 'のみもの'), [
-    '飲:の:kunyomi',
-    'み:-:okurigana',
-    '物:もの:kunyomi',
-  ]);
+  assert.deepEqual(summary('飲み物', 'のみもの'), ['飲:の:kunyomi', 'み:-:okurigana', '物:もの:kunyomi']);
 });
 
 test('sokuon: 学校 → がっこう', () => {

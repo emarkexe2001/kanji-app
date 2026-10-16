@@ -51,12 +51,7 @@ export default function App() {
           JMdict &amp; KANJIDIC2
         </a>{' '}
         © EDRDG, used under{' '}
-        <a
-          className="underline"
-          href="https://www.edrdg.org/edrdg/licence.html"
-          target="_blank"
-          rel="noreferrer"
-        >
+        <a className="underline" href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noreferrer">
           CC BY-SA 4.0
         </a>
         .
