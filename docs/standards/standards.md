@@ -185,13 +185,31 @@ A document in `docs/` must describe the test types used in the project and how t
 ### 5.5 Commit messages
 Use this format:
 ```
-Title of the feature
-A brief description of the feature that was worked on.
+Title of the change
+
+A brief description of what was changed and why.
 ```
-The exact format for commits, branches and pull requests is still being discussed with Hong (see Open Questions).
+These rules are checked automatically, when you commit and again in CI:
+- **The title is 72 characters or fewer.**
+- **Line 2 is blank.** It separates the title from the description.
+- **There is a description** after the blank line. Trailers such as `Co-Authored-By:` at the end don't count as the description.
+- **Merge commits and git's own revert messages** (`Revert "..."`) are allowed through as git writes them.
+
+How the check runs:
+- **When you commit,** a `commit-msg` git hook (set up by [husky](https://typicode.github.io/husky/) when you run `npm install`) rejects a message that breaks a rule, says which rule, and shows the title. Your message is kept in the file it names, so you can fix it and commit again.
+- **In CI,** the "Typecheck and test" check runs the same script over every commit in the pull request, so a commit made with `--no-verify` still fails, and the failure names the commit.
+- The rules live in one script, `scripts/check-commit-message.ts`, used by both. See [testing.md](../testing.md#commit-message-check) to run it by hand.
+
+**Writing a multi-line message safely (especially on Windows):** don't put a multi-line message in `git commit -m "..."`. Some Windows shells squash it onto one line, which is how the title, description and trailer all end up in the title. Instead, either:
+- run `git commit` with no `-m`, and write the message in the editor that opens, or
+- write the message to a file and run `git commit -F <file>`.
+
+**Fixing a bad commit:** force-pushing is not allowed, including to your own feature branch, and the permission setup blocks it. Once a commit is pushed, fix problems with new commits, not by rewriting history. A commit that is already pushed with a bad message can't be fixed by a new commit, so the check in CI will keep failing: move the work to a new branch with well-formed commits and open a new pull request. The hook exists so this doesn't happen.
+
+The exact detail expected in commits, branches and pull requests is still being discussed with Hong (see Open Questions). The rules above are the minimum and may be tightened once that is agreed.
 
 ---
 
 ## 6. Open Questions
 - **Minimum deck size:** these standards say "at least 1–5 cards", but the card limit ticket says the minimum is 1. Agree on one number (ticket PROC3).
-- **Commit, branch and PR detail:** how much detail commit messages, branch names and pull requests should have. To be agreed with Hong.
+- **Commit, branch and PR detail:** how much detail commit messages, branch names and pull requests should have. To be agreed with Hong. The minimum commit message rules in 5.5 are already enforced (ticket TOOL3).

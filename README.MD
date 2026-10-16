@@ -41,7 +41,7 @@ In VS Code, install the recommended Prettier extension (`esbenp.prettier-vscode`
 Line endings are always LF (`.gitattributes`). If an older Windows checkout still has CRLF files and `npm run format:check` complains about them, run `npm run format` once (git will show no changes).
 
 ## Continuous integration
-The checks run automatically on GitHub (see `.github/workflows/ci.yml`) on every pull request to `main` and every push to `main`. The workflow installs the project with `npm ci`, then runs `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. `main` is protected: changes can only reach it through a pull request, and a pull request can only be merged once this check is green. Direct pushes to `main` are rejected. An approving review is not required yet, because the project has a single maintainer; it will be added when someone else joins.
+The checks run automatically on GitHub (see `.github/workflows/ci.yml`) on every pull request to `main` and every push to `main`. The workflow installs the project with `npm ci`, then runs `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. On pull requests it also checks every commit message against the rules in standards 5.5; a `commit-msg` hook (installed by `npm install`) checks them when you commit too. See `docs/testing.md` to run the check by hand. `main` is protected: changes can only reach it through a pull request, and a pull request can only be merged once this check is green. Direct pushes to `main` are rejected. An approving review is not required yet, because the project has a single maintainer; it will be added when someone else joins.
 
 ## Further help
 

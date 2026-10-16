@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, so the commit message check can see every commit in the PR.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -19,5 +22,10 @@ jobs:
       - run: npm ci
       - run: npm run format:check
       - run: npm run lint
+      # Checks every commit in the PR against standards 5.5. On a pull request HEAD is
+      # GitHub's merge of the PR into main; that commit has two parents, so it is skipped.
+      - name: Check commit messages
+        if: github.event_name == 'pull_request'
+        run: npm run check:commits -- origin/main..HEAD
       - run: npm run typecheck
       - run: npm test

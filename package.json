@@ -11,11 +11,14 @@
     "dev:web": "npm run dev -w @kanji/web",
     "build:web": "npm run build -w @kanji/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && npm run test:scripts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "data:build": "tsx scripts/build-deck.ts"
+    "data:build": "tsx scripts/build-deck.ts",
+    "test:scripts": "tsx --test scripts/test/*.test.ts",
+    "check:commits": "tsx scripts/check-commit-message.ts --range",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -27,6 +30,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
+    "husky": "^9.1.7",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tsx": "^4.23.13",
