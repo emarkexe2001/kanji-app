@@ -33,8 +33,9 @@ If a ticket and these standards disagree, or something isn't clear, ask before s
 ### 2.1 Language and tooling
 - **TypeScript in strict mode** for all code. Avoid `any`; if a type is unknown, use `unknown` and narrow it.
 - **ESLint** must pass with no errors. It enforces code quality and the folder/import rules in section 3.
-- **Prettier** formats all code. Turn on "format on save" in your editor. Don't argue about formatting in reviews; Prettier decides.
-- `npm run typecheck`, `npm run lint` and `npm test` must all pass before opening a pull request.
+- **Prettier** formats all code (`.prettierrc`). Turn on "format on save" in your editor. Don't argue about formatting in reviews; Prettier decides. Markdown files (docs and tickets) are not formatted by Prettier, because it rewrites the ticket layout; keep them tidy by hand.
+- **Line endings are LF** on every OS (`.gitattributes`), so Windows and Mac/Linux produce the same files.
+- `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test` must all pass before opening a pull request. CI runs the same checks.
 
 ### 2.2 Naming
 - **Files and folders use kebab-case**, e.g. `word-card.tsx`, `use-deck.ts`, `deck-size.ts`, `card-limit/`. This avoids case-sensitivity problems between Windows, macOS and Linux.
@@ -174,6 +175,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - The feature is fully implemented.
 - Functional tests have been added around the feature.
 - The new code doesn't break old code or old tests, and all tests pass.
+- `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test` all pass (see 2.1).
 
 ### 5.4 Pull requests and merging
 - **Every change goes through a pull request,** reviewed by me or someone else before any merging happens.
