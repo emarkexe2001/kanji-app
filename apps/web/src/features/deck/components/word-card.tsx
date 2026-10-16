@@ -33,14 +33,9 @@ function SegmentRow({ seg }: { seg: ReadingSegment }) {
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-bold text-slate-900">
           {seg.text}
-          {seg.reading && (
-            <span className="ml-1 font-normal text-slate-600">({seg.reading})</span>
-          )}
+          {seg.reading && <span className="ml-1 font-normal text-slate-600">({seg.reading})</span>}
         </span>
-        <span
-          className="text-sm font-bold underline decoration-2 underline-offset-2"
-          style={{ color }}
-        >
+        <span className="text-sm font-bold underline decoration-2 underline-offset-2" style={{ color }}>
           {READING_LABELS[seg.kind]}
         </span>
       </div>
@@ -61,10 +56,7 @@ export function WordCard({ entry }: { entry: WordEntry }) {
 
   return (
     <article className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200">
-      <header
-        className="px-4 py-2 text-xs font-bold tracking-wide text-white"
-        style={{ backgroundColor: headerColor }}
-      >
+      <header className="px-4 py-2 text-xs font-bold tracking-wide text-white" style={{ backgroundColor: headerColor }}>
         {entry.jlpt ? `JLPT ${entry.jlpt}` : 'Vocabulary'}
       </header>
 
@@ -81,16 +73,14 @@ export function WordCard({ entry }: { entry: WordEntry }) {
             <span className="text-lg font-normal text-slate-500">【{entry.reading}】</span>
           </h2>
           {entry.common && (
-            <p className="badge-common mt-1" style={{ color: COMMON_COLOR }}>
+            <p className="mt-1 badge-common" style={{ color: COMMON_COLOR }}>
               ★ Common Word
             </p>
           )}
         </div>
 
         <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">
-            READING BREAKDOWN
-          </h3>
+          <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
           <ul>
             {entry.segments.map((seg, i) => (
               <SegmentRow key={i} seg={seg} />

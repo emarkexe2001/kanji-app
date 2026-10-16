@@ -31,7 +31,10 @@ const findRaw = (prefix: string): string => {
 const readJson = (p: string) => JSON.parse(readFileSync(p, 'utf8'));
 
 // ---------- KANJIDIC2 → KanjiIndex ----------
-interface KdReading { type: string; value: string }
+interface KdReading {
+  type: string;
+  value: string;
+}
 interface KdChar {
   literal: string;
   readingMeaning?: { groups: { readings: KdReading[]; meanings: { lang: string; value: string }[] }[] };
@@ -63,15 +66,29 @@ function buildKanjiIndex(chars: KdChar[]): Map<string, KanjiInfo> {
 }
 
 // ---------- JMdict → WordEntry ----------
-interface JmKanji { text: string; common: boolean; tags: string[] }
-interface JmKana { text: string; common: boolean; tags: string[]; appliesToKanji: string[] }
+interface JmKanji {
+  text: string;
+  common: boolean;
+  tags: string[];
+}
+interface JmKana {
+  text: string;
+  common: boolean;
+  tags: string[];
+  appliesToKanji: string[];
+}
 interface JmSense {
   partOfSpeech: string[];
   appliesToKanji: string[];
   appliesToKana: string[];
   gloss: { lang: string; text: string }[];
 }
-interface JmWord { id: string; kanji: JmKanji[]; kana: JmKana[]; sense: JmSense[] }
+interface JmWord {
+  id: string;
+  kanji: JmKanji[];
+  kana: JmKana[];
+  sense: JmSense[];
+}
 
 /** Writings/readings flagged irregular, rare, outdated or search-only aren't good study forms. */
 const BAD_KANJI_TAGS = new Set(['sK', 'iK', 'oK', 'rK', 'ateji']);
@@ -84,9 +101,7 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const hasKanji = (s: string) => /[㐀-䶿一-鿿]/.test(s);
 
 function meaningOf(w: JmWord, written: string, reading: string): string {
-  const senses = w.sense.filter(
-    (s) => applies(s.appliesToKanji, written) && applies(s.appliesToKana, reading),
-  );
+  const senses = w.sense.filter((s) => applies(s.appliesToKanji, written) && applies(s.appliesToKana, reading));
   // Up to 2 senses × 2 glosses, but stop adding glosses once the text passes MAX_MEANING_CHARS
   // (always keeping the first) so cards stay readable.
   const parts: string[] = [];
