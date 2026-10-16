@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import type { WordEntry } from '@kanji/core';
 
 export type DeckState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; words: WordEntry[] };
+  { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; words: WordEntry[] };
 
 /** In-place Fisher–Yates shuffle. */
 function shuffled<T>(items: T[]): T[] {

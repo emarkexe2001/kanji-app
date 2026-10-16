@@ -1,2 +1,9 @@
-# Git hooks run with sh, which breaks on Windows line endings.
-.husky/* text eol=lf
+# Store and check out text files with LF line endings on every OS,
+# so Windows and Mac/Linux produce the same files (matches .prettierrc endOfLine).
+* text=auto eol=lf
+
+# Binary files: never touch their bytes.
+*.zip binary
+*.png binary
+*.jpg binary
+*.ico binary

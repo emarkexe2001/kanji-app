@@ -59,7 +59,10 @@ describe('checkCommitMessage', () => {
 
   it('allows merge commits', () => {
     assert.deepEqual(checkCommitMessage("Merge remote-tracking branch 'origin/main' into feature/card-shuffle"), []);
-    assert.deepEqual(checkCommitMessage('Merge pull request #16 from emarkexe2001/docs/commit-message-check-ticket'), []);
+    assert.deepEqual(
+      checkCommitMessage('Merge pull request #16 from emarkexe2001/docs/commit-message-check-ticket'),
+      [],
+    );
   });
 
   it("allows git's own revert messages", () => {

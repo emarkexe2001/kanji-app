@@ -20,6 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
       # Checks every commit in the PR against standards 5.5. On a pull request HEAD is
       # GitHub's merge of the PR into main; that commit has two parents, so it is skipped.
       - name: Check commit messages

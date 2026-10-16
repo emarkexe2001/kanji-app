@@ -40,7 +40,7 @@ export function Deck({ cards, children }: { cards: WordEntry[]; children?: React
 
   return (
     <>
-      <p className="mt-4 text-center text-sm tabular-nums text-slate-500">
+      <p className="mt-4 text-center text-sm text-slate-500 tabular-nums">
         Card {index + 1} / {count}
       </p>
 
@@ -67,9 +67,7 @@ export function Deck({ cards, children }: { cards: WordEntry[]; children?: React
 
       {children}
 
-      <p className="mt-3 hidden text-center text-xs text-slate-400 sm:block">
-        Keyboard: → next · S shuffle
-      </p>
+      <p className="mt-3 hidden text-center text-xs text-slate-400 sm:block">Keyboard: → next · S shuffle</p>
     </>
   );
 }
