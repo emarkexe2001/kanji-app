@@ -6,7 +6,8 @@ This document describes the types of test used in the project, where each lives 
 
 | Command (from the repo root) | What it runs |
 |---|---|
-| `npm test` | Every test in every workspace: unit tests and UI tests. CI runs this on every pull request. |
+| `npm test` | Every test in every workspace (unit tests and UI tests), then the `scripts/` tests. CI runs this on every pull request. |
+| `npm run test:scripts` | Only the tests for the root `scripts/` (e.g. the commit message check), in `scripts/test/` |
 | `npm run test:unit -w @kanji/web` | Only the web app's unit tests |
 | `npm run test:ui -w @kanji/web` | Only the web app's UI tests |
 | `npx vitest -w @kanji/web` (or `npx vitest` inside `apps/web`) | UI tests in watch mode, re-running as you save |
@@ -32,6 +33,16 @@ This document describes the types of test used in the project, where each lives 
   - `deck.test.tsx`: Next, the → key, wrapping round, Shuffle
   - `card-limit.test.tsx`: setting the limit, + / −, saving it, and every validation message
   - `failure-paths.test.tsx`: the dictionary failing to load, a card failing to draw (error boundary), blocked browser storage, a corrupt saved limit
+
+### Commit message check
+Commit messages are checked against [standards.md, section 5.5](standards/standards.md#55-commit-messages) by `scripts/check-commit-message.ts`. The `commit-msg` hook runs it on every commit and CI runs it on every commit in a pull request. To run it by hand (from the repo root):
+
+| Command | What it checks |
+|---|---|
+| `npm run check:commits -- origin/main..HEAD` | Every commit on your branch that isn't on `main` yet, the same as CI. Run `git fetch` first so `origin/main` is up to date. |
+| `npx tsx scripts/check-commit-message.ts --file <path>` | One message saved in a file, the same as the hook. Handy for checking a message before `git commit -F <path>`. |
+
+Its rules are unit tested in `scripts/test/check-commit-message.test.ts` (`npm run test:scripts`). If the hook doesn't run when you commit, run `npm install` once to set it up.
 
 ### End-to-end (e2e) tests
 Not set up yet. When added they will run the whole app in a real browser and live in `apps/web/test/e2e/`.
