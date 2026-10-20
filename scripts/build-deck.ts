@@ -5,7 +5,9 @@
  *   npm run data:build
  *
  * Output: apps/web/public/data/deck.json — an array of WordEntry, one per JMdict word
- * that contains kanji and whose reading can be split across its kanji.
+ * that contains kanji and whose reading can be split across its kanji. Words on the JLPT
+ * vocabulary lists in data/raw/jlpt/ get their `jlpt` level; the app builds its decks
+ * (JLPT N5–N1 and Common words) from that field and the `common` flag.
  */
 import { readFileSync, readdirSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -16,11 +18,14 @@ import {
   type KanjiIndex,
   type KanjiInfo,
   type ReadingSegment,
+  type JlptLevel,
   type WordEntry,
 } from '../packages/core/src';
+import { JLPT_LEVELS, matchKey, parseJlptCsv, type JlptListEntry } from './jlpt-list';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RAW = join(ROOT, 'data', 'raw');
+const JLPT_DIR = join(RAW, 'jlpt');
 const OUT = join(ROOT, 'apps', 'web', 'public', 'data', 'deck.json');
 
 const findRaw = (prefix: string): string => {
@@ -174,12 +179,37 @@ function toEntry(w: JmWord, kanji: KanjiIndex): WordEntry | null {
   return null;
 }
 
+// ---------- JLPT levels ----------
+/** Every writing|reading pair of a JMdict word, so a JLPT list entry can match any of its forms. */
+function keysOf(w: JmWord): string[] {
+  const keys: string[] = [];
+  for (const k of w.kanji) {
+    for (const r of w.kana) if (applies(r.appliesToKanji, k.text)) keys.push(matchKey(k.text, r.text));
+  }
+  return keys;
+}
+
+const listKeys = (e: JlptListEntry) => e.writings.map((wr) => matchKey(wr, e.reading));
+
+const jlptLists = new Map<JlptLevel, JlptListEntry[]>(
+  JLPT_LEVELS.map((level) => [level, parseJlptCsv(readFileSync(join(JLPT_DIR, `${level.toLowerCase()}.csv`), 'utf8'))]),
+);
+// A word on more than one list goes in the easiest level, so the JLPT decks never overlap.
+const levelByKey = new Map<string, JlptLevel>();
+for (const [level, entries] of jlptLists) {
+  for (const e of entries) {
+    for (const key of listKeys(e)) if (!levelByKey.has(key)) levelByKey.set(key, level);
+  }
+}
+const easiest = (levels: JlptLevel[]) => JLPT_LEVELS.find((l) => levels.includes(l));
+
 // ---------- main ----------
 const kanjiChars: KdChar[] = readJson(findRaw('kanjidic2-en')).characters;
 const kanjiIndex = buildKanjiIndex(kanjiChars);
 
 const words: JmWord[] = readJson(findRaw('jmdict-eng-common')).words;
 const deck: WordEntry[] = [];
+const deckKeys = new Set<string>();
 let withKanji = 0;
 const skipped: string[] = [];
 
@@ -187,8 +217,15 @@ for (const w of words) {
   if (!w.kanji.some((k) => hasKanji(k.text))) continue; // kana-only words have nothing to highlight
   withKanji++;
   const entry = toEntry(w, kanjiIndex);
-  if (entry) deck.push(entry);
-  else skipped.push(w.kanji[0].text);
+  if (!entry) {
+    skipped.push(w.kanji[0].text);
+    continue;
+  }
+  const keys = keysOf(w);
+  const jlpt = easiest(keys.flatMap((k) => levelByKey.get(k) ?? []));
+  if (jlpt) entry.jlpt = jlpt;
+  for (const k of keys) deckKeys.add(k);
+  deck.push(entry);
 }
 
 mkdirSync(dirname(OUT), { recursive: true });
@@ -200,4 +237,19 @@ console.log(`JMdict words (common)  : ${words.length}`);
 console.log(`  …containing kanji    : ${withKanji}`);
 console.log(`  …segmented into deck : ${deck.length} (${((deck.length / withKanji) * 100).toFixed(1)}%)`);
 console.log(`  …skipped             : ${skipped.length}  e.g. ${skipped.slice(0, 15).join(' ')}`);
+console.log(`  …Common words deck   : ${deck.filter((e) => e.common).length}`);
+console.log('JLPT lists: entries with kanji matched to a deck word (kana-only entries have nothing to highlight):');
+for (const [level, entries] of jlptLists) {
+  const withKanjiEntries = entries.filter((e) => e.writings.length);
+  const unmatched = withKanjiEntries.filter((e) => !listKeys(e).some((k) => deckKeys.has(k)));
+  const tagged = deck.filter((e) => e.jlpt === level).length;
+  console.log(
+    `  ${level}: ${entries.length} entries, ${entries.length - withKanjiEntries.length} kana-only, ` +
+      `${withKanjiEntries.length - unmatched.length} matched, ${unmatched.length} unmatched ` +
+      `(e.g. ${unmatched
+        .slice(0, 8)
+        .map((e) => e.writings[0])
+        .join(' ')}); ${tagged} deck words tagged ${level}`,
+  );
+}
 console.log(`Wrote ${OUT} (${kb} KB)`);
