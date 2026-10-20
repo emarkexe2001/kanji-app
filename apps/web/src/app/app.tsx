@@ -3,23 +3,46 @@ import type { WordEntry } from '@kanji/core';
 import { CardLimitControl } from '../features/card-limit/components/card-limit-control';
 import { useCardLimit } from '../features/card-limit/hooks/use-card-limit';
 import { Deck } from '../features/deck/components/deck';
+import { DeckPicker } from '../features/deck/components/deck-picker';
+import { ShuffleInControl } from '../features/deck/components/shuffle-in-control';
 import { useDeck } from '../features/deck/hooks/use-deck';
+import { useStudyDeck } from '../features/deck/hooks/use-study-deck';
+import { buildLibrary, type Library } from '../features/deck/utils/decks';
 import { DeckErrorBoundary } from './deck-error-boundary';
 
-/** Combines the deck and card-limit features: the deck shows as many words as the card limit. */
-function StudyDeck({ words }: { words: WordEntry[] }) {
-  const [size, setSize] = useCardLimit();
-
-  // The deck is the first `size` cards of the (already shuffled) word list, so growing it
-  // keeps the same cards and just appends more.
-  const count = Math.min(size, words.length);
-  const cards = useMemo(() => words.slice(0, count), [words, count]);
+/** Combines the deck and card-limit features: the deck has as many cards as the card limit. */
+function StudyDeck({ library }: { library: Library }) {
+  const [limit, setLimit] = useCardLimit();
+  const study = useStudyDeck(library, limit);
 
   return (
-    <Deck cards={cards}>
-      <CardLimitControl size={count} onChange={setSize} />
-    </Deck>
+    <>
+      <DeckPicker decks={study.decks} value={study.studied} onChange={study.chooseDeck} />
+      <Deck study={study}>
+        <ShuffleInControl study={study} />
+        <CardLimitControl
+          size={study.cards.length}
+          onChange={(size) => {
+            setLimit(size);
+            study.setLimit(size);
+          }}
+        />
+      </Deck>
+    </>
   );
+}
+
+/** Builds the decks from the dictionary; there must be at least one to study. */
+function Decks({ words }: { words: WordEntry[] }) {
+  const library = useMemo(() => buildLibrary(words), [words]);
+  if (!library.decks.size) {
+    return (
+      <p className="flex flex-1 items-center justify-center text-center text-rose-600">
+        The word deck has no words to study.
+      </p>
+    );
+  }
+  return <StudyDeck library={library} />;
 }
 
 export default function App() {
@@ -41,7 +64,7 @@ export default function App() {
       )}
       {deck.status === 'ready' && (
         <DeckErrorBoundary>
-          <StudyDeck words={deck.words} />
+          <Decks words={deck.words} />
         </DeckErrorBoundary>
       )}
 
@@ -53,6 +76,19 @@ export default function App() {
         © EDRDG, used under{' '}
         <a className="underline" href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noreferrer">
           CC BY-SA 4.0
+        </a>
+        . JLPT levels from{' '}
+        <a
+          className="underline"
+          href="https://github.com/jamsinclair/open-anki-jlpt-decks"
+          target="_blank"
+          rel="noreferrer"
+        >
+          open-anki-jlpt-decks
+        </a>
+        , based on the lists at{' '}
+        <a className="underline" href="http://www.tanos.co.uk/jlpt/" target="_blank" rel="noreferrer">
+          tanos.co.uk
         </a>
         .
       </footer>

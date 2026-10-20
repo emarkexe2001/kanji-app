@@ -3,7 +3,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
-import { counter, enterCardLimit, makeWords, renderApp, serveDeck } from './helpers';
+import { COUNTER, counter, enterCardLimit, makeWords, renderApp, serveDeck } from './helpers';
 
 describe('failure paths', () => {
   test('if the dictionary fails to download, an error message is shown instead of the deck', async () => {
@@ -15,7 +15,7 @@ describe('failure paths', () => {
     render(<App />);
 
     expect(await screen.findByText(/Couldn't load the word deck: HTTP 500/)).toBeInTheDocument();
-    expect(screen.queryByText(/^Card \d+ \/ \d+$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(COUNTER)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
   });
 

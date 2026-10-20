@@ -20,17 +20,20 @@ This document describes the types of test used in the project, where each lives 
 - **Tools:** Node's built-in test runner (`node:test`), run through `tsx`.
 - **Where they live (for now):** next to the code, as `*.test.ts`:
   - `apps/web/src/features/card-limit/utils/deck-size.test.ts`
+  - `apps/web/src/features/deck/utils/study-deck.test.ts` (deck rules that need a fixed random source, e.g. Random taking each card from a random other deck)
   - `packages/core/src/segment.test.ts`
+  - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
 
   Ticket TEST2 moves these into `test/unit/` folders and makes the test command find them by pattern. Until then, a new unit test file has to be added to the workspace's `test` / `test:unit` script.
 
 ### UI / component tests
-- **What they check:** the app the way a user sees it. They render the real `App`, click buttons and type into fields with [Testing Library](https://testing-library.com/), and check what is on screen: the card shown, the "Card 3 / 10" counter, validation messages. They don't look at component state, so they keep passing if the code is refactored without changing behaviour.
+- **What they check:** the app the way a user sees it. They render the real `App`, click buttons and type into fields with [Testing Library](https://testing-library.com/), and check what is on screen: the card shown, the "Card 3 of 10" counter, validation messages. They don't look at component state, so they keep passing if the code is refactored without changing behaviour.
 - **Tools:** [Vitest](https://vitest.dev/) with a `jsdom` browser environment, `@testing-library/react`, `@testing-library/user-event` and `@testing-library/jest-dom` (for matchers like `toBeInTheDocument()`).
 - **Where they live:** `apps/web/test/ui-tests/*.test.tsx`. Vitest finds every `*.test.ts(x)` file there automatically (`apps/web/vitest.config.ts`).
-- **Data:** the tests never download the real dictionary. `test/ui-tests/helpers.tsx` replaces `fetch` so the app receives a list of made-up words (`makeWords`), and has helpers to read the counter and the current card and to type a card limit.
+- **Data:** the tests never download the real dictionary. `test/ui-tests/helpers.tsx` replaces `fetch` so the app receives a list of made-up words (`makeWords`, or `makeDecks` for words in several JLPT decks), and has helpers to read the counter and the current card, type a card limit, pick decks, shuffle cards in and list every card in the deck (`deckContents`).
 - **Current files:**
-  - `deck.test.tsx`: Next, the → key, wrapping round, Shuffle
+  - `deck.test.tsx`: Next, the → key, wrapping round, Deck Shuffle and the S key, the "Card 5 of 20" position
+  - `shuffle-in.test.tsx`: picking the deck to study, Shuffle In Cards (one deck or Random, one or several cards, reloads, the summary, card limit changes, the removed-cards record) and its failure paths, plus checks of bad saved deck data
   - `card-limit.test.tsx`: setting the limit, + / −, saving it, and every validation message
   - `failure-paths.test.tsx`: the dictionary failing to load, a card failing to draw (error boundary), blocked browser storage, a corrupt saved limit
 
