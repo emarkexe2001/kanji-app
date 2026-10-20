@@ -53,6 +53,22 @@ Open Questions (to confirm before starting, per PROC3):
 - Should the list show which deck each card came from?
 - If the user lowers the card limit, should the cards that drop out of the deck also go into the shuffled-out list?
 
+Answers (agreed 2026-10-20):
+- When cards are added back, the user picks which cards in the deck leave to make room. They must pick the same number of cards to remove as they add back, and the cards they pick go into the shuffled-out list.
+- The shuffled-out list keeps the last 100 cards. Older ones drop off the end.
+- Each card in the list shows which deck it came from (e.g. N4).
+- Cards that drop out when the card limit is lowered also go into the shuffled-out list (FEAT1 records them).
+
+Extra test scenarios from the answers:
+
+When I add a card back and pick a card in my deck to swap out, the picked card moves to the shuffled-out list
+
+When I pick a different number of cards to remove than to add back, a validation message is shown and my deck does not change
+
+When more than 100 cards have been shuffled out, only the newest 100 are kept
+
+When I lower the card limit, the cards that drop out appear in the shuffled-out list
+
 Dependencies:
 FEAT1 (Shuffle In Cards) must be done first, since that is what shuffles cards out.
 

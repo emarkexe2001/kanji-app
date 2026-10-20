@@ -81,13 +81,32 @@ Open Questions (to confirm before starting, per PROC3):
 - With Random, is one deck chosen for the whole shuffle, or a random deck for each new card? (This ticket assumes a random deck for each card.)
 - If the user changes the card limit after shuffling in cards, which cards are kept?
 
+Answers (agreed 2026-10-20):
+- Which other old cards are removed: random ones, after the card on screen.
+- Maximum number shuffled in at once: the user chooses, up to the card limit (the size of the deck on screen). There is no lower cap. The default is 1.
+- With Random: a random other deck for each new card, as the ticket assumes.
+- Changing the card limit after shuffling in: the deck loses or gains cards. Lowering it removes cards from the end of the saved deck (never the card on screen). Raising it adds new cards from the current deck that aren't already in it. Shuffled-in cards are kept unless they are trimmed.
+- Decks: there is only one deck today, so this ticket adds the decks it needs: JLPT N5, N4, N3, N2, N1 and a Common words deck. The user picks which deck they are studying, and the others can be shuffled in from. Real card categories (mixing several categories in one deck, card_category_ticket.md) and user-uploaded decks (FEAT4) come later.
+- New shuffle viewer: the card area always shows the card's position, e.g. "Card 5 of 20". After a Shuffle In Cards, a short summary says which positions were replaced, e.g. "Shuffled out cards 3, 7 and 12 of 20".
+- Cards that drop out of the deck when the card limit is lowered are recorded the same way as shuffled-out cards (FEAT2 shows both), together with the deck each card came from.
+
+Extra test scenarios from the answers:
+
+When I shuffle in cards, the summary shows which positions in the deck were replaced, out of the deck size
+
+The card area shows the position of the card on screen out of the deck size, e.g. "Card 5 of 20"
+
+When I pick the N5 deck, every card in my deck is an N5 word
+
+When I lower the card limit after shuffling in, the card on screen stays and the deck shrinks to the new limit
+
 Notes for the developer:
 - The UI tests in apps/web/test/ui-tests/ find the shuffle button with /shuffle/i. With two shuffle buttons they need updating to use the exact names.
 - Shuffled-in cards mean the deck is no longer just "the first N words", so the saved deck (not just the card limit) needs to be stored.
 - Keep the "Shuffle in from" source as its own piece of state, so FEAT3 can add a "Multiple decks" option without reworking it.
 
 Dependencies:
-Needs more than one deck to exist first (card_category_ticket.md, or another ticket that adds multiple decks). TEST1 (UI tests) and TOOL1 (ESLint) should be merged first.
+This ticket adds the JLPT and Common words decks itself (see Answers). TEST1 (UI tests) and TOOL1 (ESLint) are merged.
 
 Branch name Examples:
 feature/shuffle-in-cards
