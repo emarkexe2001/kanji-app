@@ -135,13 +135,15 @@ describe('card limit', () => {
     expect(cardLimitInput()).toHaveValue(9);
   });
 
-  test('shrinking the deck below the current card moves to the last card that is left', async () => {
+  test('shrinking the deck below the current card keeps that card on screen, as the last card', async () => {
     const user = await renderApp();
     await wordsSeenWithNext(user, 7); // now on card 8 of 10
+    const onScreen = currentWord();
 
     await enterCardLimit(user, '3');
 
     expect(counter()).toEqual({ position: 3, total: 3 });
+    expect(currentWord()).toBe(onScreen);
   });
 
   test('the card limit is saved in browser storage', async () => {

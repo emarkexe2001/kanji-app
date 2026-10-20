@@ -1,6 +1,14 @@
 import { screen } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
-import { counter, currentWord, enterCardLimit, renderApp, wordsSeenWithNext } from './helpers';
+import {
+  counter,
+  currentWord,
+  deckContents,
+  deckShuffleButton,
+  enterCardLimit,
+  renderApp,
+  wordsSeenWithNext,
+} from './helpers';
 
 describe('deck', () => {
   test('pressing Next shows a new card', async () => {
@@ -33,7 +41,7 @@ describe('deck', () => {
     expect(counter()).toEqual({ position: 1, total: 3 });
   });
 
-  test('with a card limit set, shuffling shows a different card from the same deck and the deck size stays the same', async () => {
+  test('when I press Deck Shuffle, a different card from my deck is shown and no card enters or leaves the deck', async () => {
     const user = await renderApp();
     await enterCardLimit(user, '5');
     const deckWords = new Set(await wordsSeenWithNext(user, 4));
@@ -41,7 +49,7 @@ describe('deck', () => {
 
     for (let i = 0; i < 20; i++) {
       const before = currentWord();
-      await user.click(screen.getByRole('button', { name: /shuffle/i }));
+      await user.click(deckShuffleButton());
 
       // The old card is replaced by a different one...
       expect(currentWord()).not.toBe(before);
@@ -49,5 +57,27 @@ describe('deck', () => {
       expect(deckWords).toContain(currentWord());
       expect(counter().total).toBe(5);
     }
+    // Walking the whole deck still finds exactly the same 5 cards.
+    expect(new Set((await deckContents(user)).map((c) => c.word))).toEqual(deckWords);
+  });
+
+  test('the S key does a Deck Shuffle', async () => {
+    const user = await renderApp();
+    await enterCardLimit(user, '5');
+    await user.click(document.body);
+    const before = currentWord();
+
+    await user.keyboard('s');
+
+    expect(currentWord()).not.toBe(before);
+    expect(counter().total).toBe(5);
+  });
+
+  test('the card area shows the position of the card on screen out of the deck size, e.g. "Card 5 of 20"', async () => {
+    const user = await renderApp();
+    await enterCardLimit(user, '20');
+    await wordsSeenWithNext(user, 4);
+
+    expect(screen.getByText('Card 5 of 20')).toBeInTheDocument();
   });
 });
