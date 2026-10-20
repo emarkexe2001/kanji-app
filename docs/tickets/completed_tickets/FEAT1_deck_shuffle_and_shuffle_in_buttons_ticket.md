@@ -110,3 +110,6 @@ This ticket adds the JLPT and Common words decks itself (see Answers). TEST1 (UI
 
 Branch name Examples:
 feature/shuffle-in-cards
+
+Completed On:
+2026-10-20 (PR #23)
