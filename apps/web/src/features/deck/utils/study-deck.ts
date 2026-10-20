@@ -17,9 +17,13 @@ export interface DeckCard {
  */
 export type ShuffleSource = { kind: 'deck'; deck: DeckId } | { kind: 'random' };
 
-/** A card that left the deck, newest first in the list. FEAT2 shows these. */
+/** Why a card left the deck: Shuffle In Cards, a lower card limit, or swapped for a card added back (FEAT2). */
+export const REMOVED_REASONS = ['shuffled-out', 'card-limit', 'swapped-out'] as const;
+export type RemovedReason = (typeof REMOVED_REASONS)[number];
+
+/** A card that left the deck: the "Shuffled-out cards" list, newest first. */
 export interface RemovedCard extends DeckCard {
-  reason: 'shuffled-out' | 'card-limit';
+  reason: RemovedReason;
   /** When it was removed (ms since the epoch). */
   removedAt: number;
 }
@@ -42,9 +46,75 @@ export function takeCards(library: Library, deck: DeckId, count: number, exclude
   return cards;
 }
 
-/** Adds removed cards to the front of the list, keeping only the newest MAX_REMOVED_CARDS. */
-export function recordRemoved(list: RemovedCard[], removed: RemovedCard[]): RemovedCard[] {
-  return [...removed, ...list].slice(0, MAX_REMOVED_CARDS);
+/**
+ * Adds removed cards to the front of the list, keeping only the newest MAX_REMOVED_CARDS.
+ * The list never holds a card that is in `deck` (the deck after the change), and holds each
+ * card once, at its newest entry, so adding a card back can never put it in the deck twice.
+ */
+export function recordRemoved(list: RemovedCard[], removed: RemovedCard[], deck: DeckCard[]): RemovedCard[] {
+  const skip = new Set(deck.map((c) => c.id));
+  const kept: RemovedCard[] = [];
+  for (const card of [...removed, ...list]) {
+    if (skip.has(card.id)) continue;
+    skip.add(card.id);
+    kept.push(card);
+  }
+  return kept.slice(0, MAX_REMOVED_CARDS);
+}
+
+export type AddBackResult =
+  { ok: true; cards: DeckCard[]; index: number; removed: RemovedCard[] } | { ok: false; error: string };
+
+export interface AddBackRequest {
+  cards: DeckCard[];
+  removed: RemovedCard[];
+  /** Ids of shuffled-out cards to add back, in list order (newest first). */
+  addIds: string[];
+  /** Positions (from 0) of the deck cards the user picked to take out to make room. */
+  takeOut: number[];
+  now: number;
+}
+
+/**
+ * Adds shuffled-out cards back into the deck (FEAT2). The user picks the same number of deck
+ * cards to take out; those go into the shuffled-out list and the added cards take their places,
+ * so the deck size doesn't change. The first added card is shown.
+ */
+export function addBack({ cards, removed, addIds, takeOut, now }: AddBackRequest): AddBackResult {
+  if (!addIds.length) return { ok: false, error: 'Pick at least one shuffled-out card to add back.' };
+  if (addIds.length > cards.length) {
+    return {
+      ok: false,
+      error: `You can't add back more than ${cards.length} ${cardsWord(cards.length)} at once, your card limit.`,
+    };
+  }
+  if (takeOut.length !== addIds.length) {
+    return {
+      ok: false,
+      error:
+        `Pick ${addIds.length} ${cardsWord(addIds.length)} in your deck to take out, the same number as you're ` +
+        `adding back (you picked ${takeOut.length}).`,
+    };
+  }
+
+  const byId = new Map(removed.map((r) => [r.id, r]));
+  const added = addIds.map((id) => byId.get(id));
+  const inDeck = new Set(cards.map((c) => c.id));
+  if (added.some((r) => !r || inDeck.has(r.id))) {
+    return { ok: false, error: 'Some of the picked cards are no longer in the shuffled-out list.' };
+  }
+  const positions = [...new Set(takeOut)].sort((a, b) => a - b);
+  if (positions.length !== takeOut.length || positions.some((p) => p < 0 || p >= cards.length)) {
+    return { ok: false, error: 'Some of the picked deck cards are no longer in your deck.' };
+  }
+
+  const next = [...cards];
+  positions.forEach((position, i) => {
+    const { id, deck } = added[i]!;
+    next[position] = { id, deck };
+  });
+  const takenOut = positions.map((p): RemovedCard => ({ ...cards[p], reason: 'swapped-out', removedAt: now }));
+  return { ok: true, cards: next, index: positions[0], removed: recordRemoved(removed, takenOut, next) };
 }
 
 export interface ResizeResult {

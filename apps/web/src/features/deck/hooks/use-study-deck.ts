@@ -14,6 +14,7 @@ import {
   saveStudiedDeck,
 } from '../utils/saved-deck';
 import {
+  addBack,
   describeReplaced,
   recordRemoved,
   resizeCards,
@@ -65,7 +66,7 @@ function loadState(library: Library, studied: DeckId, limit: number): StudyState
     move: 'next',
     replaced: null,
     source: validSource(library, studied, loadShuffleSource(library, studied)),
-    removed: loadRemovedCards(library),
+    removed: recordRemoved(loadRemovedCards(library), [], cards),
   };
 }
 
@@ -88,6 +89,21 @@ export interface StudyDeck {
   setSource: (source: ShuffleSource) => void;
   /** Shuffles `count` new cards in. Returns a message for the user if it can't, and the deck doesn't change. */
   shuffleIn: (count: number) => string | null;
+  /** The "Shuffled-out cards" list (shuffled out, trimmed by the card limit or swapped out), newest first. */
+  shuffledOut: ShuffledOutCard[];
+  /**
+   * Adds the shuffled-out cards `addIds` back, taking out the deck cards at positions `takeOut`
+   * (from 0). Returns a message for the user if it can't, and the deck doesn't change.
+   */
+  addBack: (addIds: string[], takeOut: number[]) => string | null;
+  clearShuffledOut: () => void;
+}
+
+export interface ShuffledOutCard {
+  id: string;
+  /** The deck the card came from. */
+  deck: DeckId;
+  word: WordEntry;
 }
 
 /**
@@ -106,6 +122,10 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
   useEffect(() => saveRemovedCards(state.removed), [state.removed]);
 
   const cards = useMemo(() => state.cards.map((c) => library.byId.get(c.id)!), [state.cards, library]);
+  const shuffledOut = useMemo(
+    () => state.removed.map((r) => ({ id: r.id, deck: r.deck, word: library.byId.get(r.id)! })),
+    [state.removed, library],
+  );
 
   // Stable, so the keyboard shortcuts aren't re-attached on every render.
   const next = useCallback(
@@ -136,15 +156,19 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     deckShuffle,
 
     chooseDeck: (deck) =>
-      setState((s) => ({
-        ...s,
-        studied: deck,
-        cards: takeCards(library, deck, s.limit),
-        index: 0,
-        move: 'next',
-        replaced: null,
-        source: validSource(library, deck, s.source),
-      })),
+      setState((s) => {
+        const cards = takeCards(library, deck, s.limit);
+        return {
+          ...s,
+          studied: deck,
+          cards,
+          index: 0,
+          move: 'next',
+          replaced: null,
+          source: validSource(library, deck, s.source),
+          removed: recordRemoved(s.removed, [], cards),
+        };
+      }),
 
     setLimit: (newLimit) => {
       const resized = resizeCards(state.cards, state.index, newLimit, library, state.studied, Date.now());
@@ -154,7 +178,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
         cards: resized.cards,
         index: resized.index,
         replaced: null,
-        removed: recordRemoved(s.removed, resized.removed),
+        removed: recordRemoved(s.removed, resized.removed, resized.cards),
       }));
     },
 
@@ -177,9 +201,27 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
         cards: result.cards,
         move: 'shuffle',
         replaced: result.replaced,
-        removed: recordRemoved(s.removed, result.removed),
+        removed: recordRemoved(s.removed, result.removed, result.cards),
       }));
       return null;
     },
+
+    shuffledOut,
+
+    addBack: (addIds, takeOut) => {
+      const result = addBack({ cards: state.cards, removed: state.removed, addIds, takeOut, now: Date.now() });
+      if (!result.ok) return result.error;
+      setState((s) => ({
+        ...s,
+        cards: result.cards,
+        index: result.index,
+        move: 'shuffle',
+        replaced: null,
+        removed: result.removed,
+      }));
+      return null;
+    },
+
+    clearShuffledOut: () => setState((s) => ({ ...s, removed: [] })),
   };
 }

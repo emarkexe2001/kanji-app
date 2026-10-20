@@ -5,7 +5,7 @@
  * remembered, but the app keeps working.
  */
 import { readStorage, writeStorage } from '../../../lib/storage';
-import { MAX_REMOVED_CARDS, type DeckCard, type RemovedCard, type ShuffleSource } from './study-deck';
+import { MAX_REMOVED_CARDS, REMOVED_REASONS, type DeckCard, type RemovedCard, type ShuffleSource } from './study-deck';
 import { isDeckId, otherDecks, type DeckId, type Library } from './decks';
 
 const STUDIED_DECK_KEY = 'kanji.studiedDeck';
@@ -84,9 +84,10 @@ export function loadRemovedCards(library: Library): RemovedCard[] {
   for (const item of saved) {
     const card = toDeckCard(item, library);
     if (!card || !isRecord(item)) continue;
-    if (item.reason !== 'shuffled-out' && item.reason !== 'card-limit') continue;
+    const reason = REMOVED_REASONS.find((r) => r === item.reason);
+    if (!reason) continue;
     if (typeof item.removedAt !== 'number' || !Number.isFinite(item.removedAt)) continue;
-    removed.push({ ...card, reason: item.reason, removedAt: item.removedAt });
+    removed.push({ ...card, reason, removedAt: item.removedAt });
   }
   return removed.slice(0, MAX_REMOVED_CARDS);
 }

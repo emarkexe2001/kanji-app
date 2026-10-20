@@ -5,6 +5,7 @@ import { useCardLimit } from '../features/card-limit/hooks/use-card-limit';
 import { Deck } from '../features/deck/components/deck';
 import { DeckPicker } from '../features/deck/components/deck-picker';
 import { ShuffleInControl } from '../features/deck/components/shuffle-in-control';
+import { ShuffledOutView } from '../features/deck/components/shuffled-out-view';
 import { useDeck } from '../features/deck/hooks/use-deck';
 import { useStudyDeck } from '../features/deck/hooks/use-study-deck';
 import { buildLibrary, type Library } from '../features/deck/utils/decks';
@@ -20,6 +21,7 @@ function StudyDeck({ library }: { library: Library }) {
       <DeckPicker decks={study.decks} value={study.studied} onChange={study.chooseDeck} />
       <Deck study={study}>
         <ShuffleInControl study={study} />
+        <ShuffledOutView study={study} />
         <CardLimitControl
           size={study.cards.length}
           onChange={(size) => {
