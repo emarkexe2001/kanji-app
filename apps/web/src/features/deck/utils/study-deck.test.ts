@@ -2,7 +2,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { JlptLevel, WordEntry } from '@kanji/core';
 import { buildLibrary } from './decks';
-import { describeReplaced, parseShuffleInCount, resizeCards, shuffleIn, takeCards, type DeckCard } from './study-deck';
+import {
+  addBack,
+  describeReplaced,
+  parseShuffleInCount,
+  recordRemoved,
+  resizeCards,
+  shuffleIn,
+  takeCards,
+  type DeckCard,
+  type RemovedCard,
+} from './study-deck';
 
 const word = (id: string, jlpt?: JlptLevel, common = false): WordEntry => ({
   id,
@@ -112,4 +122,43 @@ test('the summary lists the replaced positions in order', () => {
   assert.equal(describeReplaced([12, 3, 7], 20), 'Shuffled out cards 3, 7 and 12 of 20');
   assert.equal(describeReplaced([5], 20), 'Shuffled out card 5 of 20');
   assert.equal(describeReplaced([2, 1], 4), 'Shuffled out cards 1 and 2 of 4');
+});
+
+const out = (id: string, removedAt = 0): RemovedCard => ({ id, deck: 'N4', reason: 'shuffled-out', removedAt });
+
+test('the removed list keeps each card once, at its newest entry, and never a card that is in the deck', () => {
+  const list = [out('N4-2', 1), out('N4-3', 1)];
+  const result = recordRemoved(list, [out('N4-3', 2), out('N4-4', 2)], [{ id: 'N4-2', deck: 'N4' }]);
+  assert.deepEqual(result, [out('N4-3', 2), out('N4-4', 2)]);
+});
+
+test('adding back puts the cards where the taken-out cards were, in list order, and shows the first', () => {
+  const cards = deck(4);
+  const removed = [out('N4-1'), out('N4-2')];
+  const result = addBack({ cards, removed, addIds: ['N4-1', 'N4-2'], takeOut: [3, 1], now: 9 });
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(
+      result.cards.map((c) => c.id),
+      ['N5-1', 'N4-1', 'N5-3', 'N4-2'],
+    );
+    assert.equal(result.index, 1);
+    assert.deepEqual(
+      result.removed.map((r) => [r.id, r.reason, r.removedAt]),
+      [
+        ['N5-2', 'swapped-out', 9],
+        ['N5-4', 'swapped-out', 9],
+      ],
+    );
+  }
+});
+
+test('adding back refuses cards that are not on the list, or deck positions that do not exist', () => {
+  const cards = deck(3);
+  assert.equal(addBack({ cards, removed: [], addIds: ['N4-1'], takeOut: [0], now: 0 }).ok, false);
+  assert.equal(addBack({ cards, removed: [out('N4-1')], addIds: ['N4-1'], takeOut: [5], now: 0 }).ok, false);
+  assert.equal(
+    addBack({ cards, removed: [out('N4-1'), out('N4-2')], addIds: ['N4-1', 'N4-2'], takeOut: [0, 0], now: 0 }).ok,
+    false,
+  );
 });

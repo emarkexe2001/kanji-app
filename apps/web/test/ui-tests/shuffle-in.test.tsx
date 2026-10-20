@@ -252,10 +252,11 @@ describe('Shuffle In Cards', () => {
   });
 
   test('only the newest 100 removed cards are kept', async () => {
-    const user = await renderApp(makeDecks({ N5: 30, N4: 150 }));
-    await chooseSource(user, 'JLPT N4');
-
-    for (let i = 0; i < 11; i++) await shuffleIn(user, '10');
+    // Shuffle-ins can pick a card that was shuffled out earlier, which takes it off the list, so
+    // a big card-limit trim is the reliable way to remove more than 100 different cards.
+    const user = await renderApp(makeDecks({ N5: 200, N4: 5 }));
+    await enterCardLimit(user, '150');
+    await enterCardLimit(user, '1');
 
     expect(JSON.parse(localStorage.getItem('kanji.removedCards') ?? '[]')).toHaveLength(100);
   });
