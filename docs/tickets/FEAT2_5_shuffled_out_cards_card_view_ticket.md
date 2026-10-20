@@ -67,9 +67,13 @@ When a shuffled-in card is on screen it shows "New", and once I move on to anoth
 
 When I shuffle in several cards, the ones I haven't seen yet still show "New" until I have seen each one and moved on
 
-Open Questions from the answers (to confirm before starting):
-- Is the "New" badge kept after a reload (for shuffled-in cards not seen yet)?
-- When the user prefers reduced motion (the "reduce motion" setting on their device), should the slide in / slide out animations be turned off?
+When I reload the app, shuffled-in cards I haven't seen yet still show "New", and ones I have seen don't
+
+When my device's "reduce motion" setting is on, cards are shuffled in and out without the slide animations
+
+Further answers (agreed 2026-10-20):
+- After a reload, a shuffled-in card that hasn't been seen yet still shows "New". So which cards are still new is saved with the deck (through the storage helper, and checked on load like the rest of the saved deck).
+- When the device's "reduce motion" setting is on (prefers-reduced-motion: reduce), the slide in / slide out animations are turned off. The cards still change and the "New" badge still shows; only the movement is skipped.
 
 Dependencies:
 FEAT2 (PR #24) must be merged first, since this changes its view.
