@@ -7,7 +7,7 @@ Shuffled-Out Cards Shown as Cards
 Origin:
 Review of FEAT2 (PR #24, 2026-10-20). The Shuffled-out cards view lists each card as a checkbox row (word, reading, meaning and deck). A checklist is too simple for this: I would like to see the shuffled-out cards as cards, in a format similar to the card in the deck, so they are easy to recognise before I add them back.
 
-Builds on FEAT2 (the Shuffled-out cards view). FEAT2 is still the source of truth for what adding back and clearing do; this ticket only changes how the cards are shown and picked.
+Builds on FEAT2 (the Shuffled-out cards view). FEAT2 is still the source of truth for what adding back and clearing do; this ticket changes how the cards are shown and picked, and (from the Answers below) adds a "New" badge and slide animations for cards shuffled in and out.
 
 Feature Description:
 As a user looking at the cards I've shuffled out, I would like each one shown as a card that looks like the cards in my deck, so I can recognise them at a glance and pick which ones to add back.
@@ -44,6 +44,26 @@ Open Questions (to confirm before starting, per PROC3):
 - Should the "Take out of your deck" list also use cards, or stay a simple list (the user already knows those cards because they're in the deck)?
 - Should the card that was just shuffled in (shown after Shuffle In Cards) get any extra visual, e.g. a "New" badge or a short animation, or is that a separate ticket?
 - Should the card component be shared between the deck and this view (a "compact" version of the same card), or a separate component?
+
+Answers (agreed 2026-10-20):
+- Compact card: the header, the word in kanji (with its reading highlights) and the meaning. No Reading Breakdown section.
+- Layout: not decided yet. Confirm before starting.
+- The "Take out of your deck" list also uses cards, picked the same way as the shuffled-out cards.
+- Cards that were shuffled in get a "New" badge so they are easy to spot in the deck. They also get an animation of the card sliding into the deck. Cards being shuffled out get an animation of the card sliding out of the deck.
+- Reuse the deck's card component for now (a compact version of it), rather than writing a separate one.
+
+Extra test scenarios from the answers:
+
+When I shuffle in cards, the cards that were shuffled in show a "New" badge
+
+When I look at a shuffled-out card, it shows its word and meaning but no Reading Breakdown
+
+When I pick cards to take out of my deck, they are shown as cards and I pick them by selecting the card
+
+Open Questions from the answers (to confirm before starting):
+- How long does a card keep its "New" badge: until the user has seen it once, until the next Shuffle In Cards, or until it is shuffled out?
+- Is the "New" badge kept after a reload?
+- When the user prefers reduced motion (the "reduce motion" setting on their device), should the slide in / slide out animations be turned off?
 
 Dependencies:
 FEAT2 (PR #24) must be merged first, since this changes its view.
