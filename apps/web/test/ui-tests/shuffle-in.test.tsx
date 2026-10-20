@@ -125,18 +125,16 @@ describe('Shuffle In Cards', () => {
   });
 
   test('when I choose Random, the new cards come from decks other than my current deck', async () => {
-    const user = await renderApp(THREE_DECKS);
+    // N5 has plenty of cards that aren't in the deck yet, so a Random that used it would show up here.
+    const user = await renderApp(makeDecks({ N5: 200, N4: 10, N3: 10 }));
     await chooseSource(user, 'Random deck for each card');
 
-    for (let i = 0; i < 3; i++) {
-      await shuffleIn(user, '3');
-      expect(['JLPT N4', 'JLPT N3']).toContain(currentCardLevel());
-    }
+    await shuffleIn(user, '10');
 
+    expect(['JLPT N4', 'JLPT N3']).toContain(currentCardLevel());
     const cardLevels = levels(await deckContents(user));
-    // The new cards are all N4 or N3; only the cards never shuffled out are still N5.
-    expect(count(cardLevels, 'JLPT N4') + count(cardLevels, 'JLPT N3')).toBeGreaterThanOrEqual(3);
-    expect(count(cardLevels, 'JLPT N5') + count(cardLevels, 'JLPT N4') + count(cardLevels, 'JLPT N3')).toBe(10);
+    expect(cardLevels).toHaveLength(10);
+    expect(cardLevels.every((l) => l === 'JLPT N4' || l === 'JLPT N3')).toBe(true);
   });
 
   test('when I shuffle in cards and reload the app, my deck still has the shuffled-in cards and my "Shuffle in from" choice is remembered', async () => {
@@ -418,7 +416,15 @@ describe('saved deck checks (failure paths)', () => {
   test('an unknown saved deck choice, "Shuffle in from" choice or removed-cards list falls back safely', async () => {
     localStorage.setItem('kanji.studiedDeck', 'N9');
     localStorage.setItem('kanji.shuffleSource', '{"kind":"deck","deck":"N5"}');
-    localStorage.setItem('kanji.removedCards', '[{"id":"nope"}, 42]');
+    localStorage.setItem(
+      'kanji.removedCards',
+      JSON.stringify([
+        { id: 'no-such-word', deck: 'N4', reason: 'shuffled-out', removedAt: 1 },
+        { id: 'N4-1', deck: 'N4', reason: 'lost', removedAt: 1 },
+        { id: 'N4-2', deck: 'N4', reason: 'card-limit', removedAt: 'yesterday' },
+        42,
+      ]),
+    );
 
     const user = await renderApp(THREE_DECKS);
 
