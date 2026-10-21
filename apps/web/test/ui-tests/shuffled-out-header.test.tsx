@@ -158,7 +158,9 @@ describe('Shuffled-out button in the top right of the header', () => {
       vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))),
     );
     render(<App />);
+    expect(screen.getByText('Loading dictionary…')).toBeInTheDocument();
     expect(title()).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Shuffled out/ })).not.toBeInTheDocument();
     await screen.findByText(/Couldn't load the word deck/);
     expect(title()).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Shuffled out/ })).not.toBeInTheDocument();
