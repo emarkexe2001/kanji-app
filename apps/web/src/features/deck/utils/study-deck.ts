@@ -257,6 +257,16 @@ export function shuffleIn({
   };
 }
 
+/**
+ * The shuffled-in cards that still show "New" (FEAT2_5) after a change to the deck: only ids
+ * still in `cards`, without `movedOnFrom`, the card that was on screen when the user moved on to
+ * another one (so it has been seen). A new card keeps its badge until then, even across a reload.
+ */
+export function stillNew(newIds: string[], cards: DeckCard[], movedOnFrom?: string): string[] {
+  const inDeck = new Set(cards.map((c) => c.id));
+  return newIds.filter((id) => id !== movedOnFrom && inDeck.has(id));
+}
+
 /** "Shuffled out card 5 of 20" or "Shuffled out cards 3, 7 and 12 of 20" (positions start at 1). */
 export function describeReplaced(positions: number[], total: number): string {
   const sorted = [...positions].sort((a, b) => a - b);

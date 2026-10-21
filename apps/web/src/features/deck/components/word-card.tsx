@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   COMMON_COLOR,
   JLPT_COLORS,
@@ -51,48 +52,99 @@ function SegmentRow({ seg }: { seg: ReadingSegment }) {
   );
 }
 
-export function WordCard({ entry }: { entry: WordEntry }) {
+/** The word with its colour-coded reading highlights, then its reading. */
+function Word({ entry, compact }: { entry: WordEntry; compact: boolean }) {
+  // The compact card's word isn't a heading, so the card on screen keeps the only card heading.
+  const Tag = compact ? 'p' : 'h2';
+  return (
+    <Tag className={`flex flex-wrap items-baseline ${compact ? 'gap-x-1 text-xl' : 'gap-x-3 text-3xl'}`}>
+      <span>
+        {entry.segments.map((seg, i) => (
+          <span key={i} className={HL_CLASS[seg.kind]}>
+            {seg.text}
+          </span>
+        ))}
+      </span>
+      <span className={`font-normal text-slate-500 ${compact ? 'text-xs' : 'text-lg'}`}>【{entry.reading}】</span>
+    </Tag>
+  );
+}
+
+/** The diagonal "NEW" ribbon across the top-right corner of a card that was shuffled in. */
+function NewRibbon() {
+  return (
+    <span className="pointer-events-none absolute top-3 -right-8 w-28 rotate-45 bg-amber-400 py-0.5 text-center text-[11px] font-extrabold tracking-widest text-slate-900 uppercase shadow-sm">
+      New
+    </span>
+  );
+}
+
+/**
+ * A word's card. The card on screen shows everything. `compact` is the smaller version used in
+ * the lists of cards to pick (FEAT2_5): the header, the word and the meaning, with no Reading
+ * Breakdown, and `children` at the bottom (e.g. "From JLPT N4"). `isNew` adds the "NEW" ribbon.
+ */
+export function WordCard({
+  entry,
+  compact = false,
+  isNew = false,
+  children,
+}: {
+  entry: WordEntry;
+  compact?: boolean;
+  isNew?: boolean;
+  children?: ReactNode;
+}) {
   const headerColor = entry.jlpt ? JLPT_COLORS[entry.jlpt] : NEUTRAL_HEADER;
+  // Only the card on screen is an article, so it can be told apart from the cards in the lists.
+  const Root = compact ? 'div' : 'article';
 
   return (
-    <article className="w-full max-w-sm overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-slate-200">
-      <header className="px-4 py-2 text-xs font-bold tracking-wide text-white" style={{ backgroundColor: headerColor }}>
+    <Root
+      className={`relative w-full overflow-hidden bg-white ring-1 ring-slate-200 ${
+        compact ? 'rounded-lg shadow-sm' : 'max-w-sm rounded-xl shadow-lg'
+      }`}
+    >
+      <header
+        className={`font-bold tracking-wide text-white ${compact ? 'px-2 py-1 text-[10px]' : 'px-4 py-2 text-xs'}`}
+        style={{ backgroundColor: headerColor }}
+      >
         {entry.jlpt ? `JLPT ${entry.jlpt}` : 'Vocabulary'}
       </header>
+      {isNew && <NewRibbon />}
 
-      <div className="space-y-3 px-4 py-4">
-        <div>
-          <h2 className="flex flex-wrap items-baseline gap-x-3 text-3xl">
-            <span>
-              {entry.segments.map((seg, i) => (
-                <span key={i} className={HL_CLASS[seg.kind]}>
-                  {seg.text}
-                </span>
-              ))}
-            </span>
-            <span className="text-lg font-normal text-slate-500">【{entry.reading}】</span>
-          </h2>
-          {entry.common && (
-            <p className="mt-1 badge-common" style={{ color: COMMON_COLOR }}>
-              ★ Common Word
-            </p>
-          )}
+      {compact ? (
+        <div className="space-y-1 px-2 py-2">
+          <Word entry={entry} compact />
+          <p className="text-xs meaning-text">{entry.meaning}</p>
+          {children}
         </div>
+      ) : (
+        <div className="space-y-3 px-4 py-4">
+          <div>
+            <Word entry={entry} compact={false} />
+            {entry.common && (
+              <p className="mt-1 badge-common" style={{ color: COMMON_COLOR }}>
+                ★ Common Word
+              </p>
+            )}
+          </div>
 
-        <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
-          <ul>
-            {entry.segments.map((seg, i) => (
-              <SegmentRow key={i} seg={seg} />
-            ))}
-          </ul>
-        </section>
+          <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
+            <ul>
+              {entry.segments.map((seg, i) => (
+                <SegmentRow key={i} seg={seg} />
+              ))}
+            </ul>
+          </section>
 
-        <section>
-          <h3 className="text-xs font-bold text-slate-500">Full Word Meaning</h3>
-          <p className="meaning-text">{entry.meaning}</p>
-        </section>
-      </div>
-    </article>
+          <section>
+            <h3 className="text-xs font-bold text-slate-500">Full Word Meaning</h3>
+            <p className="meaning-text">{entry.meaning}</p>
+          </section>
+        </div>
+      )}
+    </Root>
   );
 }

@@ -19,6 +19,16 @@ export const JLPT_COLORS: Record<JlptLevel, string> = {
   N1: '#f43f5e',
 };
 
+/**
+ * Outline and tick colors of a picked card in the lists of cards to pick (FEAT2_5): green for a
+ * card being added back to the deck, red for a card being taken out of it.
+ */
+export const PICK_COLORS = {
+  addBack: '#059669',
+  takeOut: '#e11d48',
+} as const;
+export type PickKind = keyof typeof PICK_COLORS;
+
 export const JLPT_LABELS: Record<JlptLevel, string> = {
   N5: 'Beginner',
   N4: 'Elementary',

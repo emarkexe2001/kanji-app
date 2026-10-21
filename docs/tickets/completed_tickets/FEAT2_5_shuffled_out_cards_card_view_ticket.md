@@ -75,8 +75,25 @@ Further answers (agreed 2026-10-20):
 - After a reload, a shuffled-in card that hasn't been seen yet still shows "New". So which cards are still new is saved with the deck (through the storage helper, and checked on load like the rest of the saved deck).
 - When the device's "reduce motion" setting is on (prefers-reduced-motion: reduce), the slide in / slide out animations are turned off. The cards still change and the "New" badge still shows; only the movement is skipped.
 
+UI answers (agreed 2026-10-21):
+- Grid: 2 cards per row on a phone, 3 per row on wider screens. This applies to both the Shuffled-out cards view and the "Take out of your deck" list.
+- Card number (1, 2, 3, ...): a plain number label sitting above each card, outside it.
+- "New" badge on shuffled-in cards in the deck: a diagonal "NEW" corner ribbon across the card's top-right corner.
+- Slide animations: shuffled-in cards drop onto the deck from above; shuffled-out cards slide down and away. Both are turned off under prefers-reduced-motion: reduce.
+- Compact card: WordCard reused as a compact variant, showing the header, the word with its reading highlights, the meaning and "From <deck>". No Reading Breakdown.
+- Picked card: green outline and green tick when picking a card to add back (Shuffled-out cards list); red outline and red tick when picking a card to take out (Take out of your deck). The colours are shared tokens in @kanji/core (PICK_COLORS).
+- "NEW" ribbon colour: amber/gold with dark text.
+- Cards in "Take out of your deck" also show the "NEW" ribbon while they are still new.
+- A card that can't be drawn shows "This card can't be shown." in that card's place.
+- The compact card keeps the kana reading (【...】). "From <deck>" shows on the cards in both lists. No ★ Common Word badge.
+- Width: on wider screens the card panel grows wider than the app's main column so 3 cards per row have real room; on a phone it stays 2 per row with no sideways page scroll.
+- Grid height: the cards scroll inside a fixed-height box (about 384px).
+
 Dependencies:
 FEAT2 (PR #24) must be merged first, since this changes its view.
 
 Branch name Examples:
 feature/shuffled-out-card-view
+
+Completed On:
+2026-10-21

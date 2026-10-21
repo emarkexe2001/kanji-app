@@ -12,7 +12,7 @@ const isTyping = (target: EventTarget | null) =>
  * Cards and card limit controls there).
  */
 export function Deck({ study, children }: { study: StudyDeck; children?: ReactNode }) {
-  const { cards, index, move, summary, next, deckShuffle } = study;
+  const { cards, index, move, summary, next, deckShuffle, isNew, leaving } = study;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -34,7 +34,7 @@ export function Deck({ study, children }: { study: StudyDeck; children?: ReactNo
       </p>
 
       <div className="flex flex-1 items-center justify-center py-4">
-        <CardStack entry={cards[index]} move={move} />
+        <CardStack entry={cards[index]} move={move} isNew={isNew(index)} leaving={leaving} />
       </div>
 
       <nav className="grid grid-cols-2 gap-3" aria-label="Card controls">
