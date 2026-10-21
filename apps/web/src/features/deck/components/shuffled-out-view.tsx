@@ -102,6 +102,12 @@ function RecoverButton({ study, className = '' }: { study: StudyDeck; className?
   );
 }
 
+/**
+ * Clear List and "Recover cleared list (N)": stacked full width on a phone (the full label doesn't
+ * fit beside Clear List), side by side from the sm breakpoint up.
+ */
+const CLEAR_RECOVER_ROW = 'grid gap-2 sm:grid-cols-2';
+
 /** The Clear List confirmation, with the number of cards: it says the list can be recovered. */
 const confirmClearText = (count: number) =>
   count === 1 ? 'Clear 1 card? You can recover it later.' : `Clear all ${count} cards? You can recover them later.`;
@@ -262,7 +268,7 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
                   </div>
                 </div>
               ) : (
-                <div className={study.clearedCount > 0 ? 'grid grid-cols-2 gap-2' : undefined}>
+                <div className={study.clearedCount > 0 ? CLEAR_RECOVER_ROW : undefined}>
                   <button
                     type="button"
                     onClick={() => setConfirmingClear(true)}

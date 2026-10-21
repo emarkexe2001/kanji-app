@@ -648,7 +648,7 @@ describe('Recovering a cleared shuffled-out list', () => {
     for (let n = 51; n <= 70; n++) expect(listedWords()).not.toContain(label(`N4-${n}`));
   });
 
-  test('the button sits beside Clear List when the list has cards, and under the "No cards" message when it is empty', async () => {
+  test('the button sits with Clear List (stacked on a phone, side by side on wider screens) when the list has cards, and under the "No cards" message when it is empty', async () => {
     const user = await renderApp(DECKS);
     await shuffleOutOne(user);
     await clearList(user);
@@ -662,14 +662,34 @@ describe('Recovering a cleared shuffled-out list', () => {
     expect(screen.queryByText('No cards have been shuffled out yet.')).not.toBeInTheDocument();
     const clear = screen.getByRole('button', { name: 'Clear List' });
     const beside = screen.getByRole('button', { name: 'Recover cleared list (1)' });
-    // Clear List first, then Recover, in one row at the bottom of the panel.
+    // Clear List first (on top on a phone, on the left on wider screens), then Recover, at the
+    // bottom of the panel, with the full label.
     expect(beside.parentElement).toBe(clear.parentElement);
     expect(clear.nextElementSibling).toBe(beside);
     expect(clear.parentElement!.nextElementSibling).toBeNull();
-    // jsdom has no layout, so the class is checked: two buttons side by side.
-    expect(clear.parentElement).toHaveClass('grid', 'grid-cols-2');
+    // jsdom has no layout, so the classes are checked: one column (stacked, full width) on a
+    // phone, two side by side from the sm (640px) breakpoint up. Check it in a browser too.
+    const row = clear.parentElement!;
+    expect(row).toHaveClass('grid', 'sm:grid-cols-2');
+    expect(row.className).not.toMatch(/(^|\s)grid-cols-/);
+    expect(clear).toHaveClass('w-full');
     // jsdom has no colours, so the class is checked: still sky blue and filled.
     expect(beside).toHaveClass('bg-sky-600', 'text-white');
+  });
+
+  test('while the Clear List confirmation is open, the "Recover cleared list" button is hidden, and it comes back when I cancel', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleOutOne(user);
+    await clearList(user);
+    await shuffleOutOne(user);
+    expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear List' }));
+
+    expect(screen.getByText('Clear 1 card? You can recover it later.')).toBeInTheDocument();
+    expect(recoverButton()).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toBeInTheDocument();
   });
 
   test('when I clear the list and switch to another deck, the same cleared list can be recovered, each card still from its own deck', async () => {

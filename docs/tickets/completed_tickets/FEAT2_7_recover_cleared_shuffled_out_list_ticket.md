@@ -14,7 +14,7 @@ As a user who has cleared my shuffled-out list by accident, I would like to be a
 
 Feature Requirements / Expected Behaviours:
 - After Clear List, the cleared list is kept (the same cards, in the same order, newest first) so it can be recovered
-- While a cleared list is kept, the Shuffled-out cards view shows a "Recover cleared list (N)" button, where N is the number of cards that were cleared. It sits under the "No cards have been shuffled out yet" message when the shuffled-out list is empty, and beside Clear List when the list has cards (see Further answers)
+- While a cleared list is kept, the Shuffled-out cards view shows a "Recover cleared list (N)" button, where N is the number of cards that were cleared. It sits under the "No cards have been shuffled out yet" message when the shuffled-out list is empty, and with Clear List when the list has cards: below it on a phone, beside it from 640px up (see Further answers)
 - Pressing "Recover cleared list (N)" adds the cleared cards to the shuffled-out list, each in its place by when it was shuffled out (newest first), and the button goes away. It never erases or replaces cards already in the list (see Further answers)
 - The cleared list can be recovered any time, including after a reload: it is saved with the deck (through the storage helper, and checked on load like the rest of the saved deck)
 - The cleared list is kept until it is recovered, or until Clear List is pressed again (the newer clear replaces it). Shuffling cards out doesn't drop it. Only the most recent cleared list is kept (see Further answers)
@@ -58,6 +58,8 @@ Further answers (agreed 2026-10-21):
 - Order: each recovered card goes back in its place by when it was shuffled out (newest first). If the list goes over 100 cards, the oldest cards are dropped, as before. Cards already in the deck, or already in the shuffled-out list, are skipped (no duplicates).
 - Button placement: when the shuffled-out list is empty, the button stays under "No cards have been shuffled out yet". When the list has cards, it sits at the bottom of the panel, next to Clear List: [Clear List] [Recover cleared list (N)]. It stays sky blue and filled.
 - Clear List confirmation, with the number of cards: "Clear all N cards? You can recover them later." For one card: "Clear 1 card? You can recover it later."
+- Clear List / Recover row on a phone: the full label doesn't fit beside Clear List, so on a phone the two buttons are stacked full width (Clear List on top, "Recover cleared list (N)" below). From the sm breakpoint (640px) up they sit side by side. The full label is kept.
+- While the Clear List confirmation is open, the Recover button is hidden. It comes back if the confirmation is cancelled.
 
 Extra test scenarios from the further answers:
 
@@ -69,7 +71,9 @@ When I press Clear List again, the newer cleared list replaces the one kept befo
 
 When recovering takes the list past 100 cards, the oldest cards are dropped
 
-The button sits beside Clear List when the list has cards, and under the "No cards" message when the list is empty
+The button sits with Clear List when the list has cards (stacked on a phone, side by side from 640px), and under the "No cards" message when the list is empty
+
+While the Clear List confirmation is open, the Recover button is hidden
 
 When I clear the list and switch to another deck, the button still shows with the same count, and recovering brings the cards back with their original "From <deck>" labels
 
