@@ -53,5 +53,7 @@ Not set up yet. When added they will run the whole app in a real browser and liv
 
 ## Writing a good test
 - **Test failure paths as well as the happy path.** For every feature, include tests for what happens when things go wrong: invalid input, a failed download, broken data, blocked storage. The user should always see a clear message, never a blank page.
-- **Check the test can fail.** Before relying on a new test, break the code it covers for a moment (e.g. remove a validation check) and make sure the test goes red. A test that can't fail doesn't protect anything.
+- **Check the test can fail.** Before relying on a new test, break the code it covers for a moment (e.g. remove a validation check) and make sure the test goes red. A test that can't fail doesn't protect anything. Commit or `git stash` your work first, so restoring the file can't wipe unsaved changes.
 - **Test what the user sees.** Find things the way a user would: by their label (`getByLabelText('Card limit')`), role (`getByRole('button', { name: /next/i })`) or text, not by class names or component internals.
+- **Class names only when nothing else works.** The test setup (jsdom) has no layout, colours or animations. For a colour or animation, checking a class name is acceptable, with a comment saying why. Layout (widths, grids, sideways scrolling) can't be tested here at all: check it in a real browser at about 360px, 640px and 1024px and note it in the PR.
+- **Test what's left out.** When a ticket says something is not shown (e.g. "no Reading Breakdown"), add a test that checks it isn't there.

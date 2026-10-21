@@ -143,6 +143,10 @@ A document in `docs/` must describe the test types used in the project and how t
   - cards display correctly
   - when a card limit is set, only that many cards are shown
 - **Every ticket's "Possible Test Scenarios" must be covered** by a test, or the PR must explain why not.
+- **Test what a ticket says is left out.** For every "no X" or "doesn't show X" in a ticket (e.g. "no Reading Breakdown"), add a test that checks X is not shown.
+- **Check layout in a real browser.** Tests can't see layout, so for layout or screen-size requirements (widths, grids, no sideways scrolling), look at the app in a browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note what you checked in the PR. This applies until e2e tests are set up.
+- **Only check class names when there's no other way.** Some things, like colours and animations, can't be seen in the test setup. Checking a class name is acceptable for those, with a comment saying why. Everything else is tested by what the user sees.
+- **Save your work before checking a test can fail.** Commit or `git stash` your changes before breaking code to check a test goes red, so restoring the file (e.g. with `git checkout`) can't wipe unsaved work.
 - **Test validation messages** for every feature where the user can enter input, such as increasing and decreasing the card limit.
 - **Decks can never be empty.** There must always be at least 1–5 cards in a deck (see Open Questions). If the user tries to set up a deck with 0 cards, a validation message must be shown.
 - **The test command must find test files automatically,** so a new test file runs without changing any scripts.
@@ -155,6 +159,8 @@ A document in `docs/` must describe the test types used in the project and how t
 ### 5.1 Before starting
 - Read the ticket and make sure you understand the task.
 - If the ticket needs more detail or clarification, respond with questions before starting.
+- **If a UI detail isn't decided** (layout, sizes, colours, wording, placement, animations), ask how it should look rather than guessing.
+- **Split tickets that are too big.** If a ticket covers several separate pieces of work (e.g. a new badge, animations and a layout change), split it into smaller tickets before starting, each with its own pull request. Ask before splitting, and agree how the pieces depend on each other.
 
 ### 5.2 Branches
 - **Never work directly on `main`.** Always branch off an up-to-date `main`.
