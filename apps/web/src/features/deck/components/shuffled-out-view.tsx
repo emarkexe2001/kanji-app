@@ -113,14 +113,36 @@ const confirmClearText = (count: number) =>
   count === 1 ? 'Clear 1 card? You can recover it later.' : `Clear all ${count} cards? You can recover them later.`;
 
 /**
- * The "Shuffled out (3)" button and the view it opens (FEAT2): the cards that left the deck,
+ * The "Shuffled out (3)" button (FEAT2). The app shows it in the header, top right beside the
+ * title (ADJ1); it keeps its full label, so on a narrow phone the title wraps instead. It opens
+ * and closes the panel below, and says whether the panel is open: aria-expanded for screen
+ * readers, and an arrow (▾ closed, ▴ open) that is hidden from them so the name stays
+ * "Shuffled out (3)". The label and arrow never wrap.
+ */
+export function ShuffledOutButton({ count, open, onToggle }: { count: number; open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-controls="shuffled-out-panel"
+      onClick={onToggle}
+      className={`shrink-0 bg-sky-600 whitespace-nowrap text-white hover:bg-sky-500 ${panelButton}`}
+    >
+      Shuffled out ({count})<span aria-hidden> {open ? '▴' : '▾'}</span>
+    </button>
+  );
+}
+
+/**
+ * The view the "Shuffled out (3)" button opens (FEAT2): the cards that left the deck,
  * newest first, with the deck each came from. The user picks cards to add back and the same
  * number of deck cards to take out in their place, or clears the list (after confirming). A
  * cleared list can be recovered until Clear List is pressed again (FEAT2_7).
  * Both lists show compact cards in a numbered grid, picked by selecting the card (FEAT2_5).
+ * The app shows it just below the header while open (ADJ1); closing it unmounts it, which drops
+ * any picks. `onClose` is called once cards have been added back.
  */
-export function ShuffledOutView({ study }: { study: StudyDeck }) {
-  const [open, setOpen] = useState(false);
+export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose: () => void }) {
   const [adding, setAdding] = useState<string[]>([]);
   const [takingOut, setTakingOut] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -144,145 +166,125 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
       return;
     }
     reset();
-    setOpen(false);
+    onClose();
   };
 
   return (
-    <div className="mt-4">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls="shuffled-out-panel"
-        onClick={() => {
-          setOpen(!open);
-          reset();
-        }}
-        className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton}`}
-      >
-        Shuffled out ({shuffledOut.length})
-      </button>
+    <section
+      id="shuffled-out-panel"
+      aria-labelledby="shuffled-out-heading"
+      className={`mt-4 space-y-3 rounded-xl bg-sky-50 px-3 py-3 text-sm ${WIDE_PANEL}`}
+    >
+      <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
+        Shuffled-out cards
+      </h3>
 
-      {open && (
-        <section
-          id="shuffled-out-panel"
-          aria-labelledby="shuffled-out-heading"
-          className={`mt-2 space-y-3 rounded-xl bg-sky-50 px-3 py-3 text-sm ${WIDE_PANEL}`}
-        >
-          <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
-            Shuffled-out cards
-          </h3>
+      {shuffledOut.length === 0 ? (
+        <>
+          <p className="text-slate-600">No cards have been shuffled out yet.</p>
+          {study.clearedCount > 0 && <RecoverButton study={study} className="w-full" />}
+        </>
+      ) : (
+        <>
+          <form
+            noValidate
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <fieldset>
+              <legend className="font-semibold text-slate-700">Add back</legend>
+              <ul className={CARD_GRID}>
+                {shuffledOut.map((card, i) => (
+                  <PickCard
+                    key={card.id}
+                    number={i + 1}
+                    label={wordLabel(card.word)}
+                    card={{ entry: card.word, deck: card.deck }}
+                    kind="addBack"
+                    picked={adding.includes(card.id)}
+                    onToggle={() => {
+                      setAdding(toggle(adding, card.id));
+                      setError(null);
+                    }}
+                  />
+                ))}
+              </ul>
+            </fieldset>
 
-          {shuffledOut.length === 0 ? (
-            <>
-              <p className="text-slate-600">No cards have been shuffled out yet.</p>
-              {study.clearedCount > 0 && <RecoverButton study={study} className="w-full" />}
-            </>
-          ) : (
-            <>
-              <form
-                noValidate
-                className="space-y-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  submit();
-                }}
-              >
-                <fieldset>
-                  <legend className="font-semibold text-slate-700">Add back</legend>
-                  <ul className={CARD_GRID}>
-                    {shuffledOut.map((card, i) => (
-                      <PickCard
-                        key={card.id}
-                        number={i + 1}
-                        label={wordLabel(card.word)}
-                        card={{ entry: card.word, deck: card.deck }}
-                        kind="addBack"
-                        picked={adding.includes(card.id)}
-                        onToggle={() => {
-                          setAdding(toggle(adding, card.id));
-                          setError(null);
-                        }}
-                      />
-                    ))}
-                  </ul>
-                </fieldset>
-
-                {adding.length > 0 && (
-                  <fieldset>
-                    <legend className="font-semibold text-slate-700">
-                      Take out of your deck ({adding.length} to make room)
-                    </legend>
-                    <ul className={CARD_GRID}>
-                      {cards.map((word, i) => (
-                        <PickCard
-                          key={cardId(word)}
-                          number={i + 1}
-                          label={`Card ${i + 1}: ${wordLabel(word)}`}
-                          card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
-                          kind="takeOut"
-                          picked={takingOut.includes(cardId(word))}
-                          onToggle={() => {
-                            setTakingOut(toggle(takingOut, cardId(word)));
-                            setError(null);
-                          }}
-                        />
-                      ))}
-                    </ul>
-                  </fieldset>
-                )}
-
-                {error && (
-                  <p role="alert" className="text-xs font-semibold text-rose-600">
-                    {error}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  className={`w-full bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton}`}
-                >
-                  Add Back Cards
-                </button>
-              </form>
-
-              {confirmingClear ? (
-                <div className="space-y-2 rounded-lg border border-rose-200 bg-white p-2">
-                  <p className="font-semibold text-rose-700">{confirmClearText(shuffledOut.length)}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        study.clearShuffledOut();
-                        reset();
+            {adding.length > 0 && (
+              <fieldset>
+                <legend className="font-semibold text-slate-700">
+                  Take out of your deck ({adding.length} to make room)
+                </legend>
+                <ul className={CARD_GRID}>
+                  {cards.map((word, i) => (
+                    <PickCard
+                      key={cardId(word)}
+                      number={i + 1}
+                      label={`Card ${i + 1}: ${wordLabel(word)}`}
+                      card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
+                      kind="takeOut"
+                      picked={takingOut.includes(cardId(word))}
+                      onToggle={() => {
+                        setTakingOut(toggle(takingOut, cardId(word)));
+                        setError(null);
                       }}
-                      className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
-                    >
-                      Yes, Clear List
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingClear(false)}
-                      className={`border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 ${panelButton}`}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className={study.clearedCount > 0 ? CLEAR_RECOVER_ROW : undefined}>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingClear(true)}
-                    className={`w-full bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
-                  >
-                    Clear List
-                  </button>
-                  {study.clearedCount > 0 && <RecoverButton study={study} />}
-                </div>
-              )}
-            </>
+                    />
+                  ))}
+                </ul>
+              </fieldset>
+            )}
+
+            {error && (
+              <p role="alert" className="text-xs font-semibold text-rose-600">
+                {error}
+              </p>
+            )}
+            <button type="submit" className={`w-full bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton}`}>
+              Add Back Cards
+            </button>
+          </form>
+
+          {confirmingClear ? (
+            <div className="space-y-2 rounded-lg border border-rose-200 bg-white p-2">
+              <p className="font-semibold text-rose-700">{confirmClearText(shuffledOut.length)}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    study.clearShuffledOut();
+                    reset();
+                  }}
+                  className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+                >
+                  Yes, Clear List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingClear(false)}
+                  className={`border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 ${panelButton}`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={study.clearedCount > 0 ? CLEAR_RECOVER_ROW : undefined}>
+              <button
+                type="button"
+                onClick={() => setConfirmingClear(true)}
+                className={`w-full bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+              >
+                Clear List
+              </button>
+              {study.clearedCount > 0 && <RecoverButton study={study} />}
+            </div>
           )}
-        </section>
+        </>
       )}
-    </div>
+    </section>
   );
 }
