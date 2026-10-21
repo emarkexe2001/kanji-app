@@ -70,7 +70,7 @@ Open Questions (to confirm before starting, per PROC3):
 - On a narrow phone, if the title and the button don't fit on one row, what should happen: the title wraps onto two lines, the button gets a shorter label (e.g. "Out (3)"), or the button moves under the title on the right?
 
 Answers (agreed 2026-10-21):
-- On a narrow phone, if the title and the button don't fit on one row, the title wraps onto two lines and the button keeps its full "Shuffled out (N)" label, staying top right. This is covered by the tests "the title and the button share one row at the top: the button stays top right and the title wraps when they do not fit" and "on a narrow phone the button keeps its full "Shuffled out (N)" label, even with 100 cards", and checked in a real browser at about 360px.
+- On a narrow phone, if the title and the button don't fit on one row, the title wraps onto two lines and the button keeps its full "Shuffled out (N)" label, staying top right. This is covered by the tests "the title and the button share one row at the top: the button stays top right and the title wraps when they do not fit" and "on a narrow phone the button keeps its full "Shuffled out (N)" label, even with 100 cards"; the layout itself is checked in a real browser at about 360px (see the PR).
 
 Dependencies:
 FEAT2_5 (PR #27) must be merged first. FEAT2_6, FEAT2_7 and ADJ1 all change the Shuffled-out cards view, so they should be done one after another, not at the same time.
