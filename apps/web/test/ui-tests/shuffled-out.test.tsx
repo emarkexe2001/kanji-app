@@ -6,6 +6,7 @@ import { PICK_COLORS } from '@kanji/core';
 import App from '../../src/app/app';
 import {
   COUNTER,
+  chooseDeck,
   chooseSource,
   counter,
   currentCardLevel,
@@ -149,10 +150,8 @@ describe('Shuffled-out cards view', () => {
     const clear = screen.getByRole('button', { name: 'Clear List' });
     expect(clear).toHaveClass('bg-rose-600');
     await user.click(clear);
-    // FEAT2_7: the confirmation says the list can be recovered.
-    expect(
-      screen.getByText('Clear the list? You can recover it until you shuffle out another card.'),
-    ).toBeInTheDocument();
+    // FEAT2_7: the confirmation gives the number of cards and says they can be recovered.
+    expect(screen.getByText('Clear all 2 cards? You can recover them later.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Yes, Clear List' }));
 
     expect(screen.getByText('No cards have been shuffled out yet.')).toBeInTheDocument();
@@ -470,7 +469,7 @@ describe('Shuffled-out cards view failure paths', () => {
   });
 });
 
-// FEAT2_7: a cleared shuffled-out list can be recovered until another card is shuffled out.
+// FEAT2_7: a cleared shuffled-out list can be recovered until Clear List is pressed again.
 describe('Recovering a cleared shuffled-out list', () => {
   const recoverButton = () => screen.queryByRole('button', { name: /^Recover cleared list/ });
 
@@ -489,6 +488,18 @@ describe('Recovering a cleared shuffled-out list', () => {
     await screen.findByText(COUNTER);
     return userEvent.setup();
   }
+
+  test('when I clear a single card, the confirmation says "Clear 1 card? You can recover it later."', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleOutOne(user);
+    await openView(user);
+
+    await user.click(screen.getByRole('button', { name: 'Clear List' }));
+
+    expect(screen.getByText('Clear 1 card? You can recover it later.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Yes, Clear List' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
 
   test('when I clear the shuffled-out list, a "Recover cleared list" button shows with the number of cards cleared', async () => {
     const user = await renderApp(DECKS);
@@ -547,54 +558,134 @@ describe('Recovering a cleared shuffled-out list', () => {
     expect(recoverButton()).not.toBeInTheDocument();
   });
 
-  test("when I clear the list and then shuffle a new card out, the button is gone and the old list can't be recovered", async () => {
+  test('after a Clear List, shuffling a new card out keeps the "Recover cleared list" button, after a reload too', async () => {
+    const user = await renderApp(DECKS);
+    const first = await shuffleOutOne(user);
+    const second = await shuffleOutOne(user);
+    await clearList(user);
+
+    const newer = await shuffleOutOne(user);
+    await enterCardLimit(user, '9'); // lowering the card limit doesn't drop it either
+    const listed = listedWords();
+    expect(listed).toHaveLength(2);
+    expect(listed[0]).not.toBe(newer); // the card trimmed by the limit is newest
+    expect(listed[1]).toBe(newer);
+    expect(screen.getByRole('button', { name: 'Recover cleared list (2)' })).toBeInTheDocument();
+
+    const reloaded = await reload();
+    await openView(reloaded);
+    await reloaded.click(screen.getByRole('button', { name: 'Recover cleared list (2)' }));
+    expect(listedWords()).toEqual([...listed, second, first]);
+    expect(recoverButton()).not.toBeInTheDocument();
+  });
+
+  test('when I recover while the shuffled-out list has cards, the cards already listed stay and the cleared ones are added by when they were shuffled out, with no duplicates', async () => {
+    const card = (id: string, removedAt: number) => ({ id, deck: 'N4', reason: 'shuffled-out', removedAt });
+    localStorage.setItem('kanji.removedCards', JSON.stringify([card('N4-1', 50), card('N4-2', 30), card('N4-3', 10)]));
+    localStorage.setItem(
+      'kanji.clearedCards',
+      JSON.stringify([
+        card('N4-4', 40),
+        card('N4-2', 35), // already in the shuffled-out list
+        { id: 'N5-1', deck: 'N5', reason: 'card-limit', removedAt: 25 }, // back in the deck
+        card('N4-5', 20),
+        card('N4-6', 5),
+      ]),
+    );
+    // The deck holds N5 cards 1 to 10.
+    localStorage.setItem('kanji.studiedDeck', 'N5');
+    localStorage.setItem(
+      'kanji.savedDeck',
+      JSON.stringify({ deck: 'N5', cards: Array.from({ length: 10 }, (_, i) => ({ id: `N5-${i + 1}`, deck: 'N5' })) }),
+    );
+    const user = await renderApp(DECKS);
+    expect(words(await deckContents(user))).toContain('N5単語1【たんご1】');
+    await openView(user);
+
+    await user.click(screen.getByRole('button', { name: 'Recover cleared list (5)' }));
+
+    expect(listedWords()).toEqual([1, 4, 2, 5, 3, 6].map((n) => `N4単語${n}【たんご${n}】`));
+    expect(shuffledOutButton()).toHaveTextContent('Shuffled out (6)');
+    expect(recoverButton()).not.toBeInTheDocument();
+  });
+
+  test('when I press Clear List again, the newer cleared list replaces the one kept before', async () => {
     const user = await renderApp(DECKS);
     await shuffleOutOne(user);
     await shuffleOutOne(user);
     await clearList(user);
-    expect(recoverButton()).toBeInTheDocument();
-
     const newer = await shuffleOutOne(user);
 
-    expect(recoverButton()).not.toBeInTheDocument();
-    expect(listedWords()).toEqual([newer]);
-    // Clearing again keeps only the most recent cleared list: just the new card.
     await clearList(user);
+
     await user.click(screen.getByRole('button', { name: 'Recover cleared list (1)' }));
     expect(listedWords()).toEqual([newer]);
-    // The old list isn't kept in storage either.
+    // Only the newer list was kept in storage too.
     await clearList(user);
     const reloaded = await reload();
     await openView(reloaded);
-    expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toBeInTheDocument();
+    await reloaded.click(screen.getByRole('button', { name: 'Recover cleared list (1)' }));
+    expect(listedWords()).toEqual([newer]);
   });
 
-  test('when I clear the list and then lower the card limit, the cards that drop out replace the cleared list', async () => {
+  test('when recovering takes the shuffled-out list past 100 cards, the oldest cards are dropped', async () => {
+    const card = (n: number, removedAt: number) => ({ id: `N4-${n}`, deck: 'N4', reason: 'shuffled-out', removedAt });
+    // 70 listed cards and 50 cleared ones, shuffled out at alternating times.
+    const listed = Array.from({ length: 70 }, (_, i) => card(i + 1, 1000 - 2 * i));
+    const cleared = Array.from({ length: 50 }, (_, i) => card(i + 71, 999 - 2 * i));
+    localStorage.setItem('kanji.removedCards', JSON.stringify(listed));
+    localStorage.setItem('kanji.clearedCards', JSON.stringify(cleared));
+    const user = await renderApp(makeDecks({ N5: 30, N4: 120 }));
+    await openView(user);
+
+    await user.click(screen.getByRole('button', { name: 'Recover cleared list (50)' }));
+
+    const newest100 = [...listed, ...cleared].sort((a, b) => b.removedAt - a.removedAt).slice(0, 100);
+    const label = (id: string) => `N4単語${id.slice(3)}【たんご${id.slice(3)}】`;
+    expect(listedWords()).toEqual(newest100.map((c) => label(c.id)));
+    expect(shuffledOutButton()).toHaveTextContent('Shuffled out (100)');
+    // The 20 oldest (listed cards 51 to 70) were dropped.
+    for (let n = 51; n <= 70; n++) expect(listedWords()).not.toContain(label(`N4-${n}`));
+  });
+
+  test('the button sits beside Clear List when the list has cards, and under the "No cards" message when it is empty', async () => {
     const user = await renderApp(DECKS);
     await shuffleOutOne(user);
     await clearList(user);
 
-    await enterCardLimit(user, '9');
+    const message = screen.getByText('No cards have been shuffled out yet.');
+    const recover = screen.getByRole('button', { name: 'Recover cleared list (1)' });
+    expect(message.compareDocumentPosition(recover) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Clear List' })).not.toBeInTheDocument();
 
-    expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)');
-    expect(recoverButton()).not.toBeInTheDocument();
-    await clearList(user);
-    expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toBeInTheDocument();
+    await shuffleOutOne(user);
+    expect(screen.queryByText('No cards have been shuffled out yet.')).not.toBeInTheDocument();
+    const clear = screen.getByRole('button', { name: 'Clear List' });
+    const beside = screen.getByRole('button', { name: 'Recover cleared list (1)' });
+    // Clear List first, then Recover, in one row at the bottom of the panel.
+    expect(beside.parentElement).toBe(clear.parentElement);
+    expect(clear.nextElementSibling).toBe(beside);
+    expect(clear.parentElement!.nextElementSibling).toBeNull();
+    // jsdom has no layout, so the class is checked: two buttons side by side.
+    expect(clear.parentElement).toHaveClass('grid', 'grid-cols-2');
+    // jsdom has no colours, so the class is checked: still sky blue and filled.
+    expect(beside).toHaveClass('bg-sky-600', 'text-white');
   });
 
-  test("when a card is shuffled out after I clear the list and then comes back into my deck, the old list still can't be recovered", async () => {
+  test('when I clear the list and switch to another deck, the same cleared list can be recovered, each card still from its own deck', async () => {
     const user = await renderApp(DECKS);
-    await enterCardLimit(user, '7'); // three cards drop out
+    const first = await shuffleOutOne(user);
+    const second = await shuffleOutOne(user);
     await clearList(user);
 
-    await enterCardLimit(user, '6'); // another card drops out, so the cleared list is dropped
-    // Topping the deck back up to 10 brings back all four cards (the first ones not in the deck),
-    // leaving the list empty again.
-    await enterCardLimit(user, '10');
+    await chooseDeck(user, 'JLPT N4');
+    expect(currentCardLevel()).toBe('JLPT N4');
 
-    expect(shuffledOutButton()).toHaveTextContent('Shuffled out (0)');
-    expect(screen.getByText('No cards have been shuffled out yet.')).toBeInTheDocument();
-    expect(recoverButton()).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Recover cleared list (2)' }));
+    expect(listedWords()).toEqual([second, first]);
+    for (const word of [first, second]) {
+      expect(within(cardOf(addBackCheckbox(word))).getByText('From JLPT N5')).toBeInTheDocument();
+    }
   });
 
   test('when a cleared card is back in my deck and I recover the list, that card is not shown in the shuffled-out list', async () => {

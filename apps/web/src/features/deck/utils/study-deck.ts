@@ -62,6 +62,31 @@ export function recordRemoved(list: RemovedCard[], removed: RemovedCard[], deck:
   return kept.slice(0, MAX_REMOVED_CARDS);
 }
 
+/**
+ * Recovering a cleared list (FEAT2_7): adds the `cleared` cards to the shuffled-out `list`, each in
+ * its place by when it was shuffled out (newest first, by `removedAt`), without changing the order
+ * of the cards already listed. Cards in `deck` or already listed are skipped, and only the newest
+ * MAX_REMOVED_CARDS are kept.
+ */
+export function mergeRecovered(list: RemovedCard[], cleared: RemovedCard[], deck: DeckCard[]): RemovedCard[] {
+  const skip = new Set([...deck, ...list].map((c) => c.id));
+  const recovered: RemovedCard[] = [];
+  for (const card of cleared) {
+    if (skip.has(card.id)) continue;
+    skip.add(card.id);
+    recovered.push(card);
+  }
+  const merged: RemovedCard[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < list.length || j < recovered.length) {
+    // On a tie the card already listed stays first.
+    const takeListed = j >= recovered.length || (i < list.length && list[i].removedAt >= recovered[j].removedAt);
+    merged.push(takeListed ? list[i++] : recovered[j++]);
+  }
+  return merged.slice(0, MAX_REMOVED_CARDS);
+}
+
 export type AddBackResult =
   { ok: true; cards: DeckCard[]; index: number; removed: RemovedCard[] } | { ok: false; error: string };
 

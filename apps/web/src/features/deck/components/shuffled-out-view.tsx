@@ -89,11 +89,28 @@ const WIDE_PANEL = 'sm:relative sm:left-1/2 sm:w-[min(36rem,calc(100vw-2rem))] s
 
 const panelButton = 'rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
 
+/** "Recover cleared list (N)" (FEAT2_7): sky blue and filled, like "Shuffled out (N)". */
+function RecoverButton({ study, className = '' }: { study: StudyDeck; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={study.recoverCleared}
+      className={`bg-sky-600 text-white hover:bg-sky-500 ${panelButton} ${className}`}
+    >
+      Recover cleared list ({study.clearedCount})
+    </button>
+  );
+}
+
+/** The Clear List confirmation, with the number of cards: it says the list can be recovered. */
+const confirmClearText = (count: number) =>
+  count === 1 ? 'Clear 1 card? You can recover it later.' : `Clear all ${count} cards? You can recover them later.`;
+
 /**
  * The "Shuffled out (3)" button and the view it opens (FEAT2): the cards that left the deck,
  * newest first, with the deck each came from. The user picks cards to add back and the same
  * number of deck cards to take out in their place, or clears the list (after confirming). A
- * cleared list can be recovered until another card is shuffled out (FEAT2_7).
+ * cleared list can be recovered until Clear List is pressed again (FEAT2_7).
  * Both lists show compact cards in a numbered grid, picked by selecting the card (FEAT2_5).
  */
 export function ShuffledOutView({ study }: { study: StudyDeck }) {
@@ -152,15 +169,7 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
           {shuffledOut.length === 0 ? (
             <>
               <p className="text-slate-600">No cards have been shuffled out yet.</p>
-              {study.clearedCount > 0 && (
-                <button
-                  type="button"
-                  onClick={study.recoverCleared}
-                  className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton}`}
-                >
-                  Recover cleared list ({study.clearedCount})
-                </button>
-              )}
+              {study.clearedCount > 0 && <RecoverButton study={study} className="w-full" />}
             </>
           ) : (
             <>
@@ -231,9 +240,7 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
 
               {confirmingClear ? (
                 <div className="space-y-2 rounded-lg border border-rose-200 bg-white p-2">
-                  <p className="font-semibold text-rose-700">
-                    Clear the list? You can recover it until you shuffle out another card.
-                  </p>
+                  <p className="font-semibold text-rose-700">{confirmClearText(shuffledOut.length)}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -255,13 +262,16 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
                   </div>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmingClear(true)}
-                  className={`w-full bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
-                >
-                  Clear List
-                </button>
+                <div className={study.clearedCount > 0 ? 'grid grid-cols-2 gap-2' : undefined}>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(true)}
+                    className={`w-full bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+                  >
+                    Clear List
+                  </button>
+                  {study.clearedCount > 0 && <RecoverButton study={study} />}
+                </div>
               )}
             </>
           )}
