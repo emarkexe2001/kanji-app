@@ -42,11 +42,18 @@ function toDeckCard(v: unknown, library: Library): DeckCard | null {
   return { id: v.id, deck: v.deck };
 }
 
+export interface SavedDeck {
+  cards: DeckCard[];
+  /** Ids of the shuffled-in cards that still show "New" (FEAT2_5). Each one is in `cards`. */
+  newIds: string[];
+}
+
 /**
- * The saved cards for `studied`, without unknown or repeated cards. Returns null when nothing
- * usable is saved (missing, corrupt, saved for another deck, or no valid cards).
+ * The saved cards for `studied`, without unknown or repeated cards, and which of them are still
+ * new (ids that aren't in the deck are dropped; a deck saved before FEAT2_5 has none). Returns
+ * null when nothing usable is saved (missing, corrupt, saved for another deck, or no valid cards).
  */
-export function loadSavedCards(library: Library, studied: DeckId): DeckCard[] | null {
+export function loadSavedDeck(library: Library, studied: DeckId): SavedDeck | null {
   const saved = readJson(SAVED_DECK_KEY);
   if (!isRecord(saved) || saved.deck !== studied || !Array.isArray(saved.cards)) return null;
   const seen = new Set<string>();
@@ -58,10 +65,14 @@ export function loadSavedCards(library: Library, studied: DeckId): DeckCard[] | 
       cards.push(card);
     }
   }
-  return cards.length ? cards : null;
+  if (!cards.length) return null;
+  const savedNew = Array.isArray(saved.newIds) ? saved.newIds : [];
+  const newIds = [...new Set(savedNew.filter((id): id is string => typeof id === 'string' && seen.has(id)))];
+  return { cards, newIds };
 }
 
-export const saveCards = (studied: DeckId, cards: DeckCard[]) => writeJson(SAVED_DECK_KEY, { deck: studied, cards });
+export const saveDeck = (studied: DeckId, { cards, newIds }: SavedDeck) =>
+  writeJson(SAVED_DECK_KEY, { deck: studied, cards, newIds });
 
 /** The saved "Shuffle in from" choice, if it is still a valid source for `studied`. */
 export function loadShuffleSource(library: Library, studied: DeckId): ShuffleSource | null {
