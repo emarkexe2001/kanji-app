@@ -216,6 +216,18 @@ How the check runs:
 
 The exact detail expected in commits, branches and pull requests is still being discussed with Hong (see Open Questions). The rules above are the minimum and may be tightened once that is agreed.
 
+### 5.6 Ticket types
+Each ticket starts with a code made of a type and a number (e.g. `FEAT2`, `ADJ1`). The type says what kind of work it is:
+
+| Code | Type | Used for |
+|---|---|---|
+| `FEAT` | Feature | new things the user can do |
+| `ADJ` | Adjustment | changing where or how existing UI is shown, without changing what it does (e.g. moving a button). An adjustment ticket shows the current and wanted layout. Its branch uses the `feature/` prefix |
+| `UI` | UI fixes | fixing UI that doesn't behave as it should |
+| `TEST`, `TOOL`, `CI`, `CHORE`, `PROC`, `ARCH` | Other | tests, tooling, CI, housekeeping, process and architecture |
+
+A follow-up to a ticket keeps its number with a suffix, e.g. `FEAT2_5` follows `FEAT2`.
+
 ---
 
 ## 6. Open Questions
