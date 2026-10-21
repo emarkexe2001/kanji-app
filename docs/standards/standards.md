@@ -142,7 +142,9 @@ A document in `docs/` must describe the test types used in the project and how t
   - pressing the shuffle button shows a new card
   - cards display correctly
   - when a card limit is set, only that many cards are shown
+- **Every new feature and every fix comes with tests.** A pull request that changes how the app behaves adds or updates tests for that change. **A pull request whose feature or fix isn't fully tested is rejected.**
 - **Every ticket's "Possible Test Scenarios" must be covered** by a test, or the PR must explain why not.
+- **Every agreed answer needs a test too.** Answers agreed in a ticket's "Answers" sections (e.g. "one cleared list for all decks") are requirements, so each one is covered by a test, the same as the test scenarios.
 - **Test what a ticket says is left out.** For every "no X" or "doesn't show X" in a ticket (e.g. "no Reading Breakdown"), add a test that checks X is not shown.
 - **Check layout in a real browser.** Tests can't see layout, so for layout or screen-size requirements (widths, grids, no sideways scrolling), look at the app in a browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note what you checked in the PR. This applies until e2e tests are set up.
 - **Only check class names when there's no other way.** Some things, like colours and animations, can't be seen in the test setup. Checking a class name is acceptable for those, with a comment saying why. Everything else is tested by what the user sees.
@@ -179,7 +181,7 @@ A document in `docs/` must describe the test types used in the project and how t
 
 ### 5.3 Before opening a pull request
 - The feature is fully implemented.
-- Functional tests have been added around the feature.
+- Functional tests have been added around the feature or fix, covering every test scenario and every agreed answer in the ticket. Pull requests without full tests are rejected (see 4.2).
 - The new code doesn't break old code or old tests, and all tests pass.
 - `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test` all pass (see 2.1).
 
