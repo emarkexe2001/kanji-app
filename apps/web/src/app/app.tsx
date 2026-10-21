@@ -29,7 +29,7 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
           <ShuffledOutButton
             count={study.shuffledOut.length}
             open={shuffledOutOpen}
-            onToggle={() => setShuffledOutOpen(!shuffledOutOpen)}
+            onToggle={() => setShuffledOutOpen((o) => !o)}
           />,
           headerSlot,
         )}

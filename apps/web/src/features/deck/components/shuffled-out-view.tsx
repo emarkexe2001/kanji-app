@@ -115,7 +115,9 @@ const confirmClearText = (count: number) =>
 /**
  * The "Shuffled out (3)" button (FEAT2). The app shows it in the header, top right beside the
  * title (ADJ1); it keeps its full label, so on a narrow phone the title wraps instead. It opens
- * and closes the panel below, and says whether the panel is open.
+ * and closes the panel below, and says whether the panel is open: aria-expanded for screen
+ * readers, and an arrow (▾ closed, ▴ open) that is hidden from them so the name stays
+ * "Shuffled out (3)". The label and arrow never wrap.
  */
 export function ShuffledOutButton({ count, open, onToggle }: { count: number; open: boolean; onToggle: () => void }) {
   return (
@@ -126,7 +128,7 @@ export function ShuffledOutButton({ count, open, onToggle }: { count: number; op
       onClick={onToggle}
       className={`shrink-0 bg-sky-600 whitespace-nowrap text-white hover:bg-sky-500 ${panelButton}`}
     >
-      Shuffled out ({count})
+      Shuffled out ({count})<span aria-hidden> {open ? '▴' : '▾'}</span>
     </button>
   );
 }

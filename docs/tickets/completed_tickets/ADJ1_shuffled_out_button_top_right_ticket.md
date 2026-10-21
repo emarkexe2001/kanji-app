@@ -71,6 +71,9 @@ Open Questions (to confirm before starting, per PROC3):
 
 Answers (agreed 2026-10-21):
 - On a narrow phone, if the title and the button don't fit on one row, the title wraps onto two lines and the button keeps its full "Shuffled out (N)" label, staying top right. This is covered by the tests "the title and the button share one row at the top: the button stays top right and the title wraps when they do not fit" and "on a narrow phone the button keeps its full "Shuffled out (N)" label, even with 100 cards"; the layout itself is checked in a real browser at about 360px (see the PR).
+- The button shows an open/closed arrow: "Shuffled out (N) ▾" when the panel is closed and "Shuffled out (N) ▴" when it is open. The arrow is hidden from screen readers (aria-expanded already says whether it is open), and the label and arrow never wrap. Covered by "the button shows ▾ while the panel is closed and ▴ while it is open, and screen readers hear only "Shuffled out (N)"".
+- Button style: the same sky blue filled button as before, sized to its label (not full width). Covered by "the button keeps its sky blue filled style, sized to its label".
+- Spacing: the panel opens 1rem (mt-4) under the header, the same gap as above the deck picker, and the button lines up with the title's first line when the title wraps. Covered by "in its new place the open panel still widens past the column on bigger screens, with the gap under the header" and "the title and the button share one row at the top: the button stays top right and the title wraps when they do not fit".
 
 Dependencies:
 FEAT2_5 (PR #27) must be merged first. FEAT2_6, FEAT2_7 and ADJ1 all change the Shuffled-out cards view, so they should be done one after another, not at the same time.

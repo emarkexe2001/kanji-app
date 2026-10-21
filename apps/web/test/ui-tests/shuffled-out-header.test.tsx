@@ -1,4 +1,5 @@
 // ADJ1: the "Shuffled out (N)" button in the top right of the header, and its panel just below it.
+import { StrictMode } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
@@ -8,7 +9,9 @@ import {
   deckContents,
   enterCardLimit,
   makeDecks,
+  makeWords,
   renderApp,
+  serveDeck,
   shuffleIn,
   shuffleInButton,
   type User,
@@ -53,14 +56,47 @@ describe('Shuffled-out button in the top right of the header', () => {
     await renderApp(DECKS);
 
     // jsdom has no layout, so the classes are checked: the header is one row with the title on the
-    // left and the button on the right, both at the top; the title may shrink (and so wrap onto
-    // two lines), the button never shrinks or wraps. Checked in a real browser at 360/640/1024px.
+    // left and the button on the right, both at the top (the button lines up with the title's
+    // first line); the title may shrink (and so wrap onto two lines), the button never shrinks or
+    // wraps. That is also what keeps the page from scrolling sideways on a phone: the title gives
+    // way instead of the row overflowing. Checked in a real browser at 360/640/1024px.
     expect(header()).toHaveClass('flex', 'items-start', 'justify-between');
     expect(header().className).not.toMatch(/(^|\s)(flex-col|flex-wrap)(\s|$)/);
     expect(title()).toHaveClass('min-w-0');
     expect(title()).not.toHaveClass('truncate', 'whitespace-nowrap');
     expect(shuffledOutButton()).toHaveClass('shrink-0', 'whitespace-nowrap');
     expect(shuffledOutButton()).not.toHaveClass('w-full');
+  });
+
+  test('the button keeps its sky blue filled style, sized to its label', async () => {
+    await renderApp(DECKS);
+    // jsdom has no colours or widths, so the classes are checked: the same sky blue filled
+    // button as before, no longer full width.
+    expect(shuffledOutButton()).toHaveClass('bg-sky-600', 'text-white', 'rounded-xl', 'px-4', 'py-2');
+    expect(shuffledOutButton().className).not.toMatch(/(^|\s)w-/);
+  });
+
+  test('the button shows ▾ while the panel is closed and ▴ while it is open, and screen readers hear only "Shuffled out (N)"', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleOutOne(user);
+    const button = within(header()).getByRole('button', { name: 'Shuffled out (1)' });
+    const arrow = () => within(button).getByText(/^\s*[▾▴]$/);
+
+    expect(button).toHaveTextContent(/^Shuffled out \(1\)\s*▾$/);
+    expect(arrow()).toHaveAttribute('aria-hidden', 'true');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(button);
+    expect(button).toHaveTextContent(/^Shuffled out \(1\)\s*▴$/);
+    expect(arrow()).toHaveAttribute('aria-hidden', 'true');
+    // The accessible name leaves the arrow out; aria-expanded says whether it is open.
+    expect(screen.getByRole('button', { name: 'Shuffled out (1)' })).toBe(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(button);
+    expect(button).toHaveTextContent(/^Shuffled out \(1\)\s*▾$/);
+    // jsdom has no layout, so the class is checked: the label and the arrow never wrap.
+    expect(button).toHaveClass('whitespace-nowrap');
   });
 
   test('on a narrow phone the button keeps its full "Shuffled out (N)" label, even with 100 cards', async () => {
@@ -93,6 +129,24 @@ describe('Shuffled-out button in the top right of the header', () => {
     await user.click(shuffledOutButton());
     expect(shuffledOutButton()).toHaveAttribute('aria-expanded', 'false');
     expect(panel()).not.toBeInTheDocument();
+  });
+
+  test('in its new place the open panel still widens past the column on bigger screens, with the gap under the header', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleOutOne(user);
+    await user.click(shuffledOutButton());
+
+    const open = panel()!;
+    // It sits in the page itself, straight under the header, not inside it or the deck.
+    expect(open.parentElement).toBe(header().parentElement);
+    expect(open.parentElement!.tagName).toBe('MAIN');
+    // jsdom has no layout, so the classes are checked. From sm up the panel grows past the app's
+    // column, centred on it and never wider than the screen (FEAT2_5); on a phone only sm: classes
+    // change its width or position, so it keeps the column's width and can't scroll sideways.
+    expect(open).toHaveClass('sm:relative', 'sm:left-1/2', 'sm:w-[min(36rem,calc(100vw-2rem))]', 'sm:-translate-x-1/2');
+    expect(open.className).not.toMatch(/(^|\s)-?(w|left|right|translate-x|mx|-mx)-/);
+    // The gap under the header (agreed 2026-10-21): mt-4, the same as above the deck picker.
+    expect(open).toHaveClass('mt-4');
   });
 
   test('when I close the panel and open it again, the cards I had picked are no longer picked', async () => {
@@ -164,6 +218,43 @@ describe('Shuffled-out button in the top right of the header', () => {
     await screen.findByText(/Couldn't load the word deck/);
     expect(title()).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Shuffled out/ })).not.toBeInTheDocument();
+  });
+
+  test('when the deck fails to show, the friendly message is shown and there is no "Shuffled out" button in the header', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Broken data: every word is missing its reading breakdown, so drawing the card throws.
+    serveDeck(makeWords(5).map((word) => ({ ...word, segments: null })));
+    render(<App />);
+
+    expect(
+      await screen.findByText('Something went wrong showing the cards. Please reload the page to try again.'),
+    ).toBeInTheDocument();
+    expect(title()).toBeInTheDocument();
+    expect(within(header()).queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Shuffled out/ })).not.toBeInTheDocument();
+    consoleError.mockRestore();
+  });
+
+  test('when the word deck has no words to study, there is no "Shuffled out" button in the header', async () => {
+    serveDeck([]);
+    render(<App />);
+
+    expect(await screen.findByText('The word deck has no words to study.')).toBeInTheDocument();
+    expect(title()).toBeInTheDocument();
+    expect(within(header()).queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  test('in React strict mode there is still exactly one "Shuffled out" button, in the header', async () => {
+    serveDeck(DECKS);
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    await screen.findByText(COUNTER);
+
+    expect(screen.getAllByRole('button', { name: /^Shuffled out/ })).toHaveLength(1);
+    expect(within(header()).getAllByRole('button', { name: /^Shuffled out/ })).toHaveLength(1);
   });
 });
 
