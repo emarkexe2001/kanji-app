@@ -147,6 +147,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - **Every agreed answer needs a test too.** Answers agreed in a ticket's "Answers" sections (e.g. "one cleared list for all decks") are requirements, so each one is covered by a test, the same as the test scenarios.
 - **Test what a ticket says is left out.** For every "no X" or "doesn't show X" in a ticket (e.g. "no Reading Breakdown"), add a test that checks X is not shown.
 - **Check layout in a real browser.** Tests can't see layout, so for layout or screen-size requirements (widths, grids, no sideways scrolling), look at the app in a browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note what you checked in the PR. This applies until e2e tests are set up.
+- **Test structural UI moves where they can break.** When UI is moved in a way that changes how the page is built (e.g. rendering a button into the header with a React portal), test it under the error boundary (a crash must not leave stray UI behind) and in React's StrictMode (it must not appear twice).
 - **Only check class names when there's no other way.** Some things, like colours and animations, can't be seen in the test setup. Checking a class name is acceptable for those, with a comment saying why. Everything else is tested by what the user sees.
 - **Save your work before checking a test can fail.** Commit or `git stash` your changes before breaking code to check a test goes red, so restoring the file (e.g. with `git checkout`) can't wipe unsaved work.
 - **Test validation messages** for every feature where the user can enter input, such as increasing and decreasing the card limit.
@@ -162,6 +163,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - Read the ticket and make sure you understand the task.
 - If the ticket needs more detail or clarification, respond with questions before starting.
 - **If a UI detail isn't decided** (layout, sizes, colours, wording, placement, animations), ask how it should look rather than guessing.
+- **Check layout questions together before starting.** If a ticket changes the layout, go through its layout questions together before the work begins, including spacing, alignment and sizes, not just placement. Record the answers in the ticket.
 - **Split tickets that are too big.** If a ticket covers several separate pieces of work (e.g. a new badge, animations and a layout change), split it into smaller tickets before starting, each with its own pull request. Ask before splitting, and agree how the pieces depend on each other.
 
 ### 5.2 Branches
@@ -188,6 +190,7 @@ A document in `docs/` must describe the test types used in the project and how t
 ### 5.4 Pull requests and merging
 - **Every change goes through a pull request,** reviewed by me or someone else before any merging happens.
 - **Only merge once the feature is complete,** properly tested, and all tests pass.
+- **Layout review before merging.** A pull request that changes what the user sees gets a layout review together before it is merged: look at it in a real browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note the result in the PR. Because merging the PR marks its ticket complete, a ticket isn't complete until its layout review has passed.
 - **One change per pull request.** A pull request only contains the change it is about, so it is quick to review. A feature PR only contains commits for that feature.
 - **Docs and ticket changes get their own pull request** from a `docs/` branch (e.g. `docs/add-tickets`), rather than being added to a feature PR.
 - **Move finished tickets.** When a ticket is finished, move its file into `docs/tickets/completed_tickets/` and add a `Completed On:` note with the date. Do this in the ticket's own pull request, so merging the PR is what marks the ticket as complete.
