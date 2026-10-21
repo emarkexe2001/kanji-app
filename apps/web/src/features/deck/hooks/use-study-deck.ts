@@ -116,6 +116,8 @@ export interface StudyDeck {
   clearShuffledOut: () => void;
   /** Whether the card at `position` (from 0) was shuffled in and hasn't been seen and moved on from yet. */
   isNew: (position: number) => boolean;
+  /** The deck the card at `position` (from 0) came from, e.g. N4 for a card shuffled in from JLPT N4. */
+  cardDeck: (position: number) => DeckId;
   /** The card the last Shuffle In Cards took off the screen, to show it sliding away. */
   leaving: WordEntry | null;
 }
@@ -252,6 +254,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     clearShuffledOut: () => setState((s) => ({ ...s, removed: [] })),
 
     isNew: (position) => newIds.has(state.cards[position]?.id ?? ''),
+    cardDeck: (position) => state.cards[position].deck,
     leaving: state.leaving && library.byId.get(state.leaving.id)!,
   };
 }

@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
+import { PICK_COLORS } from '@kanji/core';
 import App from '../../src/app/app';
 import {
   COUNTER,
@@ -238,7 +239,10 @@ describe('Shuffled-out cards shown as cards', () => {
 
     await user.click(within(card).getByText(/^word number \d+$/)); // anywhere on the card
     expect(checkbox).toBeChecked();
-    expect(within(card).getByText('✓')).toBeInTheDocument();
+    // Green outline and tick: this card is being added back.
+    expect(within(card).getByText('✓')).toHaveStyle({ backgroundColor: PICK_COLORS.addBack });
+    expect(card).toHaveStyle({ '--pick': PICK_COLORS.addBack });
+    expect(card).toHaveClass('has-checked:ring-(--pick)');
     // The "Take out of your deck" cards appear once a card is picked to add back.
     expect(takeOutGroup().getAllByRole('checkbox')).toHaveLength(10);
 
@@ -259,13 +263,16 @@ describe('Shuffled-out cards shown as cards', () => {
     const { word, reading } = splitWord(third);
     expect(card.getByText(word)).toHaveClass('hl-onyomi');
     expect(card.getByText(`【${reading}】`)).toBeInTheDocument();
-    expect(card.getByText(/^JLPT N[45]$/)).toBeInTheDocument();
+    const level = card.getByText(/^JLPT N[45]$/).textContent;
     expect(card.getByText(/^word number \d+$/)).toBeInTheDocument();
+    expect(card.getByText(`From ${level}`)).toBeInTheDocument();
     expect(card.queryByText('READING BREAKDOWN')).not.toBeInTheDocument();
 
     await user.click(cardOf(checkbox));
     expect(checkbox).toBeChecked();
-    expect(card.getByText('✓')).toBeInTheDocument();
+    // Red outline and tick: this card is being taken out.
+    expect(card.getByText('✓')).toHaveStyle({ backgroundColor: PICK_COLORS.takeOut });
+    expect(cardOf(checkbox)).toHaveStyle({ '--pick': PICK_COLORS.takeOut });
     await user.click(addBackButton());
     expect(words(await deckContents(user))).not.toContain(third);
   });
@@ -276,8 +283,13 @@ describe('Shuffled-out cards shown as cards', () => {
     await openView(user);
 
     const grid = addBackGroup().getByRole('list');
-    // Two cards per row on a phone, three on wider screens.
-    expect(grid).toHaveClass('grid', 'grid-cols-2', 'sm:grid-cols-3');
+    // Two cards per row on a phone, three on wider screens, scrolling inside a fixed-height box.
+    expect(grid).toHaveClass('grid', 'grid-cols-2', 'sm:grid-cols-3', 'max-h-96', 'overflow-y-auto');
+    // On wider screens the panel grows past the app's column so three cards fit; on a phone it
+    // keeps the column's width (only sm: classes change its width or position).
+    const panel = screen.getByRole('region', { name: 'Shuffled-out cards' });
+    expect(panel).toHaveClass('sm:w-[min(36rem,calc(100vw-2rem))]', 'sm:left-1/2', 'sm:-translate-x-1/2');
+    expect(panel.className).not.toMatch(/(^|\s)-?(w|left|right|translate-x|mx|-mx)-/);
     const items = within(grid).getAllByRole('listitem');
     expect(items).toHaveLength(3);
     [...out].reverse().forEach((word, i) => {

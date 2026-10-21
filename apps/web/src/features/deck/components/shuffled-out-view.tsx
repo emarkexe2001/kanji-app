@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react';
-import type { WordEntry } from '@kanji/core';
+import { useState, type CSSProperties } from 'react';
+import { PICK_COLORS, type PickKind, type WordEntry } from '@kanji/core';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { DECK_LABELS, cardId } from '../utils/decks';
+import { DECK_LABELS, cardId, type DeckId } from '../utils/decks';
 import { CardErrorBoundary } from './card-error-boundary';
 import { WordCard } from './word-card';
 
@@ -9,31 +9,44 @@ const wordLabel = (w: WordEntry) => `${w.word}【${w.reading}】`;
 
 const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
+interface ListedCard {
+  entry: WordEntry;
+  /** The deck it came from, shown as "From JLPT N4". */
+  deck: DeckId;
+  /** A shuffled-in card that still shows "New" in the deck. */
+  isNew?: boolean;
+}
+
 /**
  * One card in a list of cards to pick (FEAT2_5): its number above it, then the compact card,
- * picked by selecting the card itself. A visually hidden checkbox inside makes it reachable with
- * Tab, toggled with Space (or Enter) and announced as picked (checked) or not.
+ * picked by selecting the card itself. A picked card gets an outline and a tick, green when it is
+ * being added back and red when it is being taken out. A visually hidden checkbox inside makes it
+ * reachable with Tab, toggled with Space (or Enter) and announced as picked (checked) or not.
  */
 function PickCard({
   number,
   label,
-  entry,
+  card,
+  kind,
   picked,
   onToggle,
-  children,
 }: {
   number: number;
   label: string;
-  entry: WordEntry;
+  card: ListedCard;
+  kind: PickKind;
   picked: boolean;
   onToggle: () => void;
-  children?: ReactNode;
 }) {
+  const color = PICK_COLORS[kind];
   return (
     <li>
       <span className="mb-1 block text-xs font-bold text-slate-500 tabular-nums">{number}</span>
       <CardErrorBoundary>
-        <label className="relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-sky-600 has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-sky-700">
+        <label
+          style={{ '--pick': color } as CSSProperties}
+          className="relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700"
+        >
           <input
             type="checkbox"
             checked={picked}
@@ -46,13 +59,14 @@ function PickCard({
             aria-label={label}
             className="sr-only"
           />
-          <WordCard entry={entry} compact>
-            {children}
+          <WordCard entry={card.entry} compact isNew={card.isNew}>
+            <p className="text-[11px] font-semibold text-sky-800">From {DECK_LABELS[card.deck]}</p>
           </WordCard>
           {picked && (
             <span
               aria-hidden
-              className="absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full bg-sky-600 text-sm font-bold text-white shadow"
+              style={{ backgroundColor: color }}
+              className="absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full text-sm font-bold text-white shadow"
             >
               ✓
             </span>
@@ -65,6 +79,13 @@ function PickCard({
 
 /** The cards to pick: two per row on a phone, three on wider screens. */
 const CARD_GRID = 'grid max-h-96 grid-cols-2 gap-x-2 gap-y-3 overflow-y-auto p-2 sm:grid-cols-3';
+
+/**
+ * On wider screens the panel grows past the app's narrow column (centred on it, and never wider
+ * than the screen), so three cards per row are as wide as two on a phone. On a phone it keeps the
+ * column's width, so the page never scrolls sideways.
+ */
+const WIDE_PANEL = 'sm:relative sm:left-1/2 sm:w-[min(36rem,calc(100vw-2rem))] sm:-translate-x-1/2';
 
 const panelButton = 'rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
 
@@ -121,7 +142,7 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
         <section
           id="shuffled-out-panel"
           aria-labelledby="shuffled-out-heading"
-          className="mt-2 space-y-3 rounded-xl bg-sky-50 px-3 py-3 text-sm"
+          className={`mt-2 space-y-3 rounded-xl bg-sky-50 px-3 py-3 text-sm ${WIDE_PANEL}`}
         >
           <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
             Shuffled-out cards
@@ -147,15 +168,14 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
                         key={card.id}
                         number={i + 1}
                         label={wordLabel(card.word)}
-                        entry={card.word}
+                        card={{ entry: card.word, deck: card.deck }}
+                        kind="addBack"
                         picked={adding.includes(card.id)}
                         onToggle={() => {
                           setAdding(toggle(adding, card.id));
                           setError(null);
                         }}
-                      >
-                        <p className="text-[11px] font-semibold text-sky-800">From {DECK_LABELS[card.deck]}</p>
-                      </PickCard>
+                      />
                     ))}
                   </ul>
                 </fieldset>
@@ -171,7 +191,8 @@ export function ShuffledOutView({ study }: { study: StudyDeck }) {
                           key={cardId(word)}
                           number={i + 1}
                           label={`Card ${i + 1}: ${wordLabel(word)}`}
-                          entry={word}
+                          card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
+                          kind="takeOut"
                           picked={takingOut.includes(cardId(word))}
                           onToggle={() => {
                             setTakingOut(toggle(takingOut, cardId(word)));

@@ -81,9 +81,19 @@ UI answers (agreed 2026-10-21):
 - "New" badge on shuffled-in cards in the deck: a diagonal "NEW" corner ribbon across the card's top-right corner.
 - Slide animations: shuffled-in cards drop onto the deck from above; shuffled-out cards slide down and away. Both are turned off under prefers-reduced-motion: reduce.
 - Compact card: WordCard reused as a compact variant, showing the header, the word with its reading highlights, the meaning and "From <deck>". No Reading Breakdown.
+- Picked card: green outline and green tick when picking a card to add back (Shuffled-out cards list); red outline and red tick when picking a card to take out (Take out of your deck). The colours are shared tokens in @kanji/core (PICK_COLORS).
+- "NEW" ribbon colour: amber/gold with dark text.
+- Cards in "Take out of your deck" also show the "NEW" ribbon while they are still new.
+- A card that can't be drawn shows "This card can't be shown." in that card's place.
+- The compact card keeps the kana reading (【...】). "From <deck>" shows on the cards in both lists. No ★ Common Word badge.
+- Width: on wider screens the card panel grows wider than the app's main column so 3 cards per row have real room; on a phone it stays 2 per row with no sideways page scroll.
+- Grid height: the cards scroll inside a fixed-height box (about 384px).
 
 Dependencies:
 FEAT2 (PR #24) must be merged first, since this changes its view.
 
 Branch name Examples:
 feature/shuffled-out-card-view
+
+Completed On:
+2026-10-21

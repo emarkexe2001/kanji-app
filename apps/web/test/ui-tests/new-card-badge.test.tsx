@@ -145,6 +145,26 @@ describe('the "New" badge on shuffled-in cards', () => {
     expect(currentWord()).toBe(shuffledOut);
     expect(onScreenIsNew()).toBe(false);
   });
+
+  test('cards in "Take out of your deck" also show "New" while they are still new', async () => {
+    const user = await renderApp(DECKS);
+    const firstOut = currentWord();
+    await shuffleIn(user, '3');
+    const seen = currentWord();
+    await user.click(nextButton()); // the shuffled-in card on screen has been seen; the other two haven't
+
+    await user.click(screen.getByRole('button', { name: /^Shuffled out/ }));
+    await user.click(screen.getByRole('checkbox', { name: firstOut! }).closest('label')!);
+    const takeOut = within(screen.getByRole('group', { name: /^Take out of your deck/ }));
+    const shownNew = takeOut
+      .getAllByRole('checkbox')
+      .filter((c) => within(c.closest('label')!).queryByText('New'))
+      .map((c) => c.getAttribute('aria-label')!.replace(/^Card \d+: /, ''));
+
+    expect(shownNew).toHaveLength(2);
+    expect(shownNew).not.toContain(seen);
+    for (const word of shownNew) expect(word).toMatch(/^N4/); // shuffled in from JLPT N4
+  });
 });
 
 describe('the "New" badge saved with the deck (failure paths)', () => {
