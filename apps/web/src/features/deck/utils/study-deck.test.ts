@@ -9,6 +9,7 @@ import {
   recordRemoved,
   resizeCards,
   shuffleIn,
+  stillNew,
   takeCards,
   type DeckCard,
   type RemovedCard,
@@ -161,4 +162,11 @@ test('adding back refuses cards that are not on the list, or deck positions that
     addBack({ cards, removed: [out('N4-1'), out('N4-2')], addIds: ['N4-1', 'N4-2'], takeOut: [0, 0], now: 0 }).ok,
     false,
   );
+});
+
+test('a shuffled-in card stays new until the user moves on from it, and only while it is in the deck', () => {
+  const cards = deck(3); // N5-1, N5-2, N5-3
+  assert.deepEqual(stillNew(['N5-1', 'N5-2'], cards), ['N5-1', 'N5-2']);
+  assert.deepEqual(stillNew(['N5-1', 'N5-2'], cards, 'N5-1'), ['N5-2']);
+  assert.deepEqual(stillNew(['N5-1', 'N4-9'], cards), ['N5-1']);
 });

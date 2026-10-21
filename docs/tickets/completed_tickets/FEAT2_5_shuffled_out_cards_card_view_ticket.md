@@ -75,6 +75,13 @@ Further answers (agreed 2026-10-20):
 - After a reload, a shuffled-in card that hasn't been seen yet still shows "New". So which cards are still new is saved with the deck (through the storage helper, and checked on load like the rest of the saved deck).
 - When the device's "reduce motion" setting is on (prefers-reduced-motion: reduce), the slide in / slide out animations are turned off. The cards still change and the "New" badge still shows; only the movement is skipped.
 
+UI answers (agreed 2026-10-21):
+- Grid: 2 cards per row on a phone, 3 per row on wider screens. This applies to both the Shuffled-out cards view and the "Take out of your deck" list.
+- Card number (1, 2, 3, ...): a plain number label sitting above each card, outside it.
+- "New" badge on shuffled-in cards in the deck: a diagonal "NEW" corner ribbon across the card's top-right corner.
+- Slide animations: shuffled-in cards drop onto the deck from above; shuffled-out cards slide down and away. Both are turned off under prefers-reduced-motion: reduce.
+- Compact card: WordCard reused as a compact variant, showing the header, the word with its reading highlights, the meaning and "From <deck>". No Reading Breakdown.
+
 Dependencies:
 FEAT2 (PR #24) must be merged first, since this changes its view.
 
