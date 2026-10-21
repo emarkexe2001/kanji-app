@@ -582,6 +582,21 @@ describe('Recovering a cleared shuffled-out list', () => {
     expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toBeInTheDocument();
   });
 
+  test("when a card is shuffled out after I clear the list and then comes back into my deck, the old list still can't be recovered", async () => {
+    const user = await renderApp(DECKS);
+    await enterCardLimit(user, '7'); // three cards drop out
+    await clearList(user);
+
+    await enterCardLimit(user, '6'); // another card drops out, so the cleared list is dropped
+    // Topping the deck back up to 10 brings back all four cards (the first ones not in the deck),
+    // leaving the list empty again.
+    await enterCardLimit(user, '10');
+
+    expect(shuffledOutButton()).toHaveTextContent('Shuffled out (0)');
+    expect(screen.getByText('No cards have been shuffled out yet.')).toBeInTheDocument();
+    expect(recoverButton()).not.toBeInTheDocument();
+  });
+
   test('when a cleared card is back in my deck and I recover the list, that card is not shown in the shuffled-out list', async () => {
     const user = await renderApp(DECKS);
     await shuffleOutOne(user);
@@ -603,6 +618,19 @@ describe('Recovering a cleared shuffled-out list', () => {
     const listed = listedWords();
     expect(listed).toEqual(cleared.filter((w) => !back.includes(w)));
     for (const word of back) expect(listed).not.toContain(word);
+  });
+
+  test('when every cleared card is back in my deck and I recover the list, the list stays empty and the button goes away', async () => {
+    const user = await renderApp(DECKS);
+    await enterCardLimit(user, '7'); // three cards drop out
+    await clearList(user);
+    await enterCardLimit(user, '10'); // and all three come back
+
+    await user.click(screen.getByRole('button', { name: 'Recover cleared list (3)' }));
+
+    expect(shuffledOutButton()).toHaveTextContent('Shuffled out (0)');
+    expect(screen.getByText('No cards have been shuffled out yet.')).toBeInTheDocument();
+    expect(recoverButton()).not.toBeInTheDocument();
   });
 
   test('when nothing has been cleared, no "Recover cleared list" button is shown', async () => {
