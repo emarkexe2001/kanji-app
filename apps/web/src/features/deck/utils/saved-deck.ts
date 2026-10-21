@@ -12,6 +12,7 @@ const STUDIED_DECK_KEY = 'kanji.studiedDeck';
 const SAVED_DECK_KEY = 'kanji.savedDeck';
 const SOURCE_KEY = 'kanji.shuffleSource';
 const REMOVED_KEY = 'kanji.removedCards';
+const CLEARED_KEY = 'kanji.clearedCards';
 
 function readJson(key: string): unknown {
   const raw = readStorage(key);
@@ -87,20 +88,34 @@ export function loadShuffleSource(library: Library, studied: DeckId): ShuffleSou
 
 export const saveShuffleSource = (source: ShuffleSource) => writeJson(SOURCE_KEY, source);
 
-/** The saved list of removed cards, newest first, without entries that don't fit. */
-export function loadRemovedCards(library: Library): RemovedCard[] {
-  const saved = readJson(REMOVED_KEY);
+/** A saved list of removed cards, newest first, without entries that don't fit. */
+function loadRemovedList(key: string, library: Library): RemovedCard[] {
+  const saved = readJson(key);
   if (!Array.isArray(saved)) return [];
+  const seen = new Set<string>();
   const removed: RemovedCard[] = [];
   for (const item of saved) {
     const card = toDeckCard(item, library);
-    if (!card || !isRecord(item)) continue;
+    // Each card is listed once, at its newest (first) entry.
+    if (!card || !isRecord(item) || seen.has(card.id)) continue;
     const reason = REMOVED_REASONS.find((r) => r === item.reason);
     if (!reason) continue;
     if (typeof item.removedAt !== 'number' || !Number.isFinite(item.removedAt)) continue;
+    seen.add(card.id);
     removed.push({ ...card, reason, removedAt: item.removedAt });
   }
   return removed.slice(0, MAX_REMOVED_CARDS);
 }
 
+/** The saved list of removed cards (the "Shuffled-out cards" list), newest first. */
+export const loadRemovedCards = (library: Library) => loadRemovedList(REMOVED_KEY, library);
+
 export const saveRemovedCards = (removed: RemovedCard[]) => writeJson(REMOVED_KEY, removed);
+
+/**
+ * The saved list that Clear List last cleared, newest first, kept so it can be recovered
+ * (FEAT2_7). It is checked the same way as the shuffled-out list.
+ */
+export const loadClearedCards = (library: Library) => loadRemovedList(CLEARED_KEY, library);
+
+export const saveClearedCards = (cleared: RemovedCard[]) => writeJson(CLEARED_KEY, cleared);

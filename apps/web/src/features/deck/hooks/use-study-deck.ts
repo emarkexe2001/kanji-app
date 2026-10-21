@@ -4,8 +4,10 @@ import type { Move } from '../components/card-stack';
 import { otherDecks, type DeckId, type Library } from '../utils/decks';
 import { randomOther } from '../utils/random-other';
 import {
+  loadClearedCards,
   loadRemovedCards,
   loadSavedDeck,
+  saveClearedCards,
   loadShuffleSource,
   loadStudiedDeck,
   saveDeck,
@@ -16,6 +18,7 @@ import {
 import {
   addBack,
   describeReplaced,
+  mergeRecovered,
   recordRemoved,
   resizeCards,
   shuffleIn,
@@ -37,6 +40,11 @@ interface StudyState {
   replaced: number[] | null;
   source: ShuffleSource | null;
   removed: RemovedCard[];
+  /**
+   * The list Clear List last cleared, kept so it can be recovered (FEAT2_7), or empty. It is kept
+   * until it is recovered or Clear List is pressed again; shuffling cards out doesn't drop it.
+   */
+  cleared: RemovedCard[];
   /** Ids of the shuffled-in cards that still show "New" (saved with the deck). */
   newIds: string[];
   /** The card the last Shuffle In Cards took off the screen, while it slides away. */
@@ -82,6 +90,7 @@ function loadState(library: Library, studied: DeckId, limit: number): StudyState
     replaced: null,
     source: validSource(library, studied, loadShuffleSource(library, studied)),
     removed: recordRemoved(loadRemovedCards(library), [], cards),
+    cleared: loadClearedCards(library),
     newIds: stillNew(saved?.newIds ?? [], cards),
     leaving: null,
   };
@@ -113,7 +122,15 @@ export interface StudyDeck {
    * (from 0). Returns a message for the user if it can't, and the deck doesn't change.
    */
   addBack: (addIds: string[], takeOut: number[]) => string | null;
+  /** Clears the shuffled-out list, keeping it so it can be recovered (replacing any list cleared before). */
   clearShuffledOut: () => void;
+  /** How many cards the last Clear List cleared, while they can be recovered; 0 when there is nothing to recover. */
+  clearedCount: number;
+  /**
+   * Adds the cleared cards to the shuffled-out list, each in its place by when it was shuffled
+   * out, skipping any now in the deck or already listed.
+   */
+  recoverCleared: () => void;
   /** Whether the card at `position` (from 0) was shuffled in and hasn't been seen and moved on from yet. */
   isNew: (position: number) => boolean;
   /** The deck the card at `position` (from 0) came from, e.g. N4 for a card shuffled in from JLPT N4. */
@@ -146,6 +163,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     if (state.source) saveShuffleSource(state.source);
   }, [state.source]);
   useEffect(() => saveRemovedCards(state.removed), [state.removed]);
+  useEffect(() => saveClearedCards(state.cleared), [state.cleared]);
 
   const cards = useMemo(() => state.cards.map((c) => library.byId.get(c.id)!), [state.cards, library]);
   const shuffledOut = useMemo(
@@ -251,7 +269,14 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
       return null;
     },
 
-    clearShuffledOut: () => setState((s) => ({ ...s, removed: [] })),
+    // The newer clear replaces any cleared list kept from before.
+    clearShuffledOut: () => setState((s) => (s.removed.length ? { ...s, removed: [], cleared: s.removed } : s)),
+
+    clearedCount: state.cleared.length,
+
+    // Adds to the list, never replacing it; cards in the deck or already listed are skipped.
+    recoverCleared: () =>
+      setState((s) => ({ ...s, removed: mergeRecovered(s.removed, s.cleared, s.cards), cleared: [] })),
 
     isNew: (position) => newIds.has(state.cards[position]?.id ?? ''),
     cardDeck: (position) => state.cards[position].deck,
