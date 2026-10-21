@@ -47,9 +47,10 @@ Open Questions (to confirm before starting, per PROC3):
 
 Answers (agreed 2026-10-20):
 - Compact card: the header, the word in kanji (with its reading highlights) and the meaning. No Reading Breakdown section.
-- Layout: not decided yet. Confirm before starting.
+- Layout: a grid, with each card numbered (1, 2, 3, ...).
 - The "Take out of your deck" list also uses cards, picked the same way as the shuffled-out cards.
 - Cards that were shuffled in get a "New" badge so they are easy to spot in the deck. They also get an animation of the card sliding into the deck. Cards being shuffled out get an animation of the card sliding out of the deck.
+- The "New" badge goes away only once the card has been seen and the user moves on to another card (e.g. with Next or Deck Shuffle). A shuffled-in card that hasn't been on screen yet keeps its badge.
 - Reuse the deck's card component for now (a compact version of it), rather than writing a separate one.
 
 Extra test scenarios from the answers:
@@ -60,10 +61,19 @@ When I look at a shuffled-out card, it shows its word and meaning but no Reading
 
 When I pick cards to take out of my deck, they are shown as cards and I pick them by selecting the card
 
-Open Questions from the answers (to confirm before starting):
-- How long does a card keep its "New" badge: until the user has seen it once, until the next Shuffle In Cards, or until it is shuffled out?
-- Is the "New" badge kept after a reload?
-- When the user prefers reduced motion (the "reduce motion" setting on their device), should the slide in / slide out animations be turned off?
+When I open the Shuffled-out cards view, the cards are shown in a grid, each with its number
+
+When a shuffled-in card is on screen it shows "New", and once I move on to another card it no longer shows "New"
+
+When I shuffle in several cards, the ones I haven't seen yet still show "New" until I have seen each one and moved on
+
+When I reload the app, shuffled-in cards I haven't seen yet still show "New", and ones I have seen don't
+
+When my device's "reduce motion" setting is on, cards are shuffled in and out without the slide animations
+
+Further answers (agreed 2026-10-20):
+- After a reload, a shuffled-in card that hasn't been seen yet still shows "New". So which cards are still new is saved with the deck (through the storage helper, and checked on load like the rest of the saved deck).
+- When the device's "reduce motion" setting is on (prefers-reduced-motion: reduce), the slide in / slide out animations are turned off. The cards still change and the "New" badge still shows; only the movement is skipped.
 
 Dependencies:
 FEAT2 (PR #24) must be merged first, since this changes its view.
