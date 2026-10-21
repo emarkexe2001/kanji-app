@@ -47,8 +47,16 @@ Open Questions (to confirm before starting, per PROC3):
 - Should the Clear List confirmation message say the list can be recovered (e.g. "You can recover it until you shuffle out another card")?
 - If the user switches to another deck, is the cleared list kept for the deck it came from, the same as the shuffled-out list?
 
+Answers (agreed 2026-10-21):
+- Recover button colour: sky blue, filled, the same style as the "Shuffled out (N)" button.
+- The Clear List confirmation says the list can be recovered: "Clear the list? You can recover it until you shuffle out another card." The Yes, Clear List and Cancel buttons stay the same.
+- Decks: there is one cleared list for all decks, matching how the shuffled-out list already works (each card keeps the deck it came from).
+
 Dependencies:
 FEAT2_5 (PR #27) must be merged first. FEAT2_6, FEAT2_7 and ADJ1 all change the Shuffled-out cards view, so they should be done one after another, not at the same time.
 
 Branch name Examples:
 feature/recover-cleared-shuffled-out-list
+
+Completed On:
+2026-10-21

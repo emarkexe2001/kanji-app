@@ -34,7 +34,7 @@ This document describes the types of test used in the project, where each lives 
 - **Current files:**
   - `deck.test.tsx`: Next, the → key, wrapping round, Deck Shuffle and the S key, the "Card 5 of 20" position
   - `shuffle-in.test.tsx`: picking the deck to study, Shuffle In Cards (one deck or Random, one or several cards, reloads, the summary, card limit changes, the removed-cards record) and its failure paths, plus checks of bad saved deck data
-  - `shuffled-out.test.tsx`: the Shuffled-out cards view (the list, adding cards back by swapping deck cards out, clearing it with confirmation), the cards shown as compact cards in a numbered grid and picked by selecting them or with the keyboard, and its failure paths (including a card that can't be drawn)
+  - `shuffled-out.test.tsx`: the Shuffled-out cards view (the list, adding cards back by swapping deck cards out, clearing it with confirmation), recovering a cleared list (until another card is shuffled out, across a reload, bad saved data, blocked storage), the cards shown as compact cards in a numbered grid and picked by selecting them or with the keyboard, and its failure paths (including a card that can't be drawn)
   - `new-card-badge.test.tsx`: the "New" badge on shuffled-in cards (until seen and moved on from, across a reload, bad saved data), and the slide animations being skipped when "reduce motion" is on
   - `card-limit.test.tsx`: setting the limit, + / −, saving it, and every validation message
   - `failure-paths.test.tsx`: the dictionary failing to load, a card failing to draw (error boundary), blocked browser storage, a corrupt saved limit
