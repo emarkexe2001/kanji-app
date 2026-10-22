@@ -409,18 +409,39 @@ describe('Shuffled-out card view fixes', () => {
     expect(addBackCheckbox(first)).toBeChecked();
     expect(takeOutGroup().getAllByRole('checkbox')).toHaveLength(10);
 
+    // The same on a "Take out of your deck" card.
+    takeOutCheckbox(2).focus();
+    await user.keyboard('{Enter>6/}');
+    expect(takeOutCheckbox(2)).toBeChecked();
+    await user.keyboard('{Enter>5/}');
+    expect(takeOutCheckbox(2)).not.toBeChecked();
+
+    addBackCheckbox(first).focus();
     await user.keyboard('{Enter>5/}');
     expect(addBackCheckbox(first)).not.toBeChecked();
     // Holding Enter doesn't submit Add Back Cards either.
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  test('in a high-contrast (forced colours) mode, a picked card has a thick outline and a ringed tick in the system highlight colour; in normal colours it looks the same as before', async () => {
+  test('in a high-contrast (forced colours) mode, a picked card turns fully Highlight with a ringed tick, and keyboard focus is a dashed outline outside it; in normal colours it looks the same as before', async () => {
     const user = await renderApp(DECKS);
     const shuffledOut = await shuffleOutOne(user);
     await openView(user);
     await pickToAddBack(user, shuffledOut);
     await pickToTakeOut(user, 3);
+
+    // jsdom can't switch on forced colours or show colours, so the classes are checked. Under
+    // forced-colors the page's own colours are dropped and only system colours are kept, so:
+    // - keyboard focus on any card, picked or not, is a 2px dashed CanvasText outline 5px out,
+    //   just outside a picked card's outline.
+    const forcedFocus = [
+      'forced-colors:has-focus-visible:outline-2',
+      'forced-colors:has-focus-visible:outline-dashed',
+      'forced-colors:has-focus-visible:outline-offset-[5px]',
+      'forced-colors:has-focus-visible:outline-[color:CanvasText]',
+    ];
+    expect(takeOutCheckbox(4)).not.toBeChecked();
+    expect(cardOf(takeOutCheckbox(4))).toHaveClass(...forcedFocus);
 
     for (const [checkbox, color] of [
       [addBackCheckbox(shuffledOut), PICK_COLORS.addBack],
@@ -428,16 +449,26 @@ describe('Shuffled-out card view fixes', () => {
     ] as const) {
       const card = cardOf(checkbox);
       const tick = within(card).getByText('✓');
-      // jsdom can't switch on forced colours or show colours, so the classes are checked. Under
-      // forced-colors the ring and tick colours are dropped, so a picked card gets a 3px solid
-      // outline, 2px away, in Highlight, and the tick a 2px Highlight ring on Canvas with a
-      // Highlight tick.
+      // - a picked card turns fully Highlight: the compact card (the label's only div) and
+      //   everything in it get a Highlight background and HighlightText text, with a 3px solid
+      //   Highlight outline 2px out;
       expect(card).toHaveClass(
-        'forced-colors:has-checked:outline-3',
-        'forced-colors:has-checked:outline-offset-2',
-        'forced-colors:has-checked:outline-solid',
-        'forced-colors:has-checked:outline-[color:Highlight]',
+        'forced-colors:has-checked:[&>div]:outline-3',
+        'forced-colors:has-checked:[&>div]:outline-solid',
+        'forced-colors:has-checked:[&>div]:outline-offset-2',
+        'forced-colors:has-checked:[&>div]:outline-[color:Highlight]',
+        'forced-colors:has-checked:[&>div]:bg-[color:Highlight]!',
+        'forced-colors:has-checked:[&>div]:text-[color:HighlightText]!',
+        'forced-colors:has-checked:[&>div_*]:bg-[color:Highlight]!',
+        'forced-colors:has-checked:[&>div_*]:text-[color:HighlightText]!',
+        ...forcedFocus,
       );
+      const compact = card.querySelectorAll(':scope > div');
+      expect(compact).toHaveLength(1);
+      expect(compact[0]).toHaveTextContent(/^JLPT N[45]/); // the whole card, header included
+      // - the tick sits outside that div, so it keeps its own 2px Highlight ring on Canvas with a
+      //   Highlight tick.
+      expect(compact[0]).not.toContainElement(tick);
       expect(tick).toHaveClass(
         'forced-colors:border-2',
         'forced-colors:border-[color:Highlight]',
@@ -451,7 +482,7 @@ describe('Shuffled-out card view fixes', () => {
       expect(tick).toHaveClass('text-white', 'rounded-full');
       expect(tick).toHaveStyle({ backgroundColor: color });
       for (const el of [card, tick]) {
-        const highContrast = [...el.classList].filter((c) => /Highlight|Canvas|outline-3|border-2/.test(c));
+        const highContrast = [...el.classList].filter((c) => /Highlight|Canvas|outline-3|border-2|dashed/.test(c));
         expect(highContrast.length).toBeGreaterThan(0);
         for (const c of highContrast) expect(c).toMatch(/^forced-colors:/);
       }

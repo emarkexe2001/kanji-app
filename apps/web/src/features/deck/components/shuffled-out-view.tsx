@@ -1,7 +1,7 @@
 import { useId, useState, type CSSProperties } from 'react';
 import { PICK_COLORS, type PickKind, type WordEntry } from '@kanji/core';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { DECK_LABELS, cardId, type DeckId } from '../utils/decks';
+import { DECK_LABELS, type DeckId } from '../utils/decks';
 import { CardErrorBoundary } from './card-error-boundary';
 import { WordCard } from './word-card';
 
@@ -16,6 +16,33 @@ interface ListedCard {
   /** A shuffled-in card that still shows "New" in the deck. */
   isNew?: boolean;
 }
+
+/**
+ * How a pick card looks in a high-contrast (forced colours) mode (FEAT2_6), where the device
+ * replaces the page's colours with its own and drops the ring and tick colours. Only system
+ * colours survive there, so they are set on every part of the card:
+ * - a picked card turns fully Highlight: the compact card (the label's `div`) and everything in
+ *   it, header included, get a Highlight background and HighlightText text (`!` so they beat the
+ *   header's inline colour), with a 3px solid Highlight outline 2px out. The tick, outside that
+ *   `div`, keeps its own Canvas/Highlight ring;
+ * - keyboard focus is a 2px dashed CanvasText outline 5px out on the label, just outside the
+ *   picked card's outline, so it shows on picked and unpicked cards alike.
+ * Normal colours are not affected.
+ */
+const FORCED_COLORS_PICK_CARD = [
+  'forced-colors:has-checked:[&>div]:outline-3',
+  'forced-colors:has-checked:[&>div]:outline-solid',
+  'forced-colors:has-checked:[&>div]:outline-offset-2',
+  'forced-colors:has-checked:[&>div]:outline-[color:Highlight]',
+  'forced-colors:has-checked:[&>div]:bg-[color:Highlight]!',
+  'forced-colors:has-checked:[&>div]:text-[color:HighlightText]!',
+  'forced-colors:has-checked:[&>div_*]:bg-[color:Highlight]!',
+  'forced-colors:has-checked:[&>div_*]:text-[color:HighlightText]!',
+  'forced-colors:has-focus-visible:outline-2',
+  'forced-colors:has-focus-visible:outline-dashed',
+  'forced-colors:has-focus-visible:outline-offset-[5px]',
+  'forced-colors:has-focus-visible:outline-[color:CanvasText]',
+].join(' ');
 
 interface PickCardProps {
   /** Put before the word and reading in the card's name, e.g. "Card 3: ". */
@@ -48,9 +75,8 @@ function PickCard({ number, ...props }: PickCardProps & { number: number }) {
  * the whole view (FEAT2_6).
  *
  * A picked card gets an outline and a tick, green when it is being added back and red when it is
- * being taken out. In a high-contrast (forced colours) mode, where the outline and tick colours
- * are dropped, it gets a thick outline and a ringed tick in the system highlight colour instead.
- * A visually hidden checkbox inside makes it reachable with Tab, toggled with Space (or Enter,
+ * being taken out. In a high-contrast (forced colours) mode, where those colours are dropped, see
+ * FORCED_COLORS_PICK_CARD. A visually hidden checkbox inside makes it reachable with Tab, toggled with Space (or Enter,
  * once however long it is held) and announced as picked (checked) or not. Screen readers hear its
  * word and reading, then its meaning, the deck it came from and "New" if it is new.
  */
@@ -61,7 +87,7 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle }: PickCa
   return (
     <label
       style={{ '--pick': color } as CSSProperties}
-      className="relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700 forced-colors:has-checked:outline-3 forced-colors:has-checked:outline-offset-2 forced-colors:has-checked:outline-[color:Highlight] forced-colors:has-checked:outline-solid"
+      className={`relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700 ${FORCED_COLORS_PICK_CARD}`}
     >
       <input
         type="checkbox"
@@ -165,7 +191,7 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
   const [takingOut, setTakingOut] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
-  const { shuffledOut, cards } = study;
+  const { shuffledOut, cards, cardIds } = study;
 
   const reset = () => {
     setAdding([]);
@@ -177,7 +203,9 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
   const submit = () => {
     // Picks are kept in list order, newest first, whatever order they were ticked in.
     const addIds = shuffledOut.map((c) => c.id).filter((id) => adding.includes(id));
-    const takeOut = takingOut.map((id) => cards.findIndex((w) => cardId(w) === id)).filter((i) => i >= 0);
+    // Deck cards are tracked by their stored id, not their data, so a card with missing data can't
+    // break the view (FEAT2_6).
+    const takeOut = takingOut.map((id) => cardIds.indexOf(id)).filter((i) => i >= 0);
     const message = study.addBack(addIds, takeOut);
     if (message) {
       setError(message);
@@ -237,20 +265,23 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
                   Take out of your deck ({adding.length} to make room)
                 </legend>
                 <ul className={CARD_GRID}>
-                  {cards.map((word, i) => (
-                    <PickCard
-                      key={cardId(word)}
-                      number={i + 1}
-                      labelPrefix={`Card ${i + 1}: `}
-                      card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
-                      kind="takeOut"
-                      picked={takingOut.includes(cardId(word))}
-                      onToggle={() => {
-                        setTakingOut(toggle(takingOut, cardId(word)));
-                        setError(null);
-                      }}
-                    />
-                  ))}
+                  {cards.map((word, i) => {
+                    const id = cardIds[i];
+                    return (
+                      <PickCard
+                        key={id}
+                        number={i + 1}
+                        labelPrefix={`Card ${i + 1}: `}
+                        card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
+                        kind="takeOut"
+                        picked={takingOut.includes(id)}
+                        onToggle={() => {
+                          setTakingOut(toggle(takingOut, id));
+                          setError(null);
+                        }}
+                      />
+                    );
+                  })}
                 </ul>
               </fieldset>
             )}

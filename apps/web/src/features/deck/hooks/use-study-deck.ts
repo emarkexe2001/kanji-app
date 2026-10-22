@@ -108,6 +108,11 @@ export interface StudyDeck {
   sources: DeckId[];
   source: ShuffleSource | null;
   cards: WordEntry[];
+  /**
+   * The id of each card in the deck, in the same order as `cards`. Taken from the saved deck, not
+   * the card's data, so it is known even when a card's data is missing (FEAT2_6).
+   */
+  cardIds: string[];
   index: number;
   move: Move;
   /** e.g. "Shuffled out cards 3, 7 and 12 of 20", after a Shuffle In Cards. */
@@ -170,6 +175,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
   useEffect(() => saveClearedCards(state.cleared), [state.cleared]);
 
   const cards = useMemo(() => state.cards.map((c) => library.byId.get(c.id)!), [state.cards, library]);
+  const cardIds = useMemo(() => state.cards.map((c) => c.id), [state.cards]);
   const shuffledOut = useMemo(
     () => state.removed.map((r) => ({ id: r.id, deck: r.deck, word: library.byId.get(r.id)! })),
     [state.removed, library],
@@ -189,6 +195,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     sources: otherDecks(library, state.studied),
     source: state.source,
     cards,
+    cardIds,
     index: state.index,
     move: state.move,
     summary:

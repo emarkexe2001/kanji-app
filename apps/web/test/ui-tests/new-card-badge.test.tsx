@@ -172,6 +172,7 @@ describe('the "New" badge on shuffled-in cards', () => {
 // FEAT2_6: the badge only goes when the screen moves to a different card, and the deck is only
 // saved again when something changed.
 describe('the "New" badge when moving between cards', () => {
+  // Saving isn't visible on screen, so the "saved again" tests below spy on browser storage instead.
   /** How many times the deck has been saved since the spy was set up. */
   const deckSaves = (setItem: { mock: { calls: unknown[][] } }) =>
     setItem.mock.calls.filter(([key]) => key === 'kanji.savedDeck');
