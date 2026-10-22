@@ -98,8 +98,19 @@ Open Questions (to confirm with a mockup before starting - standards 5.1):
 - When the panel closes (× / Escape / clicking outside) with cards picked but not added back, the picks are dropped, as today. Is that OK, or should they be kept until the page is reloaded?
 - Does the "Are you sure?" Clear List confirmation stay inside the panel as today?
 
+Answers (agreed 2026-10-22, from the mockup):
+- Desktop (from the lg breakpoint, 1024px, up): the panel floats over the page (position: fixed) in the top right, just below the header (top about 72px, right about 24px). It is 300px wide and at most about 560px tall (never taller than the screen minus some margin), a sky-50 panel with a sky-200 border, rounded corners and a large shadow. Its title row says "Shuffled-out cards" with a × close button ("Close shuffled-out cards"). The card lists scroll inside the panel, 2 compact cards per row, slightly smaller than before (about 16px word, 9-11px other text). The deck doesn't move: it stays centred in its column and nothing is pushed down.
+- The Add Back Cards (green) and Clear List (red) buttons are pinned side by side at the bottom of the panel, so they are always visible.
+- When the panel closes (×, Escape, clicking or tapping outside, or pressing "Shuffled out (N)" again) with cards picked but not added back, the picks are dropped, as today.
+- The phone pop-up is approved as shown in the mockup.
+- Below 1024px (phones and tablets) a 300px panel would cover the deck card, so the panel is a smaller pop-up there: about 300px wide (never wider than the screen minus 16px), about 380px tall, about 8px from the right, just below the header, with smaller cards again (about 14px word, 8-10px other text), 2 per row and the buttons pinned at the bottom. While it is open the deck card gets smaller (about 240px wide) and sits below the pop-up, so both are fully visible; it goes back to normal when the panel closes.
+- The "Are you sure?" Clear List confirmation and "Recover cleared list" stay inside the panel.
+
 Dependencies:
 FEAT2_6 must be merged first, since both change the Shuffled-out cards view (shuffled-out-view.tsx). Do them one after another, not at the same time. ADJ3 builds on this ticket.
 
 Branch name Examples:
 feature/floating-shuffled-out-panel
+
+Completed On:
+2026-10-22

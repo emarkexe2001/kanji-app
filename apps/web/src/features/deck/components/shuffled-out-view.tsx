@@ -1,5 +1,6 @@
-import { useId, useState, type CSSProperties } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState, type CSSProperties } from 'react';
 import { PICK_COLORS, type PickKind, type WordEntry } from '@kanji/core';
+import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { DECK_LABELS, type DeckId } from '../utils/decks';
 import { CardErrorBoundary } from './card-error-boundary';
@@ -61,7 +62,7 @@ interface PickCardProps {
 function PickCard({ number, ...props }: PickCardProps & { number: number }) {
   return (
     <li>
-      <span className="mb-1 block text-xs font-bold text-slate-500 tabular-nums">{number}</span>
+      <span className="mb-1 block text-[10px] font-bold text-slate-500 tabular-nums lg:text-[11px]">{number}</span>
       <CardErrorBoundary>
         <PickCardBody {...props} />
       </CardErrorBoundary>
@@ -104,7 +105,7 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle }: PickCa
         className="sr-only"
       />
       <WordCard entry={card.entry} compact isNew={card.isNew} idPrefix={id}>
-        <p id={`${id}-from`} className="text-[11px] font-semibold text-sky-800">
+        <p id={`${id}-from`} className="text-[9px] font-semibold text-sky-800 lg:text-[10px]">
           From {DECK_LABELS[card.deck]}
         </p>
       </WordCard>
@@ -121,36 +122,58 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle }: PickCa
   );
 }
 
-/** The cards to pick: two per row on a phone, three on wider screens. */
-const CARD_GRID = 'grid max-h-96 grid-cols-2 gap-x-2 gap-y-3 overflow-y-auto p-2 sm:grid-cols-3';
+/** The id of the panel, which the "Shuffled out (N)" button controls (aria-controls). */
+export const SHUFFLED_OUT_PANEL_ID = 'shuffled-out-panel';
+
+/** The "Shuffled out (N)" button, found by the panel it controls, so focus can go back to it. */
+const toggleButton = () => document.querySelector<HTMLElement>(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`);
+
+/** The cards to pick: two per row (ADJ2). They scroll with the rest of the panel's body. */
+const CARD_GRID = 'grid grid-cols-2 gap-x-2 gap-y-3 p-2';
 
 /**
- * On wider screens the panel grows past the app's narrow column (centred on it, and never wider
- * than the screen), so three cards per row are as wide as two on a phone. On a phone it keeps the
- * column's width, so the page never scrolls sideways.
+ * Where the panel sits (ADJ2). It floats over the page (fixed), so the deck never moves for it:
+ * - from lg (1024px) up: 300px wide in the top right, 72px from the top (just below the header)
+ *   and 24px from the right, at most 560px tall and never taller than the screen;
+ * - below lg, where a 300px panel would cover the deck card: a smaller pop-up, 300px wide but
+ *   never wider than the screen less 16px (so the page can't scroll sideways), 8px from the right,
+ *   just below the header (two lines high when the title wraps on a narrow phone, one line from
+ *   sm up) and at most 380px tall. The deck card shrinks and moves below it while it is open.
  */
-const WIDE_PANEL = 'sm:relative sm:left-1/2 sm:w-[min(36rem,calc(100vw-2rem))] sm:-translate-x-1/2';
+const PANEL_PLACE = [
+  'fixed z-40 flex flex-col',
+  'top-[92px] right-2 w-[min(300px,calc(100vw-16px))] max-h-[min(380px,calc(100dvh-100px))]',
+  'sm:top-[72px]',
+  'lg:right-6 lg:w-[300px] lg:max-h-[min(560px,calc(100dvh-96px))]',
+].join(' ');
 
-const panelButton = 'rounded-xl px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
+/** Its look (ADJ2): a sky-50 panel with a sky-200 border, rounded corners and a large shadow. */
+const PANEL_LOOK = 'rounded-xl border border-sky-200 bg-sky-50 text-sm shadow-xl';
+
+/** The panel's body, between the title row and the buttons: the card lists scroll here. */
+const PANEL_BODY = 'min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2';
+
+/** The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages. */
+const PANEL_FOOTER = 'shrink-0 space-y-2 border-t border-sky-200 px-3 py-3';
+
+/** Add Back Cards and Clear List, side by side (ADJ2). */
+const FOOTER_ROW = 'grid grid-cols-2 gap-2';
+
+/** The panel's buttons have less padding than the header's, so two fit side by side in 300px. */
+const panelButton = 'rounded-xl px-2 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
 
 /** "Recover cleared list (N)" (FEAT2_7): sky blue and filled, like "Shuffled out (N)". */
-function RecoverButton({ study, className = '' }: { study: StudyDeck; className?: string }) {
+function RecoverButton({ study }: { study: StudyDeck }) {
   return (
     <button
       type="button"
       onClick={study.recoverCleared}
-      className={`bg-sky-600 text-white hover:bg-sky-500 ${panelButton} ${className}`}
+      className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton}`}
     >
       Recover cleared list ({study.clearedCount})
     </button>
   );
 }
-
-/**
- * Clear List and "Recover cleared list (N)": stacked full width on a phone (the full label doesn't
- * fit beside Clear List), side by side from the sm breakpoint up.
- */
-const CLEAR_RECOVER_ROW = 'grid gap-2 sm:grid-cols-2';
 
 /** The Clear List confirmation, with the number of cards: it says the list can be recovered. */
 const confirmClearText = (count: number) =>
@@ -159,18 +182,18 @@ const confirmClearText = (count: number) =>
 /**
  * The "Shuffled out (3)" button (FEAT2). The app shows it in the header, top right beside the
  * title (ADJ1); it keeps its full label, so on a narrow phone the title wraps instead. It opens
- * and closes the panel below, and says whether the panel is open: aria-expanded for screen
- * readers, and an arrow (▾ closed, ▴ open) that is hidden from them so the name stays
- * "Shuffled out (3)". The label and arrow never wrap.
+ * and closes the panel, and says whether the panel is open: aria-expanded for screen readers, and
+ * an arrow (▾ closed, ▴ open) that is hidden from them so the name stays "Shuffled out (3)". The
+ * label and arrow never wrap.
  */
 export function ShuffledOutButton({ count, open, onToggle }: { count: number; open: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
       aria-expanded={open}
-      aria-controls="shuffled-out-panel"
+      aria-controls={SHUFFLED_OUT_PANEL_ID}
       onClick={onToggle}
-      className={`shrink-0 bg-sky-600 whitespace-nowrap text-white hover:bg-sky-500 ${panelButton}`}
+      className="shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-sky-500 active:scale-95"
     >
       Shuffled out ({count})<span aria-hidden> {open ? '▴' : '▾'}</span>
     </button>
@@ -183,22 +206,66 @@ export function ShuffledOutButton({ count, open, onToggle }: { count: number; op
  * number of deck cards to take out in their place, or clears the list (after confirming). A
  * cleared list can be recovered until Clear List is pressed again (FEAT2_7).
  * Both lists show compact cards in a numbered grid, picked by selecting the card (FEAT2_5).
- * The app shows it just below the header while open (ADJ1); closing it unmounts it, which drops
- * any picks. `onClose` is called once cards have been added back.
+ *
+ * It floats in the top right, below the header (ADJ2, see PANEL_PLACE), and slides down into
+ * place unless "reduce motion" is on. Focus moves to its × button when it opens. It closes with
+ * the × button, Escape, a click or tap outside it (the "Shuffled out (N)" button toggles it
+ * itself), or once cards have been added back; focus then goes back to "Shuffled out (N)",
+ * unless the click outside put it somewhere else. Closing it unmounts it, which drops any picks.
+ * `onClose` closes it.
  */
 export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose: () => void }) {
   const [adding, setAdding] = useState<string[]>([]);
   const [takingOut, setTakingOut] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const reducedMotion = useReducedMotion();
   const { shuffledOut, cards, cardIds } = study;
 
-  const reset = () => {
-    setAdding([]);
-    setTakingOut([]);
-    setError(null);
-    setConfirmingClear(false);
+  /** Closes the panel, with focus back on "Shuffled out (N)" unless it has just gone elsewhere. */
+  const close = () => {
+    const active = document.activeElement;
+    if (!active || active === document.body || panelRef.current?.contains(active)) toggleButton()?.focus();
+    onClose();
   };
+  const closeFromOutside = useEffectEvent(close);
+
+  // Focus goes into the panel when it opens.
+  useEffect(() => closeButtonRef.current?.focus(), []);
+
+  // Escape, or a click or tap outside the panel, closes it. The listeners run in the capture phase,
+  // before the click is handled, so a click inside always finds its target still in the panel.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const isOutside = (target: EventTarget | null) =>
+      target instanceof Node &&
+      !panel.contains(target) &&
+      !(target instanceof Element && target.closest(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`));
+    // A press that starts inside the panel (e.g. selecting text) and ends outside doesn't close it.
+    let pressedInside = false;
+    const onPointerDown = (e: Event) => {
+      pressedInside = !isOutside(e.target);
+    };
+    const onClick = (e: Event) => {
+      const startedInside = pressedInside;
+      pressedInside = false;
+      if (!startedInside && isOutside(e.target)) closeFromOutside();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeFromOutside();
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('click', onClick, true);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('click', onClick, true);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
 
   const submit = () => {
     // Picks are kept in list order, newest first, whatever order they were ticked in.
@@ -211,35 +278,52 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
       setError(message);
       return;
     }
-    reset();
-    onClose();
+    close();
   };
 
   return (
     <section
-      id="shuffled-out-panel"
+      ref={panelRef}
+      id={SHUFFLED_OUT_PANEL_ID}
       aria-labelledby="shuffled-out-heading"
-      className={`mt-4 space-y-3 rounded-xl bg-sky-50 px-3 py-3 text-sm ${WIDE_PANEL}`}
+      className={`${PANEL_PLACE} ${PANEL_LOOK} ${reducedMotion ? '' : 'panel-drop'}`}
     >
-      <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
-        Shuffled-out cards
-      </h3>
+      <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">
+        <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
+          Shuffled-out cards
+        </h3>
+        <button
+          ref={closeButtonRef}
+          type="button"
+          aria-label="Close shuffled-out cards"
+          onClick={close}
+          className="flex size-8 items-center justify-center rounded-lg text-xl leading-none text-slate-600 transition hover:bg-sky-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-slate-700"
+        >
+          <span aria-hidden>×</span>
+        </button>
+      </div>
 
       {shuffledOut.length === 0 ? (
         <>
-          <p className="text-slate-600">No cards have been shuffled out yet.</p>
-          {study.clearedCount > 0 && <RecoverButton study={study} className="w-full" />}
+          <div className={PANEL_BODY}>
+            <p className="text-slate-600">No cards have been shuffled out yet.</p>
+          </div>
+          {study.clearedCount > 0 && (
+            <div className={PANEL_FOOTER}>
+              <RecoverButton study={study} />
+            </div>
+          )}
         </>
       ) : (
-        <>
-          <form
-            noValidate
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
+        <form
+          noValidate
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <div className={PANEL_BODY}>
             <fieldset>
               <legend className="font-semibold text-slate-700">Add back</legend>
               <ul className={CARD_GRID}>
@@ -285,53 +369,57 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
                 </ul>
               </fieldset>
             )}
+          </div>
 
+          <div className={PANEL_FOOTER}>
             {error && (
               <p role="alert" className="text-xs font-semibold text-rose-600">
                 {error}
               </p>
             )}
-            <button type="submit" className={`w-full bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton}`}>
-              Add Back Cards
-            </button>
-          </form>
-
-          {confirmingClear ? (
-            <div className="space-y-2 rounded-lg border border-rose-200 bg-white p-2">
-              <p className="font-semibold text-rose-700">{confirmClearText(shuffledOut.length)}</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    study.clearShuffledOut();
-                    reset();
-                  }}
-                  className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
-                >
-                  Yes, Clear List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmingClear(false)}
-                  className={`border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 ${panelButton}`}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className={study.clearedCount > 0 ? CLEAR_RECOVER_ROW : undefined}>
+            <div className={FOOTER_ROW}>
+              <button type="submit" className={`bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton}`}>
+                Add Back Cards
+              </button>
               <button
                 type="button"
                 onClick={() => setConfirmingClear(true)}
-                className={`w-full bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+                className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
               >
                 Clear List
               </button>
-              {study.clearedCount > 0 && <RecoverButton study={study} />}
             </div>
-          )}
-        </>
+            {confirmingClear ? (
+              <div className="space-y-2 rounded-lg border border-rose-200 bg-white p-2">
+                <p className="font-semibold text-rose-700">{confirmClearText(shuffledOut.length)}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      study.clearShuffledOut();
+                      setAdding([]);
+                      setTakingOut([]);
+                      setError(null);
+                      setConfirmingClear(false);
+                    }}
+                    className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+                  >
+                    Yes, Clear List
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(false)}
+                    className={`border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 ${panelButton}`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              study.clearedCount > 0 && <RecoverButton study={study} />
+            )}
+          </div>
+        </form>
       )}
     </section>
   );

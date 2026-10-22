@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { WordEntry } from '@kanji/core';
 import { CardLimitControl } from '../features/card-limit/components/card-limit-control';
@@ -15,12 +15,15 @@ import { DeckErrorBoundary } from './deck-error-boundary';
 /**
  * Combines the deck and card-limit features: the deck has as many cards as the card limit.
  * The "Shuffled out (N)" button goes in the header, top right (ADJ1), through a portal into
- * `headerSlot`; its panel opens just below the header, above the deck picker.
+ * `headerSlot`. Its panel floats in the top right, just below the header, over the page (ADJ2); it
+ * comes before the deck picker in the page, so Tab goes from the button into the panel, then on to
+ * the deck. While it is open on a phone or tablet, the deck card gets smaller (see Deck).
  */
 function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTMLElement | null }) {
   const [limit, setLimit] = useCardLimit();
   const study = useStudyDeck(library, limit);
   const [shuffledOutOpen, setShuffledOutOpen] = useState(false);
+  const closeShuffledOut = useCallback(() => setShuffledOutOpen(false), []);
 
   return (
     <>
@@ -33,9 +36,9 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
           />,
           headerSlot,
         )}
-      {shuffledOutOpen && <ShuffledOutPanel study={study} onClose={() => setShuffledOutOpen(false)} />}
+      {shuffledOutOpen && <ShuffledOutPanel study={study} onClose={closeShuffledOut} />}
       <DeckPicker decks={study.decks} value={study.studied} onChange={study.chooseDeck} />
-      <Deck study={study}>
+      <Deck study={study} shuffledOutOpen={shuffledOutOpen}>
         <ShuffleInControl study={study} />
         <CardLimitControl
           size={study.cards.length}

@@ -285,13 +285,10 @@ describe('Shuffled-out cards shown as cards', () => {
     await openView(user);
 
     const grid = addBackGroup().getByRole('list');
-    // Two cards per row on a phone, three on wider screens, scrolling inside a fixed-height box.
-    expect(grid).toHaveClass('grid', 'grid-cols-2', 'sm:grid-cols-3', 'max-h-96', 'overflow-y-auto');
-    // On wider screens the panel grows past the app's column so three cards fit; on a phone it
-    // keeps the column's width (only sm: classes change its width or position).
-    const panel = screen.getByRole('region', { name: 'Shuffled-out cards' });
-    expect(panel).toHaveClass('sm:w-[min(36rem,calc(100vw-2rem))]', 'sm:left-1/2', 'sm:-translate-x-1/2');
-    expect(panel.className).not.toMatch(/(^|\s)-?(w|left|right|translate-x|mx|-mx)-/);
+    // jsdom has no layout, so the classes are checked: two cards per row at every width (ADJ2;
+    // the grid and the panel's size are covered in shuffled-out-panel.test.tsx).
+    expect(grid).toHaveClass('grid', 'grid-cols-2');
+    expect(grid.className).not.toMatch(/(^|\s)\w+:grid-cols-/);
     const items = within(grid).getAllByRole('listitem');
     expect(items).toHaveLength(3);
     [...out].reverse().forEach((word, i) => {
@@ -304,7 +301,8 @@ describe('Shuffled-out cards shown as cards', () => {
     // The "Take out of your deck" cards use the same numbered grid, numbered by their place in the deck.
     await pickToAddBack(user, out[0]);
     const takeOut = takeOutGroup().getByRole('list');
-    expect(takeOut).toHaveClass('grid', 'grid-cols-2', 'sm:grid-cols-3');
+    expect(takeOut).toHaveClass('grid', 'grid-cols-2');
+    expect(takeOut.className).not.toMatch(/(^|\s)\w+:grid-cols-/);
     within(takeOut)
       .getAllByRole('listitem')
       .forEach((item, i) => expect(within(item).getByText(String(i + 1))).toBeInTheDocument());
@@ -617,9 +615,17 @@ describe('Shuffled-out cards view failure paths', () => {
 describe('Recovering a cleared shuffled-out list', () => {
   const recoverButton = () => screen.queryByRole('button', { name: /^Recover cleared list/ });
 
+  /**
+   * Opens the view again if it isn't open: since ADJ2, using the deck's controls (a click outside
+   * the panel) closes it.
+   */
+  async function reopenView(user: User) {
+    if (!screen.queryByRole('region', { name: 'Shuffled-out cards' })) await openView(user);
+  }
+
   /** Opens the view (if it isn't open), clears the list and confirms. */
   async function clearList(user: User) {
-    if (!screen.queryByRole('region', { name: 'Shuffled-out cards' })) await openView(user);
+    await reopenView(user);
     await user.click(screen.getByRole('button', { name: 'Clear List' }));
     await user.click(screen.getByRole('button', { name: 'Yes, Clear List' }));
   }
@@ -710,6 +716,7 @@ describe('Recovering a cleared shuffled-out list', () => {
 
     const newer = await shuffleOutOne(user);
     await enterCardLimit(user, '9'); // lowering the card limit doesn't drop it either
+    await reopenView(user);
     const listed = listedWords();
     expect(listed).toHaveLength(2);
     expect(listed[0]).not.toBe(newer); // the card trimmed by the limit is newest
@@ -792,7 +799,7 @@ describe('Recovering a cleared shuffled-out list', () => {
     for (let n = 51; n <= 70; n++) expect(listedWords()).not.toContain(label(`N4-${n}`));
   });
 
-  test('the button sits with Clear List (stacked on a phone, side by side on wider screens) when the list has cards, and under the "No cards" message when it is empty', async () => {
+  test('the button sits under Add Back Cards and Clear List, full width, when the list has cards, and under the "No cards" message when it is empty', async () => {
     const user = await renderApp(DECKS);
     await shuffleOutOne(user);
     await clearList(user);
@@ -803,22 +810,20 @@ describe('Recovering a cleared shuffled-out list', () => {
     expect(screen.queryByRole('button', { name: 'Clear List' })).not.toBeInTheDocument();
 
     await shuffleOutOne(user);
+    await reopenView(user);
     expect(screen.queryByText('No cards have been shuffled out yet.')).not.toBeInTheDocument();
     const clear = screen.getByRole('button', { name: 'Clear List' });
-    const beside = screen.getByRole('button', { name: 'Recover cleared list (1)' });
-    // Clear List first (on top on a phone, on the left on wider screens), then Recover, at the
-    // bottom of the panel, with the full label.
-    expect(beside.parentElement).toBe(clear.parentElement);
-    expect(clear.nextElementSibling).toBe(beside);
-    expect(clear.parentElement!.nextElementSibling).toBeNull();
-    // jsdom has no layout, so the classes are checked: one column (stacked, full width) on a
-    // phone, two side by side from the sm (640px) breakpoint up. Check it in a browser too.
+    const under = screen.getByRole('button', { name: 'Recover cleared list (1)' });
+    // ADJ2: Add Back Cards and Clear List share a row pinned at the bottom of the panel, and
+    // Recover comes right after that row, last in the panel, with its full label.
     const row = clear.parentElement!;
-    expect(row).toHaveClass('grid', 'sm:grid-cols-2');
-    expect(row.className).not.toMatch(/(^|\s)grid-cols-/);
-    expect(clear).toHaveClass('w-full');
-    // jsdom has no colours, so the class is checked: still sky blue and filled.
-    expect(beside).toHaveClass('bg-sky-600', 'text-white');
+    expect(row).toContainElement(screen.getByRole('button', { name: 'Add Back Cards' }));
+    expect(row).not.toContainElement(under);
+    expect(row.nextElementSibling).toBe(under);
+    expect(under.nextElementSibling).toBeNull();
+    // jsdom has no layout or colours, so the classes are checked: full width, still sky blue and
+    // filled. Check it in a browser too.
+    expect(under).toHaveClass('w-full', 'bg-sky-600', 'text-white');
   });
 
   test('while the Clear List confirmation is open, the "Recover cleared list" button is hidden, and it comes back when I cancel', async () => {
@@ -826,6 +831,7 @@ describe('Recovering a cleared shuffled-out list', () => {
     await shuffleOutOne(user);
     await clearList(user);
     await shuffleOutOne(user);
+    await reopenView(user);
     expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Clear List' }));
@@ -845,6 +851,7 @@ describe('Recovering a cleared shuffled-out list', () => {
     await chooseDeck(user, 'JLPT N4');
     expect(currentCardLevel()).toBe('JLPT N4');
 
+    await reopenView(user);
     await user.click(screen.getByRole('button', { name: 'Recover cleared list (2)' }));
     expect(listedWords()).toEqual([second, first]);
     for (const word of [first, second]) {
@@ -868,6 +875,7 @@ describe('Recovering a cleared shuffled-out list', () => {
     expect(back.length).toBeGreaterThan(0);
     expect(back.length).toBeLessThan(4);
 
+    await reopenView(user);
     await user.click(screen.getByRole('button', { name: 'Recover cleared list (4)' }));
 
     const listed = listedWords();
@@ -895,6 +903,7 @@ describe('Recovering a cleared shuffled-out list', () => {
     expect(recoverButton()).not.toBeInTheDocument();
 
     await shuffleOutOne(user);
+    await reopenView(user);
     expect(listedWords()).toHaveLength(1);
     expect(recoverButton()).not.toBeInTheDocument();
   });

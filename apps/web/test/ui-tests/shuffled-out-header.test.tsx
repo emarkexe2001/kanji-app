@@ -131,22 +131,18 @@ describe('Shuffled-out button in the top right of the header', () => {
     expect(panel()).not.toBeInTheDocument();
   });
 
-  test('in its new place the open panel still widens past the column on bigger screens, with the gap under the header', async () => {
+  test('the open panel sits in the page itself, straight after the header, not inside it or the deck', async () => {
     const user = await renderApp(DECKS);
     await shuffleOutOne(user);
     await user.click(shuffledOutButton());
 
     const open = panel()!;
-    // It sits in the page itself, straight under the header, not inside it or the deck.
     expect(open.parentElement).toBe(header().parentElement);
     expect(open.parentElement!.tagName).toBe('MAIN');
-    // jsdom has no layout, so the classes are checked. From sm up the panel grows past the app's
-    // column, centred on it and never wider than the screen (FEAT2_5); on a phone only sm: classes
-    // change its width or position, so it keeps the column's width and can't scroll sideways.
-    expect(open).toHaveClass('sm:relative', 'sm:left-1/2', 'sm:w-[min(36rem,calc(100vw-2rem))]', 'sm:-translate-x-1/2');
-    expect(open.className).not.toMatch(/(^|\s)-?(w|left|right|translate-x|mx|-mx)-/);
-    // The gap under the header (agreed 2026-10-21): mt-4, the same as above the deck picker.
-    expect(open).toHaveClass('mt-4');
+    expect(header().nextElementSibling).toBe(open);
+    // Since ADJ2 it floats in the top right instead of widening past the column under the header
+    // (see shuffled-out-panel.test.tsx), so the ADJ1 classes are gone.
+    expect(open.className).not.toMatch(/(^|\s)(mt-4|sm:left-1\/2|sm:-translate-x-1\/2)(\s|$)/);
   });
 
   test('when I close the panel and open it again, the cards I had picked are no longer picked', async () => {
