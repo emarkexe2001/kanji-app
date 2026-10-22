@@ -70,4 +70,60 @@ describe('Shuffled-out card with missing data (failure path)', () => {
     expect(counter()).toEqual({ position: 3, total: 10 });
     expect(screen.getByRole('button', { name: 'Shuffled out (2)' })).toBeInTheDocument();
   });
+
+  test('when a deck card\'s data is missing completely, it shows "This card can\'t be shown." in "Take out of your deck", and the other cards, Add Back and the deck still work', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // A saved deck of 5 JLPT N5 cards, where card 3's data is then missing completely, and one
+    // JLPT N3 card shuffled out earlier.
+    missing.ids = ['N5-3'];
+    localStorage.setItem('kanji.deckSize', '5');
+    localStorage.setItem(
+      'kanji.savedDeck',
+      JSON.stringify({ deck: 'N5', cards: [1, 2, 3, 4, 5].map((n) => ({ id: `N5-${n}`, deck: 'N5' })), newIds: [] }),
+    );
+    localStorage.setItem(
+      'kanji.removedCards',
+      JSON.stringify([{ id: 'N3-1', deck: 'N3', reason: 'shuffled-out', removedAt: 1 }]),
+    );
+    const user = await renderApp([...makeDecks({ N5: 30, N4: 30 }), ...makeWords(1, 'N3')]);
+    expect(currentWord()).toBe('N5単語1【たんご1】');
+    await user.click(screen.getByRole('button', { name: 'Shuffled out (1)' }));
+    const addBack = within(screen.getByRole('group', { name: 'Add back' }));
+    await user.click(addBack.getByRole('checkbox', { name: 'N3単語1【たんご1】' }).closest('label')!);
+
+    // Only card 3 shows the friendly message; the other deck cards can still be picked.
+    expect(
+      screen.queryByText('Something went wrong showing the cards. Please reload the page to try again.'),
+    ).toBeNull();
+    const takeOut = within(screen.getByRole('group', { name: /^Take out of your deck/ }));
+    const items = takeOut.getAllByRole('listitem');
+    expect(items).toHaveLength(5);
+    expect(within(items[2]).getByText('3')).toBeInTheDocument();
+    expect(within(items[2]).getByText("This card can't be shown.")).toBeInTheDocument();
+    expect(screen.getAllByText("This card can't be shown.")).toHaveLength(1);
+    expect(consoleError).toHaveBeenCalledWith('Error while drawing a card:', expect.any(TypeError), expect.anything());
+    expect(takeOut.getAllByRole('checkbox').map((c) => c.getAttribute('aria-label'))).toEqual([
+      'Card 1: N5単語1【たんご1】',
+      'Card 2: N5単語2【たんご2】',
+      'Card 4: N5単語4【たんご4】',
+      'Card 5: N5単語5【たんご5】',
+    ]);
+
+    // Swapping card 4 out for the shuffled-out card still works, and so does the deck.
+    await user.click(takeOut.getByRole('checkbox', { name: /^Card 4: / }).closest('label')!);
+    expect(takeOut.getByRole('checkbox', { name: /^Card 4: / })).toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Add Back Cards' }));
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(currentWord()).toBe('N3単語1【たんご1】');
+    expect(counter()).toEqual({ position: 4, total: 5 });
+    await user.click(screen.getByRole('button', { name: 'Next →' }));
+    expect(currentWord()).toBe('N5単語5【たんご5】');
+    await user.click(screen.getByRole('button', { name: 'Shuffled out (1)' }));
+    expect(
+      within(screen.getByRole('group', { name: 'Add back' }))
+        .getAllByRole('checkbox')
+        .map((c) => c.getAttribute('aria-label')),
+    ).toEqual(['N5単語4【たんご4】']);
+  });
 });
