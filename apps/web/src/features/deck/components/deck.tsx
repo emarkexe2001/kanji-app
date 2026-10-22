@@ -1,18 +1,40 @@
-import { useEffect, type ReactNode } from 'react';
-import { CardStack } from './card-stack';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { usePanelClearance } from '../hooks/use-panel-clearance';
 import type { StudyDeck } from '../hooks/use-study-deck';
+import { CardStack } from './card-stack';
+import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-view';
 
 /** Keyboard shortcuts shouldn't fire while the user is typing in a field or using a list. */
 const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
 
 /**
+ * The card's size below the lg breakpoint while the shuffled-out pop-up is open (ADJ2): scaled
+ * from its top edge to about 240px wide on a 360px phone (0.73 of the 328px column).
+ */
+const SMALL_CARD = 'max-lg:origin-top max-lg:scale-[0.73]';
+
+/**
  * Shows the card on screen and its position in the deck, with the Deck Shuffle and Next buttons
  * and keyboard shortcuts. `children` is rendered below the buttons (the app puts the Shuffle In
  * Cards and card limit controls there).
+ *
+ * `shuffledOutOpen` says the Shuffled-out cards panel is open. Below the lg breakpoint it is a
+ * pop-up over the page, so the card gets smaller and moves down to just below it, and goes back
+ * when it closes (ADJ2). From lg up the panel floats beside the deck, which doesn't change.
  */
-export function Deck({ study, children }: { study: StudyDeck; children?: ReactNode }) {
+export function Deck({
+  study,
+  shuffledOutOpen = false,
+  children,
+}: {
+  study: StudyDeck;
+  shuffledOutOpen?: boolean;
+  children?: ReactNode;
+}) {
   const { cards, index, move, summary, next, deckShuffle, isNew, leaving } = study;
+  const cardArea = useRef<HTMLDivElement>(null);
+  const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -33,8 +55,14 @@ export function Deck({ study, children }: { study: StudyDeck; children?: ReactNo
         {summary}
       </p>
 
-      <div className="flex flex-1 items-center justify-center py-4">
-        <CardStack entry={cards[index]} move={move} isNew={isNew(index)} leaving={leaving} />
+      <div
+        ref={cardArea}
+        style={clearance ? { paddingTop: Math.max(16, clearance) } : undefined}
+        className={`flex flex-1 justify-center py-4 ${shuffledOutOpen ? 'items-center max-lg:items-start' : 'items-center'}`}
+      >
+        <div className={`flex w-full max-w-sm justify-center ${shuffledOutOpen ? SMALL_CARD : ''}`}>
+          <CardStack entry={cards[index]} move={move} isNew={isNew(index)} leaving={leaving} />
+        </div>
       </div>
 
       <nav className="grid grid-cols-2 gap-3" aria-label="Card controls">
