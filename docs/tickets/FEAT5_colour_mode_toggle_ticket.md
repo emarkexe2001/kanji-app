@@ -53,7 +53,7 @@ Answers (agreed 2026-10-22):
 - This ticket covers Light and Dark. High contrast (black with white text) is FEAT5_5.
 
 Open Questions (to confirm with a mockup before starting - standards 5.1):
-- The mode button goes top left, before the title, with "Shuffled out (N)" staying top right (ADJ1). On a narrow phone, what happens if the button, title and "Shuffled out (N)" don't fit on one row? ADJ2 also opens the Shuffled-out panel in the top left: should the mode menu open over it, or should only one be open at a time?
+- The mode button goes top left, before the title, with "Shuffled out (N)" staying top right (ADJ1). On a narrow phone, what happens if the button, title and "Shuffled out (N)" don't fit on one row? (ADJ2 floats the Shuffled-out panel in the top right, so it does not overlap the mode menu.)
 - What does the menu button show: a word (e.g. "Mode ▾"), the current mode's name, or an icon (with a screen reader label)?
 - What does the start page look like: the app title, a short line like "Choose how the app looks", and a large button per mode showing a small preview of it?
 - Should switching modes fade or change instantly (always instantly when reduced motion is on)?
