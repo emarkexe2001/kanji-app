@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { NEW_COLOR } from '@kanji/core';
 import App from '../../src/app/app';
 import {
   COUNTER,
@@ -9,6 +10,7 @@ import {
   currentCardLevel,
   currentWord,
   deckShuffleButton,
+  enterCardLimit,
   makeDecks,
   renderApp,
   serveDeck,
@@ -164,6 +166,105 @@ describe('the "New" badge on shuffled-in cards', () => {
     expect(shownNew).toHaveLength(2);
     expect(shownNew).not.toContain(seen);
     for (const word of shownNew) expect(word).toMatch(/^N4/); // shuffled in from JLPT N4
+  });
+});
+
+// FEAT2_6: the badge only goes when the screen moves to a different card, and the deck is only
+// saved again when something changed.
+describe('the "New" badge when moving between cards', () => {
+  /** How many times the deck has been saved since the spy was set up. */
+  const deckSaves = (setItem: { mock: { calls: unknown[][] } }) =>
+    setItem.mock.calls.filter(([key]) => key === 'kanji.savedDeck');
+
+  test.each([
+    ['Next', () => nextButton()],
+    ['Deck Shuffle', () => deckShuffleButton()],
+  ])('when my deck has one card and it is new, pressing %s keeps its "New" badge', async (_, button) => {
+    const user = await renderApp(DECKS);
+    await enterCardLimit(user, '1');
+    await shuffleIn(user, '1');
+    const card = currentWord();
+    expect(onScreenIsNew()).toBe(true);
+
+    await user.click(button());
+    await user.click(button());
+
+    expect(counter()).toEqual({ position: 1, total: 1 });
+    expect(currentWord()).toBe(card);
+    expect(onScreenIsNew()).toBe(true);
+    // It is still new after a reload too.
+    await reload();
+    expect(currentWord()).toBe(card);
+    expect(onScreenIsNew()).toBe(true);
+  });
+
+  test('the "NEW" ribbon keeps its amber colour, now from the shared NEW_COLOR token', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleIn(user, '1');
+
+    // jsdom can't show colours, so the ribbon's colour is checked: the shared token, which is the
+    // same amber as before (Tailwind's amber-400, #fbbf24).
+    expect(NEW_COLOR).toBe('#fbbf24');
+    expect(within(screen.getByRole('article')).getByText('New')).toHaveStyle({ backgroundColor: NEW_COLOR });
+  });
+
+  test('when I press Next and no card stops being new, the deck is not saved again', async () => {
+    // A saved deck of 5 cards where only the last one, JLPT N4 word 5, is new.
+    localStorage.setItem('kanji.deckSize', '5');
+    localStorage.setItem(
+      'kanji.savedDeck',
+      JSON.stringify({
+        deck: 'N5',
+        cards: [...[1, 2, 3, 4].map((n) => ({ id: `N5-${n}`, deck: 'N5' })), { id: 'N4-5', deck: 'N4' }],
+        newIds: ['N4-5'],
+      }),
+    );
+    const user = await renderApp(DECKS);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+
+    // Cards 1 to 4 aren't new, so moving on from them changes nothing that is saved.
+    for (let i = 0; i < 4; i++) await user.click(nextButton());
+
+    expect(counter().position).toBe(5);
+    expect(onScreenIsNew()).toBe(true);
+    expect(deckSaves(setItem)).toHaveLength(0);
+    setItem.mockRestore();
+  });
+
+  test('when I press Deck Shuffle on a deck with no new cards, the deck is not saved again', async () => {
+    const user = await renderApp(DECKS);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+
+    for (let i = 0; i < 3; i++) await user.click(deckShuffleButton());
+
+    expect(deckSaves(setItem)).toHaveLength(0);
+    setItem.mockRestore();
+  });
+
+  test('when my deck has one new card and I press Next or Deck Shuffle, the deck is not saved again', async () => {
+    const user = await renderApp(DECKS);
+    await enterCardLimit(user, '1');
+    await shuffleIn(user, '1');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+
+    await user.click(nextButton());
+    await user.click(deckShuffleButton());
+
+    expect(deckSaves(setItem)).toHaveLength(0);
+    setItem.mockRestore();
+  });
+
+  test('when I press Next and a card stops being new, the deck is saved once, without it in the "New" list', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleIn(user, '1');
+    const seenId = JSON.parse(localStorage.getItem('kanji.savedDeck')!).newIds[0];
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+
+    await user.click(nextButton());
+
+    expect(deckSaves(setItem)).toHaveLength(1);
+    expect(JSON.parse(localStorage.getItem('kanji.savedDeck')!).newIds).not.toContain(seenId);
+    setItem.mockRestore();
   });
 });
 

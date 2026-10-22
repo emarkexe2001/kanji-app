@@ -346,6 +346,119 @@ describe('Shuffled-out cards shown as cards', () => {
   });
 });
 
+// FEAT2_6: fixes to the cards in the view (the missing-card failure path is in missing-card-data.test.tsx).
+describe('Shuffled-out card view fixes', () => {
+  test('when I look at a shuffled-out card for a common word, it shows no "★ Common Word" badge', async () => {
+    const user = await renderApp(makeDecks({ N5: 30, common: 30 }));
+    await chooseDeck(user, 'Common words');
+    // The card on screen is a common word, so it shows the badge there.
+    expect(within(screen.getByRole('article')).getByText('★ Common Word')).toBeInTheDocument();
+    const shuffledOut = await shuffleOutOne(user);
+    await openView(user);
+
+    const card = within(cardOf(addBackCheckbox(shuffledOut)));
+    expect(card.getByText(/^word number \d+$/)).toBeInTheDocument();
+    expect(card.queryByText('★ Common Word')).not.toBeInTheDocument();
+    // The common words in "Take out of your deck" don't show it either.
+    await pickToAddBack(user, shuffledOut);
+    expect(takeOutGroup().getByRole('checkbox', { name: /^Card 2: 単語/ })).toBeInTheDocument();
+    expect(takeOutGroup().queryByText('★ Common Word')).not.toBeInTheDocument();
+  });
+
+  test('when I reach a pick card with a screen reader, I hear its word, reading, meaning, deck and whether it is new', async () => {
+    const user = await renderApp(DECKS);
+    const shuffledOut = await shuffleOutOne(user);
+    await shuffleIn(user, '2'); // two new JLPT N4 cards, one of them on screen
+    await openView(user);
+
+    // A shuffled-out card: not new.
+    const addBack = addBackCheckbox(shuffledOut);
+    const meaning = within(cardOf(addBack)).getByText(/^word number \d+$/).textContent;
+    expect(addBack).toHaveAccessibleName(shuffledOut!);
+    expect(addBack).toHaveAccessibleDescription(`${meaning} From JLPT N5`);
+
+    // Deck cards: a new one also says "New", one that isn't new doesn't.
+    await pickToAddBack(user, shuffledOut);
+    const takeOut = takeOutGroup().getAllByRole('checkbox');
+    const isNew = (c: HTMLElement) => within(cardOf(c)).queryByText('New') !== null;
+    const newCard = takeOut.find(isNew)!;
+    const oldCard = takeOut.find((c) => !isNew(c) && /^Card \d+: N5/.test(c.getAttribute('aria-label')!))!;
+    for (const [checkbox, description] of [
+      [newCard, (m: string | null) => `${m} From JLPT N4 New`],
+      [oldCard, (m: string | null) => `${m} From JLPT N5`],
+    ] as const) {
+      const card = cardOf(checkbox);
+      const m = within(card).getByText(/^word number \d+$/).textContent;
+      expect(checkbox).toHaveAccessibleName(/^Card \d+: .+【.+】$/);
+      expect(checkbox).toHaveAccessibleDescription(description(m));
+      // Nothing is added to the screen for it: the description is read from what the card already shows.
+      for (const id of checkbox.getAttribute('aria-describedby')!.split(' ')) {
+        expect(card).toContainElement(document.getElementById(id));
+      }
+    }
+  });
+
+  test('when I hold Enter on a pick card, it is picked once', async () => {
+    const user = await renderApp(DECKS);
+    const first = await shuffleOutOne(user);
+    await openView(user);
+    addBackCheckbox(first).focus();
+
+    // Holding the key down repeats the key press (keydown with `repeat`) before it is let go.
+    await user.keyboard('{Enter>6/}');
+    expect(addBackCheckbox(first)).toBeChecked();
+    expect(takeOutGroup().getAllByRole('checkbox')).toHaveLength(10);
+
+    await user.keyboard('{Enter>5/}');
+    expect(addBackCheckbox(first)).not.toBeChecked();
+    // Holding Enter doesn't submit Add Back Cards either.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('in a high-contrast (forced colours) mode, a picked card has a thick outline and a ringed tick in the system highlight colour; in normal colours it looks the same as before', async () => {
+    const user = await renderApp(DECKS);
+    const shuffledOut = await shuffleOutOne(user);
+    await openView(user);
+    await pickToAddBack(user, shuffledOut);
+    await pickToTakeOut(user, 3);
+
+    for (const [checkbox, color] of [
+      [addBackCheckbox(shuffledOut), PICK_COLORS.addBack],
+      [takeOutCheckbox(3), PICK_COLORS.takeOut],
+    ] as const) {
+      const card = cardOf(checkbox);
+      const tick = within(card).getByText('✓');
+      // jsdom can't switch on forced colours or show colours, so the classes are checked. Under
+      // forced-colors the ring and tick colours are dropped, so a picked card gets a 3px solid
+      // outline, 2px away, in Highlight, and the tick a 2px Highlight ring on Canvas with a
+      // Highlight tick.
+      expect(card).toHaveClass(
+        'forced-colors:has-checked:outline-3',
+        'forced-colors:has-checked:outline-offset-2',
+        'forced-colors:has-checked:outline-solid',
+        'forced-colors:has-checked:outline-[color:Highlight]',
+      );
+      expect(tick).toHaveClass(
+        'forced-colors:border-2',
+        'forced-colors:border-[color:Highlight]',
+        'forced-colors:bg-[color:Canvas]!',
+        'forced-colors:text-[color:Highlight]',
+      );
+      // In normal colours nothing changes: the coloured ring and the white tick on the pick colour,
+      // and every high-contrast style only applies under forced-colors.
+      expect(card).toHaveClass('has-checked:ring-2', 'has-checked:ring-(--pick)');
+      expect(card).toHaveStyle({ '--pick': color });
+      expect(tick).toHaveClass('text-white', 'rounded-full');
+      expect(tick).toHaveStyle({ backgroundColor: color });
+      for (const el of [card, tick]) {
+        const highContrast = [...el.classList].filter((c) => /Highlight|Canvas|outline-3|border-2/.test(c));
+        expect(highContrast.length).toBeGreaterThan(0);
+        for (const c of highContrast) expect(c).toMatch(/^forced-colors:/);
+      }
+    }
+  });
+});
+
 describe('Shuffled-out cards view failure paths', () => {
   test("when a shuffled-out card's details can't be drawn, the rest of the view still works and a friendly message is shown", async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});

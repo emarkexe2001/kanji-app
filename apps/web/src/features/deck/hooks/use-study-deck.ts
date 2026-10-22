@@ -66,14 +66,18 @@ function validSource(library: Library, studied: DeckId, source: ShuffleSource | 
   return defaultSource(library, studied);
 }
 
-/** Moving on to another card: the one that was on screen has been seen, so it is no longer new. */
+/**
+ * Moving on to another card: the one that was on screen has been seen, so it is no longer new.
+ * In a one-card deck Next and Deck Shuffle stay on the same card, so it keeps its "New" badge
+ * (FEAT2_6).
+ */
 const moveOn = (s: StudyState, move: Move, index: number): StudyState => ({
   ...s,
   move,
   index,
   replaced: null,
   leaving: null,
-  newIds: stillNew(s.newIds, s.cards, s.cards[s.index].id),
+  newIds: index === s.index ? s.newIds : stillNew(s.newIds, s.cards, s.cards[s.index].id),
 });
 
 function loadState(library: Library, studied: DeckId, limit: number): StudyState {
