@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import {
   COMMON_COLOR,
   JLPT_COLORS,
+  NEW_COLOR,
   READING_COLORS,
   READING_LABELS,
   type ReadingSegment,
@@ -71,9 +72,13 @@ function Word({ entry, compact }: { entry: WordEntry; compact: boolean }) {
 }
 
 /** The diagonal "NEW" ribbon across the top-right corner of a card that was shuffled in. */
-function NewRibbon() {
+function NewRibbon({ id }: { id?: string }) {
   return (
-    <span className="pointer-events-none absolute top-3 -right-8 w-28 rotate-45 bg-amber-400 py-0.5 text-center text-[11px] font-extrabold tracking-widest text-slate-900 uppercase shadow-sm">
+    <span
+      id={id}
+      style={{ backgroundColor: NEW_COLOR }}
+      className="pointer-events-none absolute top-3 -right-8 w-28 rotate-45 py-0.5 text-center text-[11px] font-extrabold tracking-widest text-slate-900 uppercase shadow-sm"
+    >
       New
     </span>
   );
@@ -83,16 +88,20 @@ function NewRibbon() {
  * A word's card. The card on screen shows everything. `compact` is the smaller version used in
  * the lists of cards to pick (FEAT2_5): the header, the word and the meaning, with no Reading
  * Breakdown, and `children` at the bottom (e.g. "From JLPT N4"). `isNew` adds the "NEW" ribbon.
+ * `idPrefix` gives the compact card's meaning and ribbon the ids `<idPrefix>-meaning` and
+ * `<idPrefix>-new`, so a pick card can have screen readers read them out (FEAT2_6).
  */
 export function WordCard({
   entry,
   compact = false,
   isNew = false,
+  idPrefix,
   children,
 }: {
   entry: WordEntry;
   compact?: boolean;
   isNew?: boolean;
+  idPrefix?: string;
   children?: ReactNode;
 }) {
   const headerColor = entry.jlpt ? JLPT_COLORS[entry.jlpt] : NEUTRAL_HEADER;
@@ -111,12 +120,14 @@ export function WordCard({
       >
         {entry.jlpt ? `JLPT ${entry.jlpt}` : 'Vocabulary'}
       </header>
-      {isNew && <NewRibbon />}
+      {isNew && <NewRibbon id={idPrefix && `${idPrefix}-new`} />}
 
       {compact ? (
         <div className="space-y-1 px-2 py-2">
           <Word entry={entry} compact />
-          <p className="text-xs meaning-text">{entry.meaning}</p>
+          <p id={idPrefix && `${idPrefix}-meaning`} className="text-xs meaning-text">
+            {entry.meaning}
+          </p>
           {children}
         </div>
       ) : (

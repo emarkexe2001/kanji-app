@@ -170,3 +170,11 @@ test('a shuffled-in card stays new until the user moves on from it, and only whi
   assert.deepEqual(stillNew(['N5-1', 'N5-2'], cards, 'N5-1'), ['N5-2']);
   assert.deepEqual(stillNew(['N5-1', 'N4-9'], cards), ['N5-1']);
 });
+
+test('when no card stops being new, the same "New" list is kept, so the deck is not saved again (FEAT2_6)', () => {
+  const cards = deck(3);
+  const newIds = ['N5-1', 'N5-2'];
+  assert.equal(stillNew(newIds, cards), newIds);
+  assert.equal(stillNew(newIds, cards, 'N5-3'), newIds);
+  assert.notEqual(stillNew(newIds, cards, 'N5-1'), newIds);
+});

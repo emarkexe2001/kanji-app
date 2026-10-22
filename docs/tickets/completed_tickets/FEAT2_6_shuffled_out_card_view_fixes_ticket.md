@@ -38,8 +38,19 @@ Failure paths (see docs/testing.md - each one needs a UI test, and each test mus
 
 When a card's data is missing completely, the rest of the view still works and a friendly message is shown instead of a blank view
 
+Answers (agreed 2026-10-22):
+- Req 7, high-contrast (forced colours) mode, Option A: a picked card gets a thick solid outline (about 3px, offset about 2px) in the system highlight colour (Highlight), and the tick badge becomes a ringed circle: a 2px Highlight border, a Canvas background and a Highlight tick. This only applies when the device uses forced colours; in normal colours nothing changes. Covered by "in a high-contrast (forced colours) mode, a picked card has a thick outline and a ringed tick in the system highlight colour; in normal colours it looks the same as before".
+- Req 1: the message and look of "This card can't be shown." stay exactly as they are today. Only the crash scope changes: one card's missing data must not take down the whole view. Covered by "when a card's data is missing completely, that card shows "This card can't be shown." and the other cards, Add Back and the deck still work".
+- Req 4: nothing changes on screen. A screen reader hears the word and reading (the existing label), then the meaning, then "From <deck>", then "New" for a new card (through aria-describedby on the checkbox). Covered by "when I reach a pick card with a screen reader, I hear its word, reading, meaning, deck and whether it is new".
+- Req 2 and Req 6: the NEW ribbon looks exactly the same. Its amber colour moves to a shared token in @kanji/core (NEW_COLOR, next to PICK_COLORS), keeping the same colour as Tailwind's amber-400 (#fbbf24). Covered by "the "NEW" ribbon keeps its amber colour, now from the shared NEW_COLOR token" and "when my deck has one card and it is new, pressing Next / Deck Shuffle keeps its "New" badge".
+
+Layout check (see docs/standards/standards.md 4.2): look at the Shuffled-out cards view in a real browser at about 360px, 640px and 1024px, and at a picked card with forced colours turned on (tests can't show forced colours), and note it in the PR
+
 Dependencies:
 FEAT2_5 (PR #27) must be merged first, since these fixes change its code.
 
 Branch name Examples:
 fix/shuffled-out-card-view
+
+Completed On:
+2026-10-22

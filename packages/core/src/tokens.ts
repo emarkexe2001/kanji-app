@@ -29,6 +29,9 @@ export const PICK_COLORS = {
 } as const;
 export type PickKind = keyof typeof PICK_COLORS;
 
+/** The amber "NEW" ribbon on a shuffled-in card (FEAT2_5, FEAT2_6): the same colour as Tailwind's amber-400. */
+export const NEW_COLOR = '#fbbf24';
+
 export const JLPT_LABELS: Record<JlptLevel, string> = {
   N5: 'Beginner',
   N4: 'Elementary',

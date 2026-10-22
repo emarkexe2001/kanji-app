@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useId, useState, type CSSProperties } from 'react';
 import { PICK_COLORS, type PickKind, type WordEntry } from '@kanji/core';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { DECK_LABELS, cardId, type DeckId } from '../utils/decks';
@@ -17,63 +17,81 @@ interface ListedCard {
   isNew?: boolean;
 }
 
-/**
- * One card in a list of cards to pick (FEAT2_5): its number above it, then the compact card,
- * picked by selecting the card itself. A picked card gets an outline and a tick, green when it is
- * being added back and red when it is being taken out. A visually hidden checkbox inside makes it
- * reachable with Tab, toggled with Space (or Enter) and announced as picked (checked) or not.
- */
-function PickCard({
-  number,
-  label,
-  card,
-  kind,
-  picked,
-  onToggle,
-}: {
-  number: number;
-  label: string;
+interface PickCardProps {
+  /** Put before the word and reading in the card's name, e.g. "Card 3: ". */
+  labelPrefix?: string;
   card: ListedCard;
   kind: PickKind;
   picked: boolean;
   onToggle: () => void;
-}) {
-  const color = PICK_COLORS[kind];
+}
+
+/**
+ * One card in a list of cards to pick (FEAT2_5): its number above it, then the compact card,
+ * picked by selecting the card itself. The card sits in its own error boundary, so a card that
+ * can't be drawn shows "This card can't be shown." and the rest of the list keeps working.
+ */
+function PickCard({ number, ...props }: PickCardProps & { number: number }) {
   return (
     <li>
       <span className="mb-1 block text-xs font-bold text-slate-500 tabular-nums">{number}</span>
       <CardErrorBoundary>
-        <label
-          style={{ '--pick': color } as CSSProperties}
-          className="relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700"
-        >
-          <input
-            type="checkbox"
-            checked={picked}
-            onChange={onToggle}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter') return;
-              e.preventDefault();
-              onToggle();
-            }}
-            aria-label={label}
-            className="sr-only"
-          />
-          <WordCard entry={card.entry} compact isNew={card.isNew}>
-            <p className="text-[11px] font-semibold text-sky-800">From {DECK_LABELS[card.deck]}</p>
-          </WordCard>
-          {picked && (
-            <span
-              aria-hidden
-              style={{ backgroundColor: color }}
-              className="absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full text-sm font-bold text-white shadow"
-            >
-              ✓
-            </span>
-          )}
-        </label>
+        <PickCardBody {...props} />
       </CardErrorBoundary>
     </li>
+  );
+}
+
+/**
+ * The card itself. Everything drawn from the card's data, its name included, is worked out here,
+ * inside the error boundary, so a card whose data is missing completely only breaks itself, not
+ * the whole view (FEAT2_6).
+ *
+ * A picked card gets an outline and a tick, green when it is being added back and red when it is
+ * being taken out. In a high-contrast (forced colours) mode, where the outline and tick colours
+ * are dropped, it gets a thick outline and a ringed tick in the system highlight colour instead.
+ * A visually hidden checkbox inside makes it reachable with Tab, toggled with Space (or Enter,
+ * once however long it is held) and announced as picked (checked) or not. Screen readers hear its
+ * word and reading, then its meaning, the deck it came from and "New" if it is new.
+ */
+function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle }: PickCardProps) {
+  const id = useId();
+  const color = PICK_COLORS[kind];
+  const describedBy = [`${id}-meaning`, `${id}-from`, ...(card.isNew ? [`${id}-new`] : [])].join(' ');
+  return (
+    <label
+      style={{ '--pick': color } as CSSProperties}
+      className="relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700 forced-colors:has-checked:outline-3 forced-colors:has-checked:outline-offset-2 forced-colors:has-checked:outline-[color:Highlight] forced-colors:has-checked:outline-solid"
+    >
+      <input
+        type="checkbox"
+        checked={picked}
+        onChange={onToggle}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          // Holding Enter repeats the key press; only the first one picks or un-picks the card.
+          if (!e.repeat) onToggle();
+        }}
+        aria-label={`${labelPrefix}${wordLabel(card.entry)}`}
+        aria-describedby={describedBy}
+        className="sr-only"
+      />
+      <WordCard entry={card.entry} compact isNew={card.isNew} idPrefix={id}>
+        <p id={`${id}-from`} className="text-[11px] font-semibold text-sky-800">
+          From {DECK_LABELS[card.deck]}
+        </p>
+      </WordCard>
+      {picked && (
+        <span
+          aria-hidden
+          style={{ backgroundColor: color }}
+          className="absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full text-sm font-bold text-white shadow forced-colors:border-2 forced-colors:border-[color:Highlight] forced-colors:bg-[color:Canvas]! forced-colors:text-[color:Highlight]"
+        >
+          ✓
+        </span>
+      )}
+    </label>
   );
 }
 
@@ -201,7 +219,6 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
                   <PickCard
                     key={card.id}
                     number={i + 1}
-                    label={wordLabel(card.word)}
                     card={{ entry: card.word, deck: card.deck }}
                     kind="addBack"
                     picked={adding.includes(card.id)}
@@ -224,7 +241,7 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
                     <PickCard
                       key={cardId(word)}
                       number={i + 1}
-                      label={`Card ${i + 1}: ${wordLabel(word)}`}
+                      labelPrefix={`Card ${i + 1}: `}
                       card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
                       kind="takeOut"
                       picked={takingOut.includes(cardId(word))}
