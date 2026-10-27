@@ -3,7 +3,7 @@
  * limit changes, and shuffling new cards in from other decks. Plain functions so they are easy
  * to test; the hook in hooks/use-study-deck.ts keeps the state and saves it.
  */
-import { DECK_LABELS, cardId, otherDecks, type DeckId, type Library } from './decks';
+import { DECK_IDS, DECK_LABELS, cardId, otherDecks, type DeckId, type Library } from './decks';
 
 /** A card in the saved deck, and the deck it came from (shown by FEAT2 once it is shuffled out). */
 export interface DeckCard {
@@ -12,10 +12,56 @@ export interface DeckCard {
 }
 
 /**
- * Where Shuffle In Cards takes new cards from: one chosen deck, or a random other deck for each
- * card. Kept as its own type so FEAT3 can add a "multiple decks" kind.
+ * Where Shuffle In Cards takes new cards from: one chosen deck, a random other deck for each
+ * card, or several ticked decks (FEAT3), whose new cards are pooled together and picked at random.
  */
-export type ShuffleSource = { kind: 'deck'; deck: DeckId } | { kind: 'random' };
+export type ShuffleSource = { kind: 'deck'; deck: DeckId } | { kind: 'random' } | { kind: 'multiple'; decks: DeckId[] };
+
+/** The three choices of the "Shuffle in from" switch (FEAT3). */
+export const SHUFFLE_MODES = ['deck', 'random', 'multiple'] as const;
+export type ShuffleMode = (typeof SHUFFLE_MODES)[number];
+
+/**
+ * Everything the "Shuffle in from" control remembers: the switch, the deck picked under One deck
+ * and the decks ticked under Multiple decks. The deck and the ticks are kept while another mode is
+ * chosen, so switching back finds them as they were.
+ */
+export interface ShuffleChoice {
+  mode: ShuffleMode;
+  deck: DeckId;
+  ticked: DeckId[];
+}
+
+/** The source Shuffle In Cards uses for a choice. */
+export function choiceSource({ mode, deck, ticked }: ShuffleChoice): ShuffleSource {
+  if (mode === 'random') return { kind: 'random' };
+  if (mode === 'multiple') return { kind: 'multiple', decks: ticked };
+  return { kind: 'deck', deck };
+}
+
+/** Multiple decks needs at least this many decks ticked, so it can only be chosen with this many other decks. */
+export const MIN_TICKED_DECKS = 2;
+
+/** Checks the ticks under Multiple decks: two or more decks are needed (FEAT3 answer). */
+export function checkTicked(ticked: DeckId[]): string | null {
+  if (!ticked.length) return 'Tick at least two decks to shuffle in from.';
+  if (ticked.length < MIN_TICKED_DECKS) return 'Tick at least two decks, or choose One deck instead.';
+  return null;
+}
+
+/** "JLPT N1", "JLPT N1 and JLPT N2" or "JLPT N1, JLPT N2 and Common words". */
+function listLabels(decks: DeckId[]): string {
+  const labels = decks.map((d) => DECK_LABELS[d]);
+  if (labels.length < 2) return labels.join('');
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+/** Tells the user which ticked decks were unticked because they can no longer be shuffled in from. */
+export function describeUnticked(decks: DeckId[]): string {
+  return decks.length === 1
+    ? `${listLabels(decks)} is no longer available, so it has been unticked.`
+    : `${listLabels(decks)} are no longer available, so they have been unticked.`;
+}
 
 /** Why a card left the deck: Shuffle In Cards, a lower card limit, or swapped for a card added back (FEAT2). */
 export const REMOVED_REASONS = ['shuffled-out', 'card-limit', 'swapped-out'] as const;
@@ -215,6 +261,86 @@ export interface ShuffleInRequest {
   random?: Random;
 }
 
+type PickResult = { ok: true; cards: DeckCard[] } | { ok: false; error: string };
+
+interface PickRequest {
+  /** Ids of the cards already in the deck, which are never picked. */
+  inDeck: Set<string>;
+  count: number;
+  library: Library;
+  studied: DeckId;
+  random: Random;
+}
+
+/** The new cards (not in the deck) of `deck`. */
+const newCardIds = (library: Library, deck: DeckId, inDeck: Set<string>) =>
+  (library.decks.get(deck) ?? []).map(cardId).filter((id) => !inDeck.has(id));
+
+/** One deck or Random (FEAT1): each new card comes from a random source deck that still has a card to give. */
+function pickFromDecks(
+  source: Exclude<ShuffleSource, { kind: 'multiple' }>,
+  { inDeck, count, library, studied, random }: PickRequest,
+): PickResult {
+  const sourceDecks = (source.kind === 'deck' ? [source.deck] : otherDecks(library, studied)).filter(
+    (d) => d !== studied,
+  );
+  const pools = sourceDecks.map((deck) => ({ deck, ids: newCardIds(library, deck, inDeck) }));
+
+  const available = new Set(pools.flatMap((p) => p.ids)).size;
+  if (available < count) {
+    const where = source.kind === 'deck' ? DECK_LABELS[source.deck] : 'the other decks';
+    const left = available === 0 ? 'no new cards' : `only ${available} new ${cardsWord(available)}`;
+    return { ok: false, error: `There ${available === 1 ? 'is' : 'are'} ${left} left in ${where} to shuffle in.` };
+  }
+
+  const added: DeckCard[] = [];
+  while (added.length < count) {
+    const live = pools.filter((p) => p.ids.length);
+    const pool = live[randomIndex(live.length, random)];
+    const id = pool.ids[randomIndex(pool.ids.length, random)];
+    // A word can be in more than one deck (e.g. N4 and Common words), so take it out of every pool.
+    for (const p of pools) {
+      const at = p.ids.indexOf(id);
+      if (at >= 0) p.ids.splice(at, 1);
+    }
+    added.push({ id, deck: pool.deck });
+  }
+  return { ok: true, cards: added };
+}
+
+/**
+ * Multiple decks (FEAT3): the new cards of every ticked deck are pooled together, each card once
+ * (a word can be in more than one deck, e.g. N4 and Common words), and picked at random, so a
+ * bigger deck gives more cards. A card in several ticked decks counts as coming from the first of
+ * them in DECK_IDS order.
+ */
+function pickFromTicked(ticked: DeckId[], { inDeck, count, library, studied, random }: PickRequest): PickResult {
+  const decks = DECK_IDS.filter((d) => d !== studied && ticked.includes(d));
+  const tickError = checkTicked(decks);
+  if (tickError) return { ok: false, error: tickError };
+
+  const pool: DeckCard[] = [];
+  const pooled = new Set<string>();
+  for (const deck of decks) {
+    for (const id of newCardIds(library, deck, inDeck)) {
+      if (pooled.has(id)) continue;
+      pooled.add(id);
+      pool.push({ id, deck });
+    }
+  }
+
+  if (pool.length < count) {
+    const left = pool.length === 0 ? 'have no new cards' : `only have ${pool.length} new ${cardsWord(pool.length)}`;
+    const advice =
+      pool.length === 0 ? 'Tick other decks to shuffle in from.' : 'Tick more decks or shuffle in fewer cards.';
+    return { ok: false, error: `The ticked decks ${left} left. ${advice}` };
+  }
+
+  const added: DeckCard[] = [];
+  while (added.length < count) added.push(...pool.splice(randomIndex(pool.length, random), 1));
+  return { ok: true, cards: added };
+}
+
 /**
  * Swaps `count` cards in the deck for new ones from the source. The card on screen goes first,
  * the others are picked at random. New cards are never already in the deck, so no card is in it
@@ -235,34 +361,12 @@ export function shuffleIn({
   if (!check.ok) return check;
 
   const inDeck = new Set(cards.map((c) => c.id));
-  const sourceDecks = (source.kind === 'deck' ? [source.deck] : otherDecks(library, studied)).filter(
-    (d) => d !== studied,
-  );
-  const pools = sourceDecks.map((deck) => ({
-    deck,
-    ids: (library.decks.get(deck) ?? []).map(cardId).filter((id) => !inDeck.has(id)),
-  }));
-
-  const available = new Set(pools.flatMap((p) => p.ids)).size;
-  if (available < count) {
-    const where = source.kind === 'deck' ? DECK_LABELS[source.deck] : 'the other decks';
-    const left = available === 0 ? 'no new cards' : `only ${available} new ${cardsWord(available)}`;
-    return { ok: false, error: `There ${available === 1 ? 'is' : 'are'} ${left} left in ${where} to shuffle in.` };
-  }
-
-  // Each new card comes from a random source deck that still has a card to give (just one deck for 'deck').
-  const added: DeckCard[] = [];
-  while (added.length < count) {
-    const live = pools.filter((p) => p.ids.length);
-    const pool = live[randomIndex(live.length, random)];
-    const id = pool.ids[randomIndex(pool.ids.length, random)];
-    // A word can be in more than one deck (e.g. N4 and Common words), so take it out of every pool.
-    for (const p of pools) {
-      const at = p.ids.indexOf(id);
-      if (at >= 0) p.ids.splice(at, 1);
-    }
-    added.push({ id, deck: pool.deck });
-  }
+  const picked =
+    source.kind === 'multiple'
+      ? pickFromTicked(source.decks, { inDeck, count, library, studied, random })
+      : pickFromDecks(source, { inDeck, count, library, studied, random });
+  if (!picked.ok) return picked;
+  const added = picked.cards;
 
   // The card on screen first, then random other positions.
   const others = cards.map((_, i) => i).filter((i) => i !== index);
