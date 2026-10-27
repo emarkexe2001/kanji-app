@@ -14,6 +14,7 @@ import {
   currentWord,
   deckCheckbox,
   deckContents,
+  enterCardLimit,
   makeDecks,
   makeWords,
   modeRadio,
@@ -88,13 +89,13 @@ describe('the "Shuffle in from" switch', () => {
     expect(Array.from(oneDeckSelect().options).map((o) => o.text)).toEqual(['JLPT N4', 'JLPT N3', 'JLPT N2']);
   });
 
-  test('the chosen segment is emerald with white text, focus shows inside it, and in a high-contrast mode it uses the system Highlight colours', async () => {
+  test('the chosen segment is emerald-700 with white text (passing 4.5:1), focus shows inside it, and in a high-contrast mode it uses the system Highlight colours', async () => {
     await renderApp(FOUR_DECKS);
 
     // jsdom can't show colours or switch on forced colours, so the classes are checked.
     const segment = modeRadio('One deck').closest('label')!;
     expect(segment).toHaveClass(
-      'has-checked:bg-emerald-600',
+      'has-checked:bg-emerald-700',
       'has-checked:text-white',
       'has-focus-visible:outline-2',
       'has-focus-visible:outline-current',
@@ -147,7 +148,7 @@ describe('Shuffle In Cards from multiple decks', () => {
     const user = await renderApp(FOUR_DECKS);
     await chooseMode(user, 'Multiple decks');
 
-    // jsdom has no layout, so the grid's class is checked (the layout was also checked in a browser).
+    // jsdom has no layout, so the grid's class is checked. The layout itself needs a real browser check.
     expect(within(decksGroup()!).getAllByRole('checkbox')[0].closest('label')!.parentElement).toHaveClass(
       'grid-cols-2',
     );
@@ -404,7 +405,9 @@ describe('Shuffle In Cards from multiple decks: failure paths', () => {
     expect(modeRadio('Multiple decks')).toBeDisabled();
     expect(modeRadio('One deck')).toBeChecked();
     expect(oneDeckSelect()).toHaveValue('N4');
-    expect(untickedNotice()).toHaveTextContent('JLPT N3 is no longer available, so it has been unticked.');
+    // The gone deck is named, but the fall-back itself gets no extra notice: the greyed hint is enough.
+    expect(untickedNotice()).toHaveTextContent(/^JLPT N3 is no longer available, so it has been unticked\.$/);
+    expect(modeRadio('Multiple decks')).toHaveAccessibleDescription('Needs at least two other decks.');
   });
 
   test('the messages go away when I change my ticks, the choice or the number of cards', async () => {
@@ -427,6 +430,58 @@ describe('Shuffle In Cards from multiple decks: failure paths', () => {
     await user.type(screen.getByLabelText('Cards to shuffle in'), '{Backspace}');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  test('when I pick another deck to study or change my card limit, the shuffle-in messages go away', async () => {
+    const user = await renderApp(FOUR_DECKS);
+    await chooseMode(user, 'Multiple decks');
+    await shuffleIn(user, '1');
+    expect(screen.getByRole('alert')).toHaveTextContent('Tick at least two decks to shuffle in from.');
+
+    await chooseDeck(user, 'JLPT N3');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    await tickDecks(user, 'JLPT N5', 'JLPT N4');
+    await shuffleIn(user, '11');
+    expect(screen.getByRole('alert')).toHaveTextContent("You can't shuffle in more than 10 cards, your card limit.");
+
+    await enterCardLimit(user, '20');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Cards to shuffle in')).not.toHaveAttribute('aria-invalid');
+  });
+
+  test.each([
+    ['One deck', { kind: 'deck', deck: 'N4' }],
+    ['Random', { kind: 'random' }],
+  ] as const)(
+    'with %s saved, a ticked deck that is gone after a reload is unticked without a notice',
+    async (mode, saved) => {
+      localStorage.setItem('kanji.shuffleSource', JSON.stringify({ ...saved, decks: ['N4', 'N3', 'N1'] }));
+
+      const user = await renderApp(FOUR_DECKS);
+
+      expect(modeRadio(mode)).toBeChecked();
+      expect(untickedNotice()).not.toBeInTheDocument();
+      await chooseMode(user, 'Multiple decks');
+      expect(tickedLabels()).toEqual(['JLPT N4', 'JLPT N3']);
+      expect(untickedNotice()).not.toBeInTheDocument();
+    },
+  );
+
+  test.each(['One deck', 'Random'] as const)(
+    'on %s, studying a ticked deck unticks it without a notice',
+    async (mode) => {
+      const user = await renderApp(FOUR_DECKS);
+      await tickDecks(user, 'JLPT N4', 'JLPT N3');
+      await chooseMode(user, mode);
+
+      await chooseDeck(user, 'JLPT N4');
+
+      expect(untickedNotice()).not.toBeInTheDocument();
+      await chooseMode(user, 'Multiple decks');
+      expect(tickedLabels()).toEqual(['JLPT N3']);
+      expect(untickedNotice()).not.toBeInTheDocument();
+    },
+  );
 
   test('the unticked notice goes away when I change my ticks or the number of cards', async () => {
     const user = await renderApp(makeDecks({ N5: 30, N4: 30, N3: 30, N1: 30 }));

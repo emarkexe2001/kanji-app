@@ -23,7 +23,7 @@ const MODE_LABELS: Record<ShuffleMode, string> = {
 /**
  * One segment of the "Shuffle in from" switch: a native radio (hidden, but still focused and
  * changed with the arrow keys) inside a label drawn as the segment. The chosen segment is
- * emerald-600 with white text; keyboard focus is an outline inside the segment in its text colour.
+ * emerald-700 with white text (4.5:1 or better at this small size); keyboard focus is an outline inside the segment in its text colour.
  * In a high-contrast (forced colours) mode only system colours survive, so the segments use them
  * directly: the chosen one is Highlight with HighlightText, the others Canvas with CanvasText, a
  * disabled one GrayText.
@@ -31,7 +31,7 @@ const MODE_LABELS: Record<ShuffleMode, string> = {
 const SEGMENT_CLASS = [
   'flex min-h-9 cursor-pointer items-center justify-center px-1 py-1 text-center text-[13px] leading-tight font-semibold',
   'text-slate-700 not-first:border-l not-first:border-slate-300',
-  'has-checked:bg-emerald-600 has-checked:text-white',
+  'has-checked:bg-emerald-700 has-checked:text-white',
   'has-focus-visible:outline-2 has-focus-visible:-outline-offset-4 has-focus-visible:outline-current',
   'has-disabled:cursor-not-allowed has-disabled:bg-slate-100 has-disabled:text-slate-400',
   'forced-colors:forced-color-adjust-none forced-colors:bg-[color:Canvas] forced-colors:text-[color:CanvasText]',
@@ -130,6 +130,15 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
   const [count, setCount] = useState('1');
   const [error, setError] = useState<ShuffleInError | null>(null);
   const { choice, sources, unticked } = study;
+
+  // Picking another deck to study or changing the card limit makes the messages out of date, so
+  // they are cleared (adjusting state while rendering, as React recommends over an effect).
+  const deckKey = `${study.studied}:${study.cards.length}`;
+  const [errorDeckKey, setErrorDeckKey] = useState(deckKey);
+  if (errorDeckKey !== deckKey) {
+    setErrorDeckKey(deckKey);
+    setError(null);
+  }
 
   if (!choice || !sources.length) {
     return (
