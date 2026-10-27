@@ -551,6 +551,14 @@ describe('saved "Shuffle in from" checks (failure paths)', () => {
     expect(tickedLabels()).toEqual(['JLPT N4', 'JLPT N2']);
     expect(untickedNotice()).not.toBeInTheDocument();
 
+    // A deck saved twice counts as one tick, so the message shows under the checkboxes.
+    saveChoice({ kind: 'multiple', decks: ['N4', 'N4'] });
+    const reloaded = await reload();
+    expect(tickedLabels()).toEqual(['JLPT N4']);
+    await shuffleIn(reloaded, '1');
+    expect(decksGroup()).toContainElement(screen.getByRole('alert'));
+    expect(screen.getByRole('alert')).toHaveTextContent('Tick at least two decks, or choose One deck instead.');
+
     saveChoice({ kind: 'several', decks: ['N4', 'N3'] });
     await reload();
     expect(modeRadio('One deck')).toBeChecked();
