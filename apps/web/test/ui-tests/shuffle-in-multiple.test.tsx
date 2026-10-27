@@ -370,12 +370,17 @@ describe('Shuffle In Cards from multiple decks: failure paths', () => {
     const user = await renderApp(makeDecks({ N5: 30, N4: 30, N3: 30, N2: 30, N1: 30 }));
     await tickDecks(user, 'JLPT N4', 'JLPT N2', 'JLPT N1');
 
-    await reload(makeDecks({ N5: 30, N4: 30, N3: 30 }));
+    const reloaded = await reload(makeDecks({ N5: 30, N4: 30, N3: 30 }));
 
     expect(untickedNotice()).toHaveTextContent(
       'JLPT N2 and JLPT N1 are no longer available, so they have been unticked.',
     );
     expect(tickedLabels()).toEqual(['JLPT N4']);
+    // The gone decks no longer count as ticked: only one deck is left.
+    const before = await deckContents(reloaded);
+    await shuffleIn(reloaded, '1');
+    expect(screen.getByRole('alert')).toHaveTextContent('Tick at least two decks, or choose One deck instead.');
+    expect(await deckContents(reloaded)).toEqual(before);
   });
 
   test('when a ticked deck becomes the deck I study, it is unticked and I am told', async () => {
