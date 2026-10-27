@@ -52,21 +52,21 @@ Open Questions (to confirm before starting, per PROC3):
 Mockup (approved): https://claude.ai/artifact/JfG7Gy4qrJjaQBMkxpHTUm (Option B chosen)
 
 Answers (agreed 2026-10-27):
-- Layout: Option B, a three-way switch. The "Shuffle in from" dropdown is replaced by a segmented switch labelled "Shuffle in from": One deck | Random | Multiple decks. It is a real radio group (fieldset, legend and native radio buttons drawn as connected segments): the chosen segment is emerald-600 with white text, the arrow keys move between choices, focus is visible, and it can be told apart in a high-contrast (forced colours) mode.
-  - One deck: the deck dropdown (the other decks) shows underneath. It works exactly like FEAT1's single-deck choice.
+- Layout: Option B, a three-way switch. The "Shuffle in from" dropdown is replaced by a segmented switch labelled "Shuffle in from": One deck | Random | Multiple decks. It is a real radio group (fieldset, legend and native radio buttons drawn as connected segments): the chosen segment is emerald-700 with white text (passes 4.5:1; the Shuffle In Cards button stays emerald-600), the arrow keys move between choices, focus is visible, and it can be told apart in a high-contrast (forced colours) mode.
+  - One deck: the deck dropdown (the other decks) shows underneath, full width, with a label that is hidden on screen but read by screen readers ("Deck to shuffle in from"). It works exactly like FEAT1's single-deck choice.
   - Random: nothing extra shows. It works exactly like FEAT1's "Random deck for each card".
   - Multiple decks: a "Decks to shuffle in from" box (white, light emerald border) shows a checkbox for each other deck, 2 per row, labelled like the deck picker. The studied deck is never offered. Rows are at least 32px tall.
   - The "Cards to shuffle in" row and the Shuffle In Cards button stay as they were, in the same emerald-50 panel.
 - Picking: combined random (see above). Same rules as FEAT1: the card on screen goes first, no card is ever in the deck twice, and the deck size stays the same as the card limit. Cards shuffled out go into the Shuffled-out cards list (FEAT2).
 - Two or more decks must be ticked.
 - When Multiple decks is first chosen, nothing is ticked.
-- With fewer than two other decks, the Multiple decks segment is disabled with the hint "Needs at least two other decks."
+- With fewer than two other decks, the Multiple decks segment is disabled with the hint "Needs at least two other decks." If a saved Multiple decks choice falls back to One deck for this reason, there is no extra notice about the fall-back: the greyed hint is enough. Any ticked deck that is gone is still named in the unticked notice.
 - Messages (red, inline, role="alert", the deck doesn't change):
   - none ticked: "Tick at least two decks to shuffle in from."
   - one ticked: "Tick at least two decks, or choose One deck instead."
   - not enough new cards: "The ticked decks only have N new cards left. Tick more decks or shuffle in fewer cards." ("1 new card" for one; with none left: "The ticked decks have no new cards left. Tick other decks to shuffle in from.")
-  - a ticked deck gone after a reload, or no longer offered (e.g. it is now the studied deck): it is unticked and an amber notice (role="status") says e.g. "JLPT N1 is no longer available, so it has been unticked." Several are listed together ("JLPT N2 and JLPT N1 are no longer available, so they have been unticked.").
-  - Messages clear when the ticks, the choice or the number of cards change.
+  - a ticked deck gone after a reload, or no longer offered (e.g. it is now the studied deck): it is unticked and an amber notice (role="status") says e.g. "JLPT N1 is no longer available, so it has been unticked." Several are listed together ("JLPT N2 and JLPT N1 are no longer available, so they have been unticked."). The notice only shows when Multiple decks was the chosen mode. With One deck or Random chosen, such ticks are dropped silently. An unticked deck is not ticked again later, even if it comes back.
+  - Messages clear when the ticks, the choice or the number of cards change, and when another deck is studied or the card limit changes.
 - Remembered after a reload: the choice (One deck, Random or Multiple decks), the One deck dropdown's deck and the ticked decks. The ticks are also kept while another choice is used. Choices saved before FEAT3 still load.
 
 Dependencies:
