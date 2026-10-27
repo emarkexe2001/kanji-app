@@ -4,7 +4,9 @@ import type { JlptLevel, WordEntry } from '@kanji/core';
 import { buildLibrary } from './decks';
 import {
   addBack,
+  checkTicked,
   describeReplaced,
+  describeUnticked,
   parseShuffleInCount,
   recordRemoved,
   resizeCards,
@@ -13,6 +15,7 @@ import {
   takeCards,
   type DeckCard,
   type RemovedCard,
+  type ShuffleSource,
 } from './study-deck';
 
 const word = (id: string, jlpt?: JlptLevel, common = false): WordEntry => ({
@@ -177,4 +180,87 @@ test('when no card stops being new, the same "New" list is kept, so the deck is 
   assert.equal(stillNew(newIds, cards), newIds);
   assert.equal(stillNew(newIds, cards, 'N5-3'), newIds);
   assert.notEqual(stillNew(newIds, cards, 'N5-1'), newIds);
+});
+
+// FEAT3: Multiple decks.
+
+test('Multiple decks pools the new cards of the ticked decks and picks at random across them all', () => {
+  // N4 has 1 card and N3 has 9: pooled (N4 first), 0.15 picks the second card, from N3. Picking a
+  // deck evenly first would have picked N4.
+  const lib = buildLibrary([...level('N5', 10), ...level('N4', 1), ...level('N3', 9)]);
+  const result = shuffleIn({
+    cards: takeCards(lib, 'N5', 5),
+    index: 0,
+    count: 1,
+    source: { kind: 'multiple', decks: ['N4', 'N3'] },
+    library: lib,
+    studied: 'N5',
+    now: 0,
+    random: () => 0.15,
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.deepEqual(result.cards[0], { id: 'N3-1', deck: 'N3' });
+});
+
+test('Multiple decks only uses the ticked decks, never the studied deck', () => {
+  for (let i = 0; i < 20; i++) {
+    const result = shuffleIn({
+      cards: deck(5),
+      index: 1,
+      count: 5,
+      source: { kind: 'multiple', decks: ['N5', 'N4', 'N3'] },
+      library,
+      studied: 'N5',
+      now: 0,
+    });
+    assert.equal(result.ok, true);
+    if (result.ok) for (const c of result.cards) assert.ok(['N4', 'N3'].includes(c.deck));
+  }
+});
+
+test('a card in two ticked decks is pooled once, as coming from the first of them', () => {
+  const lib = buildLibrary([...level('N5', 10), word('both', 'N4', true), word('common-only', undefined, true)]);
+  const source: ShuffleSource = { kind: 'multiple', decks: ['common', 'N4'] };
+  const request = { cards: takeCards(lib, 'N5', 5), index: 0, source, library: lib, studied: 'N5' as const, now: 0 };
+  assert.deepEqual(shuffleIn({ ...request, count: 3 }), {
+    ok: false,
+    error: 'The ticked decks only have 2 new cards left. Tick more decks or shuffle in fewer cards.',
+  });
+  const result = shuffleIn({ ...request, count: 2, random: () => 0 });
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(
+      result.replaced.map((p) => result.cards[p]),
+      [
+        { id: 'both', deck: 'N4' },
+        { id: 'common-only', deck: 'common' },
+      ],
+    );
+  }
+});
+
+test('Multiple decks needs two or more ticked decks', () => {
+  const request = { cards: deck(5), index: 0, count: 1, library, studied: 'N5' as const, now: 0 };
+  assert.deepEqual(shuffleIn({ ...request, source: { kind: 'multiple', decks: [] } }), {
+    ok: false,
+    error: 'Tick at least two decks to shuffle in from.',
+  });
+  // The studied deck doesn't count as a tick.
+  assert.deepEqual(shuffleIn({ ...request, source: { kind: 'multiple', decks: ['N5', 'N4'] } }), {
+    ok: false,
+    error: 'Tick at least two decks, or choose One deck instead.',
+  });
+  assert.equal(checkTicked(['N4', 'N3']), null);
+});
+
+test('the unticked notice names each deck, with "is" for one and "are" for several', () => {
+  assert.equal(describeUnticked(['N1']), 'JLPT N1 is no longer available, so it has been unticked.');
+  assert.equal(
+    describeUnticked(['N2', 'N1']),
+    'JLPT N2 and JLPT N1 are no longer available, so they have been unticked.',
+  );
+  assert.equal(
+    describeUnticked(['N2', 'N1', 'common']),
+    'JLPT N2, JLPT N1 and Common words are no longer available, so they have been unticked.',
+  );
 });
