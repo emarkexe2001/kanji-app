@@ -257,16 +257,17 @@ describe('Shuffle In Cards from multiple decks', () => {
 
   test('when I switch from Multiple decks back to Random, shuffling in works as it does in FEAT1', async () => {
     // N5 has plenty of new cards, so a Random that used it would show up here.
-    const user = await renderApp(makeDecks({ N5: 200, N4: 5, N3: 5, N2: 5 }));
+    const user = await renderApp(makeDecks({ N5: 200, N4: 3, N3: 3, N2: 5 }));
     await tickDecks(user, 'JLPT N4', 'JLPT N3');
 
     await chooseMode(user, 'Random');
     await shuffleIn(user, '10');
 
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     const cardLevels = levels(await deckContents(user));
     expect(cardLevels.every((l) => l !== 'JLPT N5')).toBe(true);
-    // Random uses every other deck, not just the ticked ones: only 10 cards are in N4 and N3.
-    expect(count(cardLevels, 'JLPT N2')).toBeGreaterThan(0);
+    // Random uses every other deck, not just the ticked ones: N4 and N3 only have 6 cards between them.
+    expect(count(cardLevels, 'JLPT N2')).toBeGreaterThanOrEqual(4);
   });
 
   test('my ticks are kept while I use another choice, and are there again when I go back to Multiple decks, even after a reload', async () => {
