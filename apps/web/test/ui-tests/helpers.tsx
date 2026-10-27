@@ -112,9 +112,37 @@ export async function chooseDeck(user: User, label: string) {
   await user.selectOptions(screen.getByLabelText('Deck'), label);
 }
 
-/** Picks where Shuffle In Cards takes cards from, e.g. "JLPT N4" or "Random deck for each card". */
+/** A choice of the "Shuffle in from" switch (FEAT3). */
+export type ShuffleMode = 'One deck' | 'Random' | 'Multiple decks';
+
+/** The "Shuffle in from" switch's radio button for `mode`. */
+export const modeRadio = (mode: ShuffleMode) => screen.getByRole('radio', { name: mode });
+
+/** Picks One deck, Random or Multiple decks on the "Shuffle in from" switch. */
+export async function chooseMode(user: User, mode: ShuffleMode) {
+  await user.click(modeRadio(mode));
+}
+
+/** The deck dropdown shown under One deck. */
+export const oneDeckSelect = () => screen.getByLabelText<HTMLSelectElement>('Deck to shuffle in from');
+
+/**
+ * Picks where Shuffle In Cards takes cards from: "Random", or one deck such as "JLPT N4"
+ * (chosen from the dropdown under One deck).
+ */
 export async function chooseSource(user: User, label: string) {
-  await user.selectOptions(screen.getByLabelText('Shuffle in from'), label);
+  if (label === 'Random') return chooseMode(user, 'Random');
+  await chooseMode(user, 'One deck');
+  await user.selectOptions(oneDeckSelect(), label);
+}
+
+/** The checkbox for a deck under Multiple decks, e.g. "JLPT N4". */
+export const deckCheckbox = (label: string) => screen.getByRole('checkbox', { name: label });
+
+/** Chooses Multiple decks and ticks the decks named (each must be unticked). */
+export async function tickDecks(user: User, ...labels: string[]) {
+  await chooseMode(user, 'Multiple decks');
+  for (const label of labels) await user.click(deckCheckbox(label));
 }
 
 /** Sets how many cards to shuffle in (like pasting it) and presses Shuffle In Cards. */

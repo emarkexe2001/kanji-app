@@ -5,8 +5,16 @@
  * remembered, but the app keeps working.
  */
 import { readStorage, writeStorage } from '../../../lib/storage';
-import { MAX_REMOVED_CARDS, REMOVED_REASONS, type DeckCard, type RemovedCard, type ShuffleSource } from './study-deck';
-import { isDeckId, otherDecks, type DeckId, type Library } from './decks';
+import {
+  MAX_REMOVED_CARDS,
+  REMOVED_REASONS,
+  SHUFFLE_MODES,
+  type DeckCard,
+  type RemovedCard,
+  type ShuffleChoice,
+  type ShuffleMode,
+} from './study-deck';
+import { isDeckId, type DeckId, type Library } from './decks';
 
 const STUDIED_DECK_KEY = 'kanji.studiedDeck';
 const SAVED_DECK_KEY = 'kanji.savedDeck';
@@ -75,18 +83,30 @@ export function loadSavedDeck(library: Library, studied: DeckId): SavedDeck | nu
 export const saveDeck = (studied: DeckId, { cards, newIds }: SavedDeck) =>
   writeJson(SAVED_DECK_KEY, { deck: studied, cards, newIds });
 
-/** The saved "Shuffle in from" choice, if it is still a valid source for `studied`. */
-export function loadShuffleSource(library: Library, studied: DeckId): ShuffleSource | null {
-  const saved = readJson(SOURCE_KEY);
-  if (!isRecord(saved)) return null;
-  if (saved.kind === 'random') return { kind: 'random' };
-  if (saved.kind === 'deck' && isDeckId(saved.deck) && otherDecks(library, studied).includes(saved.deck)) {
-    return { kind: 'deck', deck: saved.deck };
-  }
-  return null;
+/**
+ * The saved "Shuffle in from" choice, as saved: which mode, the deck picked under One deck (null
+ * if none) and the decks ticked under Multiple decks (known deck ids only, each once). The hook
+ * checks them against the decks that can be shuffled in from now. Choices saved before FEAT3
+ * (`{ kind: 'deck', deck }` or `{ kind: 'random' }`) load with nothing ticked.
+ */
+export interface SavedShuffleChoice {
+  mode: ShuffleMode;
+  deck: DeckId | null;
+  ticked: DeckId[];
 }
 
-export const saveShuffleSource = (source: ShuffleSource) => writeJson(SOURCE_KEY, source);
+export function loadShuffleChoice(): SavedShuffleChoice | null {
+  const saved = readJson(SOURCE_KEY);
+  if (!isRecord(saved)) return null;
+  const mode = SHUFFLE_MODES.find((m) => m === saved.kind);
+  if (!mode) return null;
+  const ticked = Array.isArray(saved.decks) ? [...new Set(saved.decks.filter(isDeckId))] : [];
+  return { mode, deck: isDeckId(saved.deck) ? saved.deck : null, ticked };
+}
+
+/** Saved as `{ kind, deck, decks }`, so the deck and the ticks are kept whichever mode is chosen. */
+export const saveShuffleChoice = ({ mode, deck, ticked }: ShuffleChoice) =>
+  writeJson(SOURCE_KEY, { kind: mode, deck, decks: ticked });
 
 /** A saved list of removed cards, newest first, without entries that don't fit. */
 function loadRemovedList(key: string, library: Library): RemovedCard[] {

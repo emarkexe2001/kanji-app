@@ -8,15 +8,18 @@ import {
   loadRemovedCards,
   loadSavedDeck,
   saveClearedCards,
-  loadShuffleSource,
+  loadShuffleChoice,
   loadStudiedDeck,
   saveDeck,
   saveRemovedCards,
-  saveShuffleSource,
+  saveShuffleChoice,
   saveStudiedDeck,
+  type SavedShuffleChoice,
 } from '../utils/saved-deck';
 import {
+  MIN_TICKED_DECKS,
   addBack,
+  choiceSource,
   describeReplaced,
   mergeRecovered,
   recordRemoved,
@@ -26,7 +29,7 @@ import {
   takeCards,
   type DeckCard,
   type RemovedCard,
-  type ShuffleSource,
+  type ShuffleChoice,
 } from '../utils/study-deck';
 
 interface StudyState {
@@ -38,7 +41,10 @@ interface StudyState {
   move: Move;
   /** Positions replaced by the last Shuffle In Cards, until the user moves on. */
   replaced: number[] | null;
-  source: ShuffleSource | null;
+  /** The "Shuffle in from" choice, or null when there is no other deck. */
+  choice: ShuffleChoice | null;
+  /** Ticked decks just unticked because they can't be shuffled in from any more, to tell the user (FEAT3). */
+  unticked: DeckId[];
   removed: RemovedCard[];
   /**
    * The list Clear List last cleared, kept so it can be recovered (FEAT2_7), or empty. It is kept
@@ -51,19 +57,27 @@ interface StudyState {
   leaving: DeckCard | null;
 }
 
-/** The default source: the first other deck, or null when there is no other deck. */
-function defaultSource(library: Library, studied: DeckId): ShuffleSource | null {
-  const [first] = otherDecks(library, studied);
-  return first ? { kind: 'deck', deck: first } : null;
+interface FittedChoice {
+  choice: ShuffleChoice | null;
+  unticked: DeckId[];
 }
 
-/** A source that can be used while studying `studied`, falling back to the default. */
-function validSource(library: Library, studied: DeckId, source: ShuffleSource | null): ShuffleSource | null {
+/**
+ * A "Shuffle in from" choice that can be used while studying `studied`: null when there is no
+ * other deck. The deck under One deck falls back to the first other deck, and ticked decks that
+ * can't be shuffled in from any more (gone from the dictionary, or now the studied deck) are
+ * unticked. Under Multiple decks those are returned in `unticked` to tell the user. Multiple decks
+ * falls back to One deck when there are fewer than two other decks.
+ */
+function fitChoice(library: Library, studied: DeckId, saved: SavedShuffleChoice | ShuffleChoice | null): FittedChoice {
   const others = otherDecks(library, studied);
-  if (!others.length) return null;
-  if (source?.kind === 'random') return source;
-  if (source?.kind === 'deck' && others.includes(source.deck)) return source;
-  return defaultSource(library, studied);
+  if (!others.length) return { choice: null, unticked: [] };
+  const deck = saved?.deck && others.includes(saved.deck) ? saved.deck : others[0];
+  const ticked = (saved?.ticked ?? []).filter((d) => others.includes(d));
+  const dropped = (saved?.ticked ?? []).filter((d) => !others.includes(d));
+  const multiple = saved?.mode === 'multiple';
+  const mode = !saved || (multiple && others.length < MIN_TICKED_DECKS) ? 'deck' : saved.mode;
+  return { choice: { mode, deck, ticked }, unticked: multiple ? dropped : [] };
 }
 
 /**
@@ -92,7 +106,7 @@ function loadState(library: Library, studied: DeckId, limit: number): StudyState
     index: 0,
     move: 'next',
     replaced: null,
-    source: validSource(library, studied, loadShuffleSource(library, studied)),
+    ...fitChoice(library, studied, loadShuffleChoice()),
     removed: recordRemoved(loadRemovedCards(library), [], cards),
     cleared: loadClearedCards(library),
     newIds: stillNew(saved?.newIds ?? [], cards),
@@ -106,7 +120,10 @@ export interface StudyDeck {
   decks: DeckId[];
   /** The decks that can be shuffled in from: every deck except the studied one. */
   sources: DeckId[];
-  source: ShuffleSource | null;
+  /** The "Shuffle in from" choice (One deck, Random or Multiple decks), or null when there is no other deck. */
+  choice: ShuffleChoice | null;
+  /** Ticked decks that were unticked because they can't be shuffled in from any more (FEAT3), to tell the user. */
+  unticked: DeckId[];
   cards: WordEntry[];
   /**
    * The id of each card in the deck, in the same order as `cards`. Taken from the saved deck, not
@@ -121,7 +138,10 @@ export interface StudyDeck {
   deckShuffle: () => void;
   chooseDeck: (deck: DeckId) => void;
   setLimit: (limit: number) => void;
-  setSource: (source: ShuffleSource) => void;
+  /** Changes the "Shuffle in from" choice. It also clears the unticked notice. */
+  setChoice: (choice: ShuffleChoice) => void;
+  /** Clears the unticked notice (once the user changes something). */
+  clearUnticked: () => void;
   /** Shuffles `count` new cards in. Returns a message for the user if it can't, and the deck doesn't change. */
   shuffleIn: (count: number) => string | null;
   /** The "Shuffled-out cards" list (shuffled out, trimmed by the card limit or swapped out), newest first. */
@@ -169,8 +189,8 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     [state.studied, state.cards, state.newIds],
   );
   useEffect(() => {
-    if (state.source) saveShuffleSource(state.source);
-  }, [state.source]);
+    if (state.choice) saveShuffleChoice(state.choice);
+  }, [state.choice]);
   useEffect(() => saveRemovedCards(state.removed), [state.removed]);
   useEffect(() => saveClearedCards(state.cleared), [state.cleared]);
 
@@ -193,7 +213,8 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     studied: state.studied,
     decks: [...library.decks.keys()],
     sources: otherDecks(library, state.studied),
-    source: state.source,
+    choice: state.choice,
+    unticked: state.unticked,
     cards,
     cardIds,
     index: state.index,
@@ -218,7 +239,8 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
           index: 0,
           move: 'next',
           replaced: null,
-          source: validSource(library, deck, s.source),
+          // A ticked deck that is now the studied one is unticked, and under Multiple decks the user is told.
+          ...fitChoice(library, deck, s.choice),
           removed: recordRemoved(s.removed, [], cards),
           newIds: [],
           leaving: null,
@@ -239,15 +261,17 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
       }));
     },
 
-    setSource: (source) => setState((s) => ({ ...s, source })),
+    setChoice: (choice) => setState((s) => ({ ...s, ...fitChoice(library, s.studied, choice), unticked: [] })),
+
+    clearUnticked: () => setState((s) => (s.unticked.length ? { ...s, unticked: [] } : s)),
 
     shuffleIn: (count) => {
-      if (!state.source) return "There's no other deck to shuffle in from.";
+      if (!state.choice) return "There's no other deck to shuffle in from.";
       const result = shuffleIn({
         cards: state.cards,
         index: state.index,
         count,
-        source: state.source,
+        source: choiceSource(state.choice),
         library,
         studied: state.studied,
         now: Date.now(),

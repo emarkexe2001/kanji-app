@@ -14,6 +14,8 @@ import {
   enterCardLimit,
   makeDecks,
   makeWords,
+  modeRadio,
+  oneDeckSelect,
   renderApp,
   serveDeck,
   shuffleIn,
@@ -71,13 +73,13 @@ describe('picking the deck to study', () => {
 
   test('the deck being studied is never offered to shuffle in from', async () => {
     const user = await renderApp(THREE_DECKS);
-    const sources = () =>
-      Array.from(screen.getByLabelText<HTMLSelectElement>('Shuffle in from').options).map((o) => o.text);
+    const sources = () => Array.from(oneDeckSelect().options).map((o) => o.text);
 
-    expect(sources()).toEqual(['JLPT N4', 'JLPT N3', 'Random deck for each card']);
+    expect(modeRadio('One deck')).toBeChecked();
+    expect(sources()).toEqual(['JLPT N4', 'JLPT N3']);
 
     await chooseDeck(user, 'JLPT N4');
-    expect(sources()).toEqual(['JLPT N5', 'JLPT N3', 'Random deck for each card']);
+    expect(sources()).toEqual(['JLPT N5', 'JLPT N3']);
   });
 });
 
@@ -127,7 +129,7 @@ describe('Shuffle In Cards', () => {
   test('when I choose Random, the new cards come from decks other than my current deck', async () => {
     // N5 has plenty of cards that aren't in the deck yet, so a Random that used it would show up here.
     const user = await renderApp(makeDecks({ N5: 200, N4: 10, N3: 10 }));
-    await chooseSource(user, 'Random deck for each card');
+    await chooseSource(user, 'Random');
 
     await shuffleIn(user, '10');
 
@@ -145,7 +147,7 @@ describe('Shuffle In Cards', () => {
 
     const reloaded = await reload();
 
-    expect(screen.getByLabelText('Shuffle in from')).toHaveValue('N3');
+    expect(oneDeckSelect()).toHaveValue('N3');
     const after = await deckContents(reloaded);
     expect(after.map((c) => c.word)).toEqual(before.slice(before.indexOf(currentWord())));
     expect(count(levels(after), 'JLPT N3')).toBe(3);
@@ -287,7 +289,7 @@ describe('Shuffle In Cards failure paths', () => {
 
   test("with Random, a message says how many new cards the other decks have left and my deck doesn't change", async () => {
     const user = await renderApp(makeDecks({ N5: 30, N4: 1, N3: 2 }));
-    await chooseSource(user, 'Random deck for each card');
+    await chooseSource(user, 'Random');
     const before = await deckContents(user);
 
     await shuffleIn(user, '4');
@@ -339,7 +341,7 @@ describe('Shuffle In Cards failure paths', () => {
     expect(shuffleInButton()).toBeDisabled();
     expect(shuffleInButton()).toHaveAccessibleDescription("There's no other deck to shuffle in from.");
     // Nothing to choose, so the choices are hidden.
-    expect(screen.queryByLabelText('Shuffle in from')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Shuffle in from' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Cards to shuffle in')).not.toBeInTheDocument();
   });
 
@@ -431,7 +433,7 @@ describe('saved deck checks (failure paths)', () => {
 
     expect(screen.getByLabelText('Deck')).toHaveValue('N5');
     // N5 is the deck being studied, so it can't be the source: the first other deck is used.
-    expect(screen.getByLabelText('Shuffle in from')).toHaveValue('N4');
+    expect(oneDeckSelect()).toHaveValue('N4');
     await shuffleIn(user, '1');
     expect(JSON.parse(localStorage.getItem('kanji.removedCards') ?? '[]')).toHaveLength(1);
   });

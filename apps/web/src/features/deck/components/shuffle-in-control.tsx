@@ -1,29 +1,137 @@
 import { useState } from 'react';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { DECK_LABELS, isDeckId } from '../utils/decks';
-import { parseShuffleInCount, type ShuffleSource } from '../utils/study-deck';
-
-const RANDOM = 'random';
-
-const sourceValue = (source: ShuffleSource) => (source.kind === 'random' ? RANDOM : source.deck);
-
-function toSource(value: string): ShuffleSource | null {
-  if (value === RANDOM) return { kind: 'random' };
-  return isDeckId(value) ? { kind: 'deck', deck: value } : null;
-}
+import { DECK_IDS, DECK_LABELS, isDeckId, type DeckId } from '../utils/decks';
+import {
+  MIN_TICKED_DECKS,
+  SHUFFLE_MODES,
+  checkTicked,
+  describeUnticked,
+  parseShuffleInCount,
+  type ShuffleChoice,
+  type ShuffleMode,
+} from '../utils/study-deck';
 
 const fieldClass = 'rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-semibold';
+const errorClass = 'text-xs font-semibold text-rose-600';
+
+const MODE_LABELS: Record<ShuffleMode, string> = {
+  deck: 'One deck',
+  random: 'Random',
+  multiple: 'Multiple decks',
+};
+
+/**
+ * One segment of the "Shuffle in from" switch: a native radio (hidden, but still focused and
+ * changed with the arrow keys) inside a label drawn as the segment. The chosen segment is
+ * emerald-600 with white text; keyboard focus is an outline inside the segment in its text colour.
+ * In a high-contrast (forced colours) mode only system colours survive, so the segments use them
+ * directly: the chosen one is Highlight with HighlightText, the others Canvas with CanvasText, a
+ * disabled one GrayText.
+ */
+const SEGMENT_CLASS = [
+  'flex min-h-9 cursor-pointer items-center justify-center px-1 py-1 text-center text-[13px] leading-tight font-semibold',
+  'text-slate-700 not-first:border-l not-first:border-slate-300',
+  'has-checked:bg-emerald-600 has-checked:text-white',
+  'has-focus-visible:outline-2 has-focus-visible:-outline-offset-4 has-focus-visible:outline-current',
+  'has-disabled:cursor-not-allowed has-disabled:bg-slate-100 has-disabled:text-slate-400',
+  'forced-colors:forced-color-adjust-none forced-colors:bg-[color:Canvas] forced-colors:text-[color:CanvasText]',
+  'forced-colors:has-checked:bg-[color:Highlight] forced-colors:has-checked:text-[color:HighlightText]',
+  'forced-colors:has-disabled:text-[color:GrayText]',
+].join(' ');
+
+interface ModeSwitchProps {
+  mode: ShuffleMode;
+  /** Multiple decks can only be chosen with two or more other decks. */
+  multipleAllowed: boolean;
+  onChange: (mode: ShuffleMode) => void;
+}
+
+/** The "Shuffle in from" switch: One deck | Random | Multiple decks, a radio group drawn as connected segments. */
+function ModeSwitch({ mode, multipleAllowed, onChange }: ModeSwitchProps) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-sm font-semibold text-slate-700">Shuffle in from</legend>
+      <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-300 bg-white">
+        {SHUFFLE_MODES.map((m) => {
+          const disabled = m === 'multiple' && !multipleAllowed;
+          return (
+            <label key={m} className={SEGMENT_CLASS}>
+              <input
+                type="radio"
+                name="shuffle-in-mode"
+                value={m}
+                checked={mode === m}
+                disabled={disabled}
+                aria-describedby={disabled ? 'shuffle-in-multiple-hint' : undefined}
+                onChange={() => onChange(m)}
+                className="sr-only"
+              />
+              {MODE_LABELS[m]}
+            </label>
+          );
+        })}
+      </div>
+      {!multipleAllowed && (
+        <p id="shuffle-in-multiple-hint" className="mt-1 text-right text-xs text-slate-600">
+          Needs at least two other decks.
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+interface TickedDecksProps {
+  sources: DeckId[];
+  ticked: DeckId[];
+  error: string | null;
+  onChange: (ticked: DeckId[]) => void;
+}
+
+/** Multiple decks: a checkbox for each deck that can be shuffled in from, 2 per row. */
+function TickedDecks({ sources, ticked, error, onChange }: TickedDecksProps) {
+  const toggle = (deck: DeckId, on: boolean) =>
+    onChange(DECK_IDS.filter((d) => (d === deck ? on : ticked.includes(d))));
+  return (
+    <fieldset
+      aria-describedby={error ? 'shuffle-in-decks-error' : undefined}
+      className="rounded-lg border border-emerald-200 bg-white px-2.5 pb-2"
+    >
+      <legend className="px-1 text-[13px] font-semibold text-slate-700">Decks to shuffle in from</legend>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-slate-800">
+        {sources.map((deck) => (
+          <label key={deck} className="flex min-h-8 cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={ticked.includes(deck)}
+              onChange={(e) => toggle(deck, e.target.checked)}
+              className="size-[18px] shrink-0 accent-emerald-600"
+            />
+            {DECK_LABELS[deck]}
+          </label>
+        ))}
+      </div>
+      {error && (
+        <p id="shuffle-in-decks-error" role="alert" className={`mt-1 ${errorClass}`}>
+          {error}
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+type ShuffleInError = { at: 'decks' | 'count'; text: string };
 
 /**
  * Shuffle In Cards: swaps the card on screen (and, for more than one card, other random cards)
- * for new cards from another deck. The user picks where they come from and how many.
+ * for new cards from other decks. The user picks where they come from (one deck, a random deck
+ * for each card, or several ticked decks) and how many.
  */
 export function ShuffleInControl({ study }: { study: StudyDeck }) {
   const [count, setCount] = useState('1');
-  const [error, setError] = useState<string | null>(null);
-  const { source, sources } = study;
+  const [error, setError] = useState<ShuffleInError | null>(null);
+  const { choice, sources, unticked } = study;
 
-  if (!source || !sources.length) {
+  if (!choice || !sources.length) {
     return (
       <div className="mt-4 rounded-xl bg-emerald-50 px-3 py-2">
         <button
@@ -41,10 +149,21 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
     );
   }
 
-  const submit = () => {
-    const parsed = parseShuffleInCount(count, study.cards.length);
-    setError(parsed.ok ? study.shuffleIn(parsed.value) : parsed.error);
+  // Any change the user makes clears the messages.
+  const change = (next: Partial<ShuffleChoice>) => {
+    study.setChoice({ ...choice, ...next });
+    setError(null);
   };
+
+  const submit = () => {
+    const tickError = choice.mode === 'multiple' ? checkTicked(choice.ticked) : null;
+    if (tickError) return setError({ at: 'decks', text: tickError });
+    const parsed = parseShuffleInCount(count, study.cards.length);
+    const failed = parsed.ok ? study.shuffleIn(parsed.value) : parsed.error;
+    setError(failed ? { at: 'count', text: failed } : null);
+  };
+
+  const countError = error?.at === 'count' ? error.text : null;
 
   return (
     <form
@@ -55,28 +174,45 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
         submit();
       }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <label htmlFor="shuffle-in-from" className="text-sm font-semibold text-slate-700">
-          Shuffle in from
-        </label>
-        <select
-          id="shuffle-in-from"
-          value={sourceValue(source)}
-          onChange={(e) => {
-            const next = toSource(e.target.value);
-            if (next) study.setSource(next);
-            setError(null);
-          }}
-          className={fieldClass}
-        >
-          {sources.map((deck) => (
-            <option key={deck} value={deck}>
-              {DECK_LABELS[deck]}
-            </option>
-          ))}
-          <option value={RANDOM}>Random deck for each card</option>
-        </select>
-      </div>
+      <ModeSwitch
+        mode={choice.mode}
+        multipleAllowed={sources.length >= MIN_TICKED_DECKS}
+        onChange={(mode) => change({ mode })}
+      />
+      {choice.mode === 'deck' && (
+        <div>
+          <label htmlFor="shuffle-in-deck" className="sr-only">
+            Deck to shuffle in from
+          </label>
+          <select
+            id="shuffle-in-deck"
+            value={choice.deck}
+            onChange={(e) => {
+              if (isDeckId(e.target.value)) change({ deck: e.target.value });
+            }}
+            className={`w-full ${fieldClass}`}
+          >
+            {sources.map((deck) => (
+              <option key={deck} value={deck}>
+                {DECK_LABELS[deck]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {choice.mode === 'multiple' && (
+        <TickedDecks
+          sources={sources}
+          ticked={choice.ticked}
+          error={error?.at === 'decks' ? error.text : null}
+          onChange={(ticked) => change({ ticked })}
+        />
+      )}
+      {unticked.length > 0 && (
+        <p role="status" className="text-xs font-semibold text-amber-700">
+          {describeUnticked(unticked)}
+        </p>
+      )}
       <div className="flex items-center justify-between gap-2">
         <label htmlFor="shuffle-in-count" className="text-sm font-semibold text-slate-700">
           Cards to shuffle in
@@ -91,15 +227,16 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
           onChange={(e) => {
             setCount(e.target.value);
             setError(null);
+            study.clearUnticked();
           }}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? 'shuffle-in-error' : undefined}
+          aria-invalid={countError ? true : undefined}
+          aria-describedby={countError ? 'shuffle-in-error' : undefined}
           className={`w-14 text-center tabular-nums ${fieldClass}`}
         />
       </div>
-      {error && (
-        <p id="shuffle-in-error" role="alert" className="text-right text-xs font-semibold text-rose-600">
-          {error}
+      {countError && (
+        <p id="shuffle-in-error" role="alert" className={`text-right ${errorClass}`}>
+          {countError}
         </p>
       )}
       <button
