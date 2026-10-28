@@ -330,8 +330,6 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
         cards: result.cards,
         removed: result.removed,
         newIds: stillNew(s.newIds, result.cards, s.cards[s.index].id),
-        // The card added back is a different card, even when it takes the same position.
-        history: rememberCard(s.history, s.cards[s.index].id),
       }));
       return null;
     },
