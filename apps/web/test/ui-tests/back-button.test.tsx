@@ -356,18 +356,19 @@ describe('what Back remembers', () => {
     const user = await renderApp(makeDecks({ N5: 30, N4: 30 }));
     await next(user, 3);
     await chooseDeck(user, 'JLPT N4');
+    // Straight back to JLPT N5: cards 1 to 3 seen before are in the deck again, but they were cleared.
+    await chooseDeck(user, 'JLPT N5');
     await user.click(document.body);
     expect(counter()).toEqual({ position: 1, total: 10 });
     await back(user);
     expect(counter().position).toBe(10);
-    expect(currentCardLevel()).toBe('JLPT N4');
+    expect(currentCardLevel()).toBe('JLPT N5');
 
-    // Back on JLPT N5, cards 1 to 3 seen before are in the deck again, but they were cleared.
-    await chooseDeck(user, 'JLPT N5');
+    await chooseDeck(user, 'JLPT N4');
     await user.click(document.body);
     await back(user);
     expect(counter().position).toBe(10);
-    expect(currentCardLevel()).toBe('JLPT N5');
+    expect(currentCardLevel()).toBe('JLPT N4');
   });
 
   test('the cards I saw are not kept after a reload, and Back saves nothing', async () => {
