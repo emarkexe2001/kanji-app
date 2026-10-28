@@ -18,9 +18,10 @@ const SMALL_CARD = 'max-lg:origin-top max-lg:scale-[0.73]';
  * The Back button (FEAT6): an outline button (white, slate-400 border, slate-900 text) so it
  * reads as the quieter partner of Next. Its focus ring is drawn on purpose, and in a forced-colours
  * (high-contrast) mode its border uses the system ButtonText colour so it can still be told apart.
+ * Its padding is 1px less than the other buttons' so that, with the border, it is 48px tall too.
  */
 const BACK_BUTTON = [
-  'min-h-12 rounded-xl border border-slate-400 bg-white px-4 py-3 font-semibold text-slate-900 shadow-sm transition',
+  'min-h-12 rounded-xl border border-slate-400 bg-white px-4 py-2.75 font-semibold text-slate-900 shadow-sm transition',
   'hover:bg-slate-100 active:scale-95',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900',
   'forced-colors:border-[color:ButtonText]',
