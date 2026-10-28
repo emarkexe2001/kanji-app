@@ -3,11 +3,12 @@ import type { WordEntry } from '@kanji/core';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import { WordCard } from './word-card';
 
-/** How the card on screen got there: Next, Deck Shuffle (or adding cards back), or Shuffle In Cards. */
-export type Move = 'next' | 'shuffle' | 'shuffle-in';
+/** How the card on screen got there: Next, Back, Deck Shuffle (or adding cards back), or Shuffle In Cards. */
+export type Move = 'next' | 'back' | 'shuffle' | 'shuffle-in';
 
 const ARRIVE_CLASS: Record<Move, string> = {
   next: 'deal-next',
+  back: 'deal-back',
   shuffle: 'deal-shuffle',
   'shuffle-in': 'drop-in',
 };
