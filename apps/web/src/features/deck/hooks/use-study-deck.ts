@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { WordEntry } from '@kanji/core';
 import type { Move } from '../components/card-stack';
+import { goBack, rememberCard } from '../utils/card-history';
 import { otherDecks, type DeckId, type Library } from '../utils/decks';
 import { randomOther } from '../utils/random-other';
 import {
@@ -55,6 +56,11 @@ interface StudyState {
   newIds: string[];
   /** The card the last Shuffle In Cards took off the screen, while it slides away. */
   leaving: DeckCard | null;
+  /**
+   * Ids of the cards seen before the one on screen, oldest first, for Back (FEAT6). Not saved, and
+   * only cleared when another deck is studied.
+   */
+  history: string[];
 }
 
 interface FittedChoice {
@@ -81,18 +87,22 @@ function fitChoice(library: Library, studied: DeckId, saved: SavedShuffleChoice 
 }
 
 /**
- * Moving on to another card: the one that was on screen has been seen, so it is no longer new.
- * In a one-card deck Next and Deck Shuffle stay on the same card, so it keeps its "New" badge
- * (FEAT2_6).
+ * Moving on to another card: the one that was on screen has been seen, so it is no longer new,
+ * and Back can return to it (FEAT6). In a one-card deck Next, Deck Shuffle and Back stay on the
+ * same card, so it keeps its "New" badge (FEAT2_6).
  */
-const moveOn = (s: StudyState, move: Move, index: number): StudyState => ({
-  ...s,
-  move,
-  index,
-  replaced: null,
-  leaving: null,
-  newIds: index === s.index ? s.newIds : stillNew(s.newIds, s.cards, s.cards[s.index].id),
-});
+const moveOn = (s: StudyState, move: Move, index: number): StudyState =>
+  index === s.index
+    ? { ...s, move, replaced: null, leaving: null }
+    : {
+        ...s,
+        move,
+        index,
+        replaced: null,
+        leaving: null,
+        newIds: stillNew(s.newIds, s.cards, s.cards[s.index].id),
+        history: rememberCard(s.history, s.cards[s.index].id),
+      };
 
 function loadState(library: Library, studied: DeckId, limit: number): StudyState {
   // A saved deck of the wrong size (e.g. the card limit was saved but the deck wasn't) is fitted
@@ -111,6 +121,7 @@ function loadState(library: Library, studied: DeckId, limit: number): StudyState
     cleared: loadClearedCards(library),
     newIds: stillNew(saved?.newIds ?? [], cards),
     leaving: null,
+    history: [],
   };
 }
 
@@ -135,6 +146,8 @@ export interface StudyDeck {
   /** e.g. "Shuffled out cards 3, 7 and 12 of 20", after a Shuffle In Cards. */
   summary: string | null;
   next: () => void;
+  /** Goes back to the last card seen that is still in the deck, or the card before in deck order (FEAT6). */
+  back: () => void;
   deckShuffle: () => void;
   chooseDeck: (deck: DeckId) => void;
   setLimit: (limit: number) => void;
@@ -203,6 +216,20 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
 
   // Stable, so the keyboard shortcuts aren't re-attached on every render.
   const next = useCallback(() => setState((s) => moveOn(s, 'next', (s.index + 1) % s.cards.length)), []);
+  // Going back counts as moving on from the card on screen, but it takes the card gone back to off
+  // the history instead of adding the one on screen to it.
+  const back = useCallback(
+    () =>
+      setState((s) => {
+        const step = goBack(
+          s.history,
+          s.cards.map((c) => c.id),
+          s.index,
+        );
+        return { ...moveOn(s, 'back', step.index), history: step.history };
+      }),
+    [],
+  );
   const deckShuffle = useCallback(
     () => setState((s) => moveOn(s, 'shuffle', randomOther(s.index, s.cards.length))),
     [],
@@ -227,6 +254,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
       ),
 
     next,
+    back,
     deckShuffle,
 
     chooseDeck: (deck) =>
@@ -244,6 +272,8 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
           removed: recordRemoved(s.removed, [], cards),
           newIds: [],
           leaving: null,
+          // Back only goes through the cards seen in the deck being studied.
+          history: [],
         };
       }),
 

@@ -53,6 +53,17 @@ body {
     transform: none;
   }
 }
+/* Back (FEAT6): the card comes in from the left, the opposite way to Next. */
+@keyframes deal-back {
+  from {
+    opacity: 0.4;
+    transform: translateX(-40px) scale(0.955);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @keyframes deal-shuffle {
   0% {
     opacity: 0;
@@ -68,6 +79,9 @@ body {
 }
 .deal-next {
   animation: deal-next 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.deal-back {
+  animation: deal-back 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .deal-shuffle {
   animation: deal-shuffle 380ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -115,6 +129,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .deal-next,
+  .deal-back,
   .deal-shuffle,
   .drop-in,
   .panel-drop {

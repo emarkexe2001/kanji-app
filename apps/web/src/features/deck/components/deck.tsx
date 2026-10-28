@@ -15,8 +15,21 @@ const isTyping = (target: EventTarget | null) =>
 const SMALL_CARD = 'max-lg:origin-top max-lg:scale-[0.73]';
 
 /**
- * Shows the card on screen and its position in the deck, with the Deck Shuffle and Next buttons
- * and keyboard shortcuts. `children` is rendered below the buttons (the app puts the Shuffle In
+ * The Back button (FEAT6): an outline button (white, slate-400 border, slate-900 text) so it
+ * reads as the quieter partner of Next. Its focus ring is drawn on purpose, and in a forced-colours
+ * (high-contrast) mode its border uses the system ButtonText colour so it can still be told apart.
+ * Its padding is 1px less than the other buttons' so that, with the border, it is 48px tall too.
+ */
+const BACK_BUTTON = [
+  'min-h-12 rounded-xl border border-slate-400 bg-white px-4 py-2.75 font-semibold text-slate-900 shadow-sm transition',
+  'hover:bg-slate-100 active:scale-95',
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900',
+  'forced-colors:border-[color:ButtonText]',
+].join(' ');
+
+/**
+ * Shows the card on screen and its position in the deck, with the Back, Next and Deck Shuffle
+ * buttons and keyboard shortcuts. `children` is rendered below the buttons (the app puts the Shuffle In
  * Cards and card limit controls there).
  *
  * `shuffledOutOpen` says the Shuffled-out cards panel is open. Below the lg breakpoint it is a
@@ -32,7 +45,7 @@ export function Deck({
   shuffledOutOpen?: boolean;
   children?: ReactNode;
 }) {
-  const { cards, index, move, summary, next, deckShuffle, isNew, leaving } = study;
+  const { cards, index, move, summary, next, back, deckShuffle, isNew, leaving } = study;
   const cardArea = useRef<HTMLDivElement>(null);
   const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea);
 
@@ -40,11 +53,12 @@ export function Deck({
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target)) return;
       if (e.key === 'ArrowRight') next();
+      else if (e.key === 'ArrowLeft') back();
       else if (e.key.toLowerCase() === 's') deckShuffle();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [next, deckShuffle]);
+  }, [next, back, deckShuffle]);
 
   return (
     <>
@@ -65,26 +79,32 @@ export function Deck({
         </div>
       </div>
 
+      {/* Two rows (FEAT6): Back | Next, then Deck Shuffle across the full width. */}
       <nav className="grid grid-cols-2 gap-3" aria-label="Card controls">
-        <button
-          type="button"
-          onClick={deckShuffle}
-          className="rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-500 active:scale-95"
-        >
-          <span aria-hidden>🔀 </span>Deck Shuffle
+        <button type="button" onClick={back} className={BACK_BUTTON}>
+          <span aria-hidden>← </span>Back
         </button>
         <button
           type="button"
           onClick={next}
-          className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-slate-700 active:scale-95"
+          className="min-h-12 rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-slate-700 active:scale-95"
         >
           Next →
+        </button>
+        <button
+          type="button"
+          onClick={deckShuffle}
+          className="col-span-2 min-h-12 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-500 active:scale-95"
+        >
+          <span aria-hidden>🔀 </span>Deck Shuffle
         </button>
       </nav>
 
       {children}
 
-      <p className="mt-3 hidden text-center text-xs text-slate-400 sm:block">Keyboard: → next · S deck shuffle</p>
+      <p className="mt-3 hidden text-center text-xs text-slate-400 sm:block">
+        Keyboard: ← back · → next · S deck shuffle
+      </p>
     </>
   );
 }
