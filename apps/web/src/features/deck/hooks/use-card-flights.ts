@@ -184,7 +184,7 @@ function plan(moved: CardsMoved): Flight[] {
  * each move in `study.moved`. The deck, the list and what is saved change straight away; only the
  * count shown on the button, and the deck card while cards are added back, wait for the cards to
  * land. Pressing anything (a click, a tap or a key) while cards are sliding makes them all land
- * straight away, before the press is handled, and so does scrolling or resizing. So does the next move of any kind (e.g. studying
+ * straight away, before the press is handled, and so does the user scrolling or resizing. So does the next move of any kind (e.g. studying
  * another deck), so nothing is left sliding with an old count. With reduced motion on, or where
  * the browser can't animate, nothing slides and everything changes at once.
  */
@@ -224,17 +224,18 @@ export function useCardFlights(study: StudyDeck): CardFlights {
   }, [update]);
 
   // Any press lands the cards first. Capture phase, so it runs before the press is handled.
-  // Scrolling (the page or the panel; scroll events don't bubble, so they are caught on the way
-  // down) or resizing lands them too: where they slide from and to was measured on screen once,
-  // so it would no longer be right.
+  // The user scrolling (the page or the panel, with a wheel, trackpad or touch; keys are caught
+  // above) or resizing the window lands them too: where they slide from and to was measured on
+  // screen once, so it would no longer be right. The scroll event itself isn't used: the browser
+  // fires it too when it keeps the page still as the deck card changes height (scroll anchoring),
+  // which would land every card the moment it started.
   useEffect(() => {
-    const events = ['pointerdown', 'click', 'keydown'] as const;
-    events.forEach((e) => document.addEventListener(e, finishAll, true));
-    window.addEventListener('scroll', finishAll, true);
+    const events = ['pointerdown', 'click', 'keydown', 'wheel', 'touchmove'] as const;
+    const options = { capture: true, passive: true };
+    events.forEach((e) => document.addEventListener(e, finishAll, options));
     window.addEventListener('resize', finishAll);
     return () => {
-      events.forEach((e) => document.removeEventListener(e, finishAll, true));
-      window.removeEventListener('scroll', finishAll, true);
+      events.forEach((e) => document.removeEventListener(e, finishAll, options));
       window.removeEventListener('resize', finishAll);
     };
   }, [finishAll]);

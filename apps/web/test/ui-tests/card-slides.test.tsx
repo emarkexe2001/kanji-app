@@ -817,16 +817,40 @@ describe('other ways a slide is cut short (PR #48 review)', () => {
     expect(animations.every((a) => a.cancelled)).toBe(true);
   });
 
-  test('scrolling the page while cards are sliding lands them at once, with the final count', async () => {
+  test('scrolling the page (wheel or trackpad) while cards are sliding lands them at once, with the final count', async () => {
     const user = await renderApp(DECKS);
     fakeAnimate();
     await shuffleIn(user, '3');
     expect(shownCount()).toBe(0);
 
-    fireEvent.scroll(window);
+    fireEvent.wheel(document.body, { deltaY: 100 });
 
     expect(flyers()).toHaveLength(0);
     expect(shownCount()).toBe(3);
+  });
+
+  test('scrolling the page by touch while cards are sliding lands them at once', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '2');
+
+    fireEvent.touchMove(document.body);
+
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(2);
+  });
+
+  test('the browser moving the page by itself (a scroll event with no wheel or touch) does not cut a slide short', async () => {
+    // e.g. scroll anchoring, which keeps the page still as the deck card changes height.
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '2');
+
+    fireEvent.scroll(window);
+    fireEvent.scroll(document);
+
+    expect(flyers()).toHaveLength(2);
+    expect(shownCount()).toBe(0);
   });
 
   test('resizing the window while cards are sliding lands them at once, with the final count', async () => {
@@ -848,7 +872,7 @@ describe('other ways a slide is cut short (PR #48 review)', () => {
     fakeAnimate();
     await user.click(addBackButton());
 
-    fireEvent.scroll(document.querySelector('[data-flight-clip]')!);
+    fireEvent.wheel(document.querySelector('[data-flight-clip]')!, { deltaY: 100 });
 
     expect(flyers()).toHaveLength(0);
     expect(panel()).toHaveClass('panel-lift');
