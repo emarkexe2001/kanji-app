@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import type { CardFlights } from '../hooks/use-card-flights';
 import { usePanelClearance } from '../hooks/use-panel-clearance';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { CardStack } from './card-stack';
@@ -35,17 +36,24 @@ const BACK_BUTTON = [
  * `shuffledOutOpen` says the Shuffled-out cards panel is open. Below the lg breakpoint it is a
  * pop-up over the page, so the card gets smaller and moves down to just below it, and goes back
  * when it closes (ADJ2). From lg up the panel floats beside the deck, which doesn't change.
+ *
+ * `flights` are the cards sliding in and out of the deck (ADJ3): while cards being added back are
+ * on their way, the deck still shows the card that was on screen, and the first card added back
+ * isn't dealt in again once it has slid in.
  */
 export function Deck({
   study,
   shuffledOutOpen = false,
+  flights,
   children,
 }: {
   study: StudyDeck;
   shuffledOutOpen?: boolean;
+  flights?: CardFlights;
   children?: ReactNode;
 }) {
-  const { cards, index, move, summary, next, back, deckShuffle, isNew, leaving } = study;
+  const { cards, index, move, summary, next, back, deckShuffle, isNew } = study;
+  const held = flights?.heldCard ?? null;
   const cardArea = useRef<HTMLDivElement>(null);
   const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea);
 
@@ -75,7 +83,12 @@ export function Deck({
         className={`flex flex-1 justify-center py-4 ${shuffledOutOpen ? 'items-center max-lg:items-start' : 'items-center'}`}
       >
         <div className={`flex w-full max-w-sm justify-center ${shuffledOutOpen ? SMALL_CARD : ''}`}>
-          <CardStack entry={cards[index]} move={move} isNew={isNew(index)} leaving={leaving} />
+          <CardStack
+            entry={held ?? cards[index]}
+            move={move}
+            isNew={held ? false : isNew(index)}
+            arrive={!flights?.quietArrival}
+          />
         </div>
       </div>
 

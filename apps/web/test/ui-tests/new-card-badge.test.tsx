@@ -305,20 +305,19 @@ describe('the "New" badge saved with the deck (failure paths)', () => {
 });
 
 describe('slide animations', () => {
-  test('when I shuffle in a card, it drops onto the deck and the card shuffled out slides away', async () => {
+  test('when I shuffle in a card, it drops onto the deck', async () => {
     setReducedMotion(false);
     const user = await renderApp(DECKS);
     const before = currentWord();
 
     await shuffleIn(user, '1');
 
+    expect(currentWord()).not.toBe(before);
     expect(screen.getByRole('article').parentElement).toHaveClass('drop-in');
-    const [, leaving] = drawnCards();
-    expect(leaving.parentElement).toHaveClass('slide-out');
-    expect(within(leaving).getByRole('heading', { hidden: true, level: 2 })).toHaveTextContent(before!);
-    // Moving on, the card that slid away is gone.
-    await user.click(nextButton());
+    // The card shuffled out slides into the "Shuffled out (N)" button instead of down and away
+    // (ADJ3, see card-slides.test.tsx). jsdom can't animate it, so it has landed already.
     expect(drawnCards()).toHaveLength(1);
+    expect(document.querySelector('.slide-out')).toBeNull();
   });
 
   test('when my device\'s "reduce motion" setting is on, cards are shuffled in and out without the slide animations', async () => {

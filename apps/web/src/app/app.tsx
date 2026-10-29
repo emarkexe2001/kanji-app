@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom';
 import type { WordEntry } from '@kanji/core';
 import { CardLimitControl } from '../features/card-limit/components/card-limit-control';
 import { useCardLimit } from '../features/card-limit/hooks/use-card-limit';
+import { CardFlightLayer } from '../features/deck/components/card-flights';
 import { Deck } from '../features/deck/components/deck';
 import { DeckPicker } from '../features/deck/components/deck-picker';
 import { ShuffleInControl } from '../features/deck/components/shuffle-in-control';
 import { ShuffledOutButton, ShuffledOutPanel } from '../features/deck/components/shuffled-out-view';
+import { useCardFlights } from '../features/deck/hooks/use-card-flights';
 import { useDeck } from '../features/deck/hooks/use-deck';
 import { useStudyDeck } from '../features/deck/hooks/use-study-deck';
 import { buildLibrary, type Library } from '../features/deck/utils/decks';
@@ -18,27 +20,30 @@ import { DeckErrorBoundary } from './deck-error-boundary';
  * `headerSlot`. Its panel floats in the top right, just below the header, over the page (ADJ2); it
  * comes before the deck picker in the page, so Tab goes from the button into the panel, then on to
  * the deck. While it is open on a phone or tablet, the deck card gets smaller (see Deck).
+ * Cards slide between the deck and the button or the panel as they move (ADJ3, see useCardFlights).
  */
 function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTMLElement | null }) {
   const [limit, setLimit] = useCardLimit();
   const study = useStudyDeck(library, limit);
   const [shuffledOutOpen, setShuffledOutOpen] = useState(false);
   const closeShuffledOut = useCallback(() => setShuffledOutOpen(false), []);
+  const flights = useCardFlights(study);
 
   return (
     <>
       {headerSlot &&
         createPortal(
           <ShuffledOutButton
-            count={study.shuffledOut.length}
+            count={flights.shownCount}
+            bump={flights.bump}
             open={shuffledOutOpen}
             onToggle={() => setShuffledOutOpen((o) => !o)}
           />,
           headerSlot,
         )}
-      {shuffledOutOpen && <ShuffledOutPanel study={study} onClose={closeShuffledOut} />}
+      {shuffledOutOpen && <ShuffledOutPanel study={study} onClose={closeShuffledOut} flights={flights} />}
       <DeckPicker decks={study.decks} value={study.studied} onChange={study.chooseDeck} />
-      <Deck study={study} shuffledOutOpen={shuffledOutOpen}>
+      <Deck study={study} shuffledOutOpen={shuffledOutOpen} flights={flights}>
         <ShuffleInControl study={study} />
         <CardLimitControl
           size={study.cards.length}
@@ -48,6 +53,7 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
           }}
         />
       </Deck>
+      <CardFlightLayer flights={flights} />
     </>
   );
 }

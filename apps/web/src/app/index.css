@@ -87,7 +87,8 @@ body {
   animation: deal-shuffle 380ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ---- Shuffle In Cards (FEAT2_5): the new card drops on from above, the old one slides away ---- */
+/* ---- Shuffle In Cards (FEAT2_5): the new card drops on from above (the old one slides into the
+   "Shuffled out (N)" button, ADJ3) ---- */
 @keyframes drop-in {
   from {
     opacity: 0;
@@ -98,17 +99,8 @@ body {
     transform: none;
   }
 }
-@keyframes slide-out {
-  to {
-    opacity: 0;
-    transform: translateY(72px) rotate(3deg) scale(0.96);
-  }
-}
 .drop-in {
   animation: drop-in 380ms cubic-bezier(0.22, 1, 0.36, 1) 120ms backwards;
-}
-.slide-out {
-  animation: slide-out 320ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
 }
 
 /* ---- The Shuffled-out cards panel (ADJ2): slides down into place from the top right ---- */
@@ -127,15 +119,72 @@ body {
   animation: panel-drop 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* The panel lifts away once the cards added back have left it (ADJ3). */
+@keyframes panel-lift {
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+.panel-lift {
+  transform-origin: top right;
+  animation: panel-lift 180ms ease-in forwards;
+}
+
+/* ---- Cards sliding between the deck and the shuffled-out list (ADJ3) ----
+   Each card is laid out at the top left of the window and moved into place with the Web
+   Animations API (see card-flights.tsx). A card from inside the deck slides as a blank card back. */
+.card-flyer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+}
+.card-flyer-blank {
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  box-shadow:
+    0 0 0 1px #e2e8f0,
+    0 8px 16px -6px rgb(15 23 42 / 0.35);
+}
+@media (forced-colors: active) {
+  /* Shadows are dropped in a high-contrast mode, so the blank card gets a border to be seen. */
+  .card-flyer-blank {
+    border: 1px solid CanvasText;
+  }
+}
+/* The "Shuffled out (N)" button bumps as each card lands in it. Two copies of the same bump, so
+   switching between them starts it again for the next card. */
+@keyframes count-bump {
+  40% {
+    transform: scale(1.12);
+  }
+}
+@keyframes count-bump-again {
+  40% {
+    transform: scale(1.12);
+  }
+}
+.count-bump {
+  animation: count-bump 260ms ease;
+}
+.count-bump-again {
+  animation: count-bump-again 260ms ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .deal-next,
   .deal-back,
   .deal-shuffle,
   .drop-in,
-  .panel-drop {
+  .panel-drop,
+  .panel-lift,
+  .count-bump,
+  .count-bump-again {
     animation: none;
   }
-  .slide-out {
+  .card-flyer {
     display: none;
   }
 }
