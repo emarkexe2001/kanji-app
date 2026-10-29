@@ -55,8 +55,8 @@ export function Deck({
   const { cards, index, move, summary, next, back, deckShuffle, isNew } = study;
   const held = flights?.heldCard ?? null;
   const cardArea = useRef<HTMLDivElement>(null);
-  const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea, panelTop);
   const wide = useWideLayout();
+  const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea, panelTop, wide);
   // The card sits below the pop-up, as the slim card (ADJ2_5).
   const underPopUp = shuffledOutOpen && !wide;
 

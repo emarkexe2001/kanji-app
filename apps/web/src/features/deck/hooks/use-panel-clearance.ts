@@ -1,5 +1,4 @@
 import { useLayoutEffect, useState, type RefObject } from 'react';
-import { WIDE_LAYOUT_QUERY } from '../utils/wide-layout';
 
 /** The gap left between the bottom of the pop-up and the deck card. */
 const GAP = 12;
@@ -12,6 +11,9 @@ const GAP = 12;
  * pop-up changes size, and when the pop-up moves (`panelTop`, its top below the header, changes).
  * Below the wide layout the pop-up has a fixed height (ADJ2_5), so picking cards in it doesn't
  * move the deck card.
+ *
+ * `wide` says the screen is in the wide layout (from useWideLayout, so the code has one source
+ * for it), where the panel floats beside the deck and nothing is measured.
  * 0 while the panel is closed, in the wide layout, and where there is no layout (e.g. in tests).
  */
 export function usePanelClearance(
@@ -19,16 +21,17 @@ export function usePanelClearance(
   panelId: string,
   area: RefObject<HTMLElement | null>,
   panelTop = 0,
+  wide = false,
 ): number {
   const [clearance, setClearance] = useState(0);
+  const underPopUp = open && !wide;
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!underPopUp) return;
     const panel = document.getElementById(panelId);
     const measure = () => {
       const el = area.current;
-      const wide = typeof window.matchMedia === 'function' && window.matchMedia(WIDE_LAYOUT_QUERY).matches;
-      if (!panel || !el || wide) {
+      if (!panel || !el) {
         setClearance(0);
         return;
       }
@@ -46,7 +49,7 @@ export function usePanelClearance(
       window.removeEventListener('resize', measure);
       observer?.disconnect();
     };
-  }, [open, panelId, area, panelTop]);
+  }, [underPopUp, panelId, area, panelTop]);
 
-  return open ? clearance : 0;
+  return underPopUp ? clearance : 0;
 }
