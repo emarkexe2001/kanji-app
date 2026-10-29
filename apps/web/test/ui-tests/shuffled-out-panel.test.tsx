@@ -400,7 +400,9 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)'); // the card taken out
   });
 
-  test('cards added back do not slide between the panel and the deck (that is ADJ3)', async () => {
+  test('where cards cannot slide, cards added back land at once and the panel closes straight away', async () => {
+    // jsdom can't animate, so the cards added back can't slide out of the panel (ADJ3, see
+    // card-slides.test.tsx for the slides themselves): nothing is left drawn between the two.
     setScreen({ reduceMotion: false });
     const { user, out } = await appWithShuffledOut();
     await user.click(shuffledOutButton());
@@ -408,9 +410,9 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     await user.click(cardOf(takeOutGroup().getByRole('checkbox', { name: /^Card 1: / })));
     await user.click(addBackButton());
 
-    // Only the deck card is drawn: no copy of a card flying between the panel and the deck.
+    expect(panel()).not.toBeInTheDocument();
     expect(screen.queryAllByRole('article', { hidden: true })).toHaveLength(1);
-    expect(document.querySelector('.slide-out')).toBeNull();
+    expect(document.querySelector('[data-card-flights]')).toBeNull();
   });
 
   test('a validation message shows in the panel, next to the pinned buttons, and the panel stays open', async () => {

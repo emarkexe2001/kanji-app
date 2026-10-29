@@ -26,6 +26,7 @@ import {
   recordRemoved,
   resizeCards,
   shuffleIn,
+  shuffledOutFrom,
   stillNew,
   takeCards,
   type DeckCard,
@@ -54,14 +55,19 @@ interface StudyState {
   cleared: RemovedCard[];
   /** Ids of the shuffled-in cards that still show "New" (saved with the deck). */
   newIds: string[];
-  /** The card the last Shuffle In Cards took off the screen, while it slides away. */
-  leaving: DeckCard | null;
+  /** The cards that last moved between the deck and the shuffled-out list, to show them sliding (ADJ3). */
+  moved: MovedState | null;
   /**
    * Ids of the cards seen before the one on screen, oldest first, for Back (FEAT6). Not saved, and
    * only cleared when another deck is studied.
    */
   history: string[];
 }
+
+/** Cards that moved between the deck and the shuffled-out list, by their saved ids (see CardsMoved). */
+type MovedState =
+  | { kind: 'out'; onScreen: DeckCard | null; hidden: number; countChange: number }
+  | { kind: 'back'; ids: string[]; onScreen: DeckCard; onScreenIsNew: boolean; countChange: number };
 
 interface FittedChoice {
   choice: ShuffleChoice | null;
@@ -93,13 +99,13 @@ function fitChoice(library: Library, studied: DeckId, saved: SavedShuffleChoice 
  */
 const moveOn = (s: StudyState, move: Move, index: number): StudyState =>
   index === s.index
-    ? { ...s, move, replaced: null, leaving: null }
+    ? { ...s, move, replaced: null, moved: null }
     : {
         ...s,
         move,
         index,
         replaced: null,
-        leaving: null,
+        moved: null,
         newIds: stillNew(s.newIds, s.cards, s.cards[s.index].id),
         history: rememberCard(s.history, s.cards[s.index].id),
       };
@@ -114,13 +120,13 @@ function loadState(library: Library, studied: DeckId, limit: number): StudyState
     limit,
     cards,
     index: 0,
-    move: 'next',
+    move: 'deal',
     replaced: null,
     ...fitChoice(library, studied, loadShuffleChoice()),
     removed: recordRemoved(loadRemovedCards(library), [], cards),
     cleared: loadClearedCards(library),
     newIds: stillNew(saved?.newIds ?? [], cards),
-    leaving: null,
+    moved: null,
     history: [],
   };
 }
@@ -177,9 +183,33 @@ export interface StudyDeck {
   isNew: (position: number) => boolean;
   /** The deck the card at `position` (from 0) came from, e.g. N4 for a card shuffled in from JLPT N4. */
   cardDeck: (position: number) => DeckId;
-  /** The card the last Shuffle In Cards took off the screen, to show it sliding away. */
-  leaving: WordEntry | null;
+  /**
+   * The cards that last moved between the deck and the shuffled-out list (ADJ3), so they can be
+   * shown sliding. A new object each time cards move; null once the user moves on to another card.
+   */
+  moved: CardsMoved | null;
 }
+
+/**
+ * Cards that moved between the deck and the shuffled-out list (ADJ3):
+ * - `out`: cards shuffled out of the deck, by Shuffle In Cards or a lower card limit. `onScreen` is
+ *   the card that was on screen, when it was one of them, and `hidden` how many others there were
+ *   (cards inside the deck, not on screen);
+ * - `back`: the cards added back, in the order of the list (newest first). The first is the card
+ *   the deck now shows. `onScreen` is the card that was on screen before, and `onScreenIsNew`
+ *   whether it showed "New" then.
+ * `countChange` is how much the length of the shuffled-out list changed.
+ */
+export type CardsMoved =
+  | { kind: 'out'; onScreen: WordEntry | null; hidden: number; countChange: number }
+  | {
+      kind: 'back';
+      ids: string[];
+      cards: WordEntry[];
+      onScreen: WordEntry;
+      onScreenIsNew: boolean;
+      countChange: number;
+    };
 
 export interface ShuffledOutCard {
   id: string;
@@ -235,6 +265,15 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
     [],
   );
   const newIds = useMemo(() => new Set(state.newIds), [state.newIds]);
+  // The same object until cards move again, so each move is shown sliding once.
+  const moved = useMemo((): CardsMoved | null => {
+    const m = state.moved;
+    if (!m) return null;
+    const word = (id: string) => library.byId.get(id)!;
+    return m.kind === 'out'
+      ? { ...m, onScreen: m.onScreen && word(m.onScreen.id) }
+      : { ...m, cards: m.ids.map(word), onScreen: word(m.onScreen.id) };
+  }, [state.moved, library]);
 
   return {
     studied: state.studied,
@@ -265,13 +304,13 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
           studied: deck,
           cards,
           index: 0,
-          move: 'next',
+          move: 'deal',
           replaced: null,
           // A ticked deck that is now the studied one is unticked, and under Multiple decks the user is told.
           ...fitChoice(library, deck, s.choice),
           removed: recordRemoved(s.removed, [], cards),
           newIds: [],
-          leaving: null,
+          moved: null,
           // Back only goes through the cards seen in the deck being studied.
           history: [],
         };
@@ -279,16 +318,27 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
 
     setLimit: (newLimit) => {
       const resized = resizeCards(state.cards, state.index, newLimit, library, state.studied, Date.now());
-      setState((s) => ({
-        ...s,
-        limit: newLimit,
-        cards: resized.cards,
-        index: resized.index,
-        replaced: null,
-        removed: recordRemoved(s.removed, resized.removed, resized.cards),
-        newIds: stillNew(s.newIds, resized.cards),
-        leaving: null,
-      }));
+      setState((s) => {
+        const removed = recordRemoved(s.removed, resized.removed, resized.cards);
+        return {
+          ...s,
+          limit: newLimit,
+          cards: resized.cards,
+          index: resized.index,
+          replaced: null,
+          removed,
+          newIds: stillNew(s.newIds, resized.cards),
+          // A lower limit never takes out the card on screen, only cards inside the deck.
+          moved: resized.removed.length
+            ? {
+                kind: 'out',
+                onScreen: null,
+                hidden: resized.removed.length,
+                countChange: removed.length - s.removed.length,
+              }
+            : null,
+        };
+      });
     },
 
     setChoice: (choice) => setState((s) => ({ ...s, ...fitChoice(library, s.studied, choice), unticked: [] })),
@@ -307,15 +357,22 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
         now: Date.now(),
       });
       if (!result.ok) return result.error;
-      setState((s) => ({
-        ...s,
-        cards: result.cards,
-        move: 'shuffle-in',
-        replaced: result.replaced,
-        removed: recordRemoved(s.removed, result.removed, result.cards),
-        newIds: [...stillNew(s.newIds, result.cards), ...result.replaced.map((p) => result.cards[p].id)],
-        leaving: s.cards[s.index],
-      }));
+      setState((s) => {
+        const removed = recordRemoved(s.removed, result.removed, result.cards);
+        return {
+          ...s,
+          cards: result.cards,
+          move: 'shuffle-in',
+          replaced: result.replaced,
+          removed,
+          newIds: [...stillNew(s.newIds, result.cards), ...result.replaced.map((p) => result.cards[p].id)],
+          moved: {
+            kind: 'out',
+            ...shuffledOutFrom(s.cards, s.index, result.replaced),
+            countChange: removed.length - s.removed.length,
+          },
+        };
+      });
       return null;
     },
 
@@ -330,6 +387,13 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
         cards: result.cards,
         removed: result.removed,
         newIds: stillNew(s.newIds, result.cards, s.cards[s.index].id),
+        moved: {
+          kind: 'back',
+          ids: addIds,
+          onScreen: s.cards[s.index],
+          onScreenIsNew: s.newIds.includes(s.cards[s.index].id),
+          countChange: result.removed.length - s.removed.length,
+        },
       }));
       return null;
     },
@@ -345,6 +409,6 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
 
     isNew: (position) => newIds.has(state.cards[position]?.id ?? ''),
     cardDeck: (position) => state.cards[position].deck,
-    leaving: state.leaving && library.byId.get(state.leaving.id)!,
+    moved,
   };
 }

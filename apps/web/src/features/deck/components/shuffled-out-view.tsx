@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useId, useRef, useState, type CSSProperties } from 'react';
 import { PICK_COLORS, type PickKind, type WordEntry } from '@kanji/core';
+import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { DECK_LABELS, type DeckId } from '../utils/decks';
@@ -52,6 +53,10 @@ interface PickCardProps {
   kind: PickKind;
   picked: boolean;
   onToggle: () => void;
+  /** Marks the card as where a card added back starts sliding from (ADJ3). */
+  sourceId?: string;
+  /** The card has slid out of the panel into the deck (ADJ3): its place is left empty. */
+  gone?: boolean;
 }
 
 /**
@@ -81,14 +86,15 @@ function PickCard({ number, ...props }: PickCardProps & { number: number }) {
  * once however long it is held) and announced as picked (checked) or not. Screen readers hear its
  * word and reading, then its meaning, the deck it came from and "New" if it is new.
  */
-function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle }: PickCardProps) {
+function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId, gone }: PickCardProps) {
   const id = useId();
   const color = PICK_COLORS[kind];
   const describedBy = [`${id}-meaning`, `${id}-from`, ...(card.isNew ? [`${id}-new`] : [])].join(' ');
   return (
     <label
       style={{ '--pick': color } as CSSProperties}
-      className={`relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700 ${FORCED_COLORS_PICK_CARD}`}
+      data-flight-source={sourceId}
+      className={`${gone ? 'invisible' : ''} relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700 ${FORCED_COLORS_PICK_CARD}`}
     >
       <input
         type="checkbox"
@@ -122,6 +128,23 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle }: PickCa
   );
 }
 
+/**
+ * The "Shuffled out (N)" button bumps each time a card lands in it (ADJ3). `bump` goes up by one
+ * for each card, and the class switches between two copies of the bump so the next one starts
+ * again. (A class name is the only way tests can see it: jsdom doesn't run CSS animations.)
+ */
+const bumpClass = (bump: number) => (bump === 0 ? '' : bump % 2 ? 'count-bump' : 'count-bump-again');
+
+/** How long the panel takes to lift away after cards are added back (the panel-lift animation, ADJ3). */
+const PANEL_LIFT_MS = 180;
+
+/** What the panel lists: the shuffled-out cards and the deck, and the cards being added back. */
+interface PanelView {
+  added: string[];
+  shuffledOut: StudyDeck['shuffledOut'];
+  deck: { id: string; card: ListedCard }[];
+}
+
 /** The id of the panel, which the "Shuffled out (N)" button controls (aria-controls). */
 export const SHUFFLED_OUT_PANEL_ID = 'shuffled-out-panel';
 
@@ -150,7 +173,10 @@ const PANEL_PLACE = [
 /** Its look (ADJ2): a sky-50 panel with a sky-200 border, rounded corners and a large shadow. */
 const PANEL_LOOK = 'rounded-xl border border-sky-200 bg-sky-50 text-sm shadow-xl';
 
-/** The panel's body, between the title row and the buttons: the card lists scroll here. */
+/**
+ * The panel's body, between the title row and the buttons: the card lists scroll here. A card
+ * added back that is scrolled out of view starts sliding from its edge (`data-flight-clip`, ADJ3).
+ */
 const PANEL_BODY = 'min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2';
 
 /** The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages. */
@@ -184,16 +210,27 @@ const confirmClearText = (count: number) =>
  * title (ADJ1); it keeps its full label, so on a narrow phone the title wraps instead. It opens
  * and closes the panel, and says whether the panel is open: aria-expanded for screen readers, and
  * an arrow (▾ closed, ▴ open) that is hidden from them so the name stays "Shuffled out (3)". The
- * label and arrow never wrap.
+ * label and arrow never wrap. While cards slide into it, `count` is the count before they land
+ * (ADJ3), and it bumps as each one does (`bump`).
  */
-export function ShuffledOutButton({ count, open, onToggle }: { count: number; open: boolean; onToggle: () => void }) {
+export function ShuffledOutButton({
+  count,
+  open,
+  onToggle,
+  bump = 0,
+}: {
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  bump?: number;
+}) {
   return (
     <button
       type="button"
       aria-expanded={open}
       aria-controls={SHUFFLED_OUT_PANEL_ID}
       onClick={onToggle}
-      className="shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-sky-500 active:scale-95"
+      className={`${bumpClass(bump)} shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-sky-500 active:scale-95`}
     >
       Shuffled out ({count})<span aria-hidden> {open ? '▴' : '▾'}</span>
     </button>
@@ -213,8 +250,21 @@ export function ShuffledOutButton({ count, open, onToggle }: { count: number; op
  * itself), or once cards have been added back; focus then goes back to "Shuffled out (N)",
  * unless the click outside put it somewhere else. Closing it unmounts it, which drops any picks.
  * `onClose` closes it.
+ *
+ * Cards added back slide down out of the panel into the deck (ADJ3, `flights`). Until they have
+ * all left it, the panel stays open, showing what it showed when Add Back Cards was pressed with
+ * their places left empty, and can't be used (inert). Then it lifts away and closes. With reduced
+ * motion on it closes straight away, as before.
  */
-export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose: () => void }) {
+export function ShuffledOutPanel({
+  study,
+  onClose,
+  flights,
+}: {
+  study: StudyDeck;
+  onClose: () => void;
+  flights?: Pick<CardFlights, 'whenBackLands'>;
+}) {
   const [adding, setAdding] = useState<string[]>([]);
   const [takingOut, setTakingOut] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +272,28 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const reducedMotion = useReducedMotion();
-  const { shuffledOut, cards, cardIds } = study;
+  const [sent, setSent] = useState<PanelView | null>(null);
+  const [lifting, setLifting] = useState(false);
+  const mounted = useRef(false);
+  const liftTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const live: PanelView = {
+    added: [],
+    shuffledOut: study.shuffledOut,
+    deck: study.cards.map((word, i) => ({
+      id: study.cardIds[i],
+      card: { entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) },
+    })),
+  };
+  // While the cards added back slide out, the panel keeps showing what it showed when they were sent.
+  const { shuffledOut, deck } = sent ?? live;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(liftTimer.current);
+    };
+  }, []);
 
   /** Closes the panel, with focus back on "Shuffled out (N)" unless it has just gone elsewhere. */
   const close = () => {
@@ -269,16 +340,31 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
 
   const submit = () => {
     // Picks are kept in list order, newest first, whatever order they were ticked in.
+    if (sent) return;
     const addIds = shuffledOut.map((c) => c.id).filter((id) => adding.includes(id));
     // Deck cards are tracked by their stored id, not their data, so a card with missing data can't
     // break the view (FEAT2_6).
-    const takeOut = takingOut.map((id) => cardIds.indexOf(id)).filter((i) => i >= 0);
+    const takeOut = takingOut.map((id) => study.cardIds.indexOf(id)).filter((i) => i >= 0);
     const message = study.addBack(addIds, takeOut);
     if (message) {
       setError(message);
       return;
     }
-    close();
+    if (!flights) {
+      close();
+      return;
+    }
+    // The panel stays open until the cards have slid out of it (ADJ3), then lifts away.
+    setSent({ ...live, added: addIds });
+    flights.whenBackLands((animated) => {
+      if (!mounted.current) return;
+      if (!animated || reducedMotion) {
+        close();
+        return;
+      }
+      setLifting(true);
+      liftTimer.current = setTimeout(close, PANEL_LIFT_MS);
+    });
   };
 
   return (
@@ -286,7 +372,8 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
       ref={panelRef}
       id={SHUFFLED_OUT_PANEL_ID}
       aria-labelledby="shuffled-out-heading"
-      className={`${PANEL_PLACE} ${PANEL_LOOK} ${reducedMotion ? '' : 'panel-drop'}`}
+      inert={sent !== null}
+      className={`${PANEL_PLACE} ${PANEL_LOOK} ${reducedMotion ? '' : lifting ? 'panel-lift' : 'panel-drop'}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">
         <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
@@ -323,7 +410,7 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
             submit();
           }}
         >
-          <div className={PANEL_BODY}>
+          <div data-flight-clip className={PANEL_BODY}>
             <fieldset>
               <legend className="font-semibold text-slate-700">Add back</legend>
               <ul className={CARD_GRID}>
@@ -338,6 +425,8 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
                       setAdding(toggle(adding, card.id));
                       setError(null);
                     }}
+                    sourceId={card.id}
+                    gone={sent?.added.includes(card.id)}
                   />
                 ))}
               </ul>
@@ -349,23 +438,20 @@ export function ShuffledOutPanel({ study, onClose }: { study: StudyDeck; onClose
                   Take out of your deck ({adding.length} to make room)
                 </legend>
                 <ul className={CARD_GRID}>
-                  {cards.map((word, i) => {
-                    const id = cardIds[i];
-                    return (
-                      <PickCard
-                        key={id}
-                        number={i + 1}
-                        labelPrefix={`Card ${i + 1}: `}
-                        card={{ entry: word, deck: study.cardDeck(i), isNew: study.isNew(i) }}
-                        kind="takeOut"
-                        picked={takingOut.includes(id)}
-                        onToggle={() => {
-                          setTakingOut(toggle(takingOut, id));
-                          setError(null);
-                        }}
-                      />
-                    );
-                  })}
+                  {deck.map(({ id, card }, i) => (
+                    <PickCard
+                      key={id}
+                      number={i + 1}
+                      labelPrefix={`Card ${i + 1}: `}
+                      card={card}
+                      kind="takeOut"
+                      picked={takingOut.includes(id)}
+                      onToggle={() => {
+                        setTakingOut(toggle(takingOut, id));
+                        setError(null);
+                      }}
+                    />
+                  ))}
                 </ul>
               </fieldset>
             )}
