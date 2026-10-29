@@ -5,7 +5,17 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
 import type { CardStack as RealCardStack } from '../../src/features/deck/components/card-stack';
-import { COUNTER, currentWord, deckContents, makeDecks, renderApp, serveDeck, shuffleIn, type User } from './helpers';
+import {
+  COUNTER,
+  currentWord,
+  deckContents,
+  makeDecks,
+  renderApp,
+  serveDeck,
+  setScreen,
+  shuffleIn,
+  type User,
+} from './helpers';
 
 /** Set to make the deck card fail to draw, to crash the deck while the panel is open. */
 const crash = vi.hoisted(() => ({ deckCard: false }));
@@ -62,27 +72,14 @@ async function appWithShuffledOut(count = 1) {
   return { user, out };
 }
 
-/**
- * Sets what the screen reports: `wide` for the lg breakpoint (1024px) and up, and the "reduce
- * motion" setting. jsdom has no media queries, so window.matchMedia is replaced.
- */
-function setScreen({ wide = false, reduceMotion = false }: { wide?: boolean; reduceMotion?: boolean }) {
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((query: string) => ({
-      matches:
-        (reduceMotion && query === '(prefers-reduced-motion: reduce)') || (wide && query === '(min-width: 1024px)'),
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })),
-  );
-}
-
 describe('Floating shuffled-out panel (ADJ2)', () => {
   test('when I press "Shuffled out (N)", the panel opens in the top right and the deck stays in the centre and is still shown', async () => {
+    // A wide screen, where the panel floats beside the deck (ADJ2_5: from 1100px).
+    setScreen({ wide: true });
     const { user } = await appWithShuffledOut();
     const word = currentWord();
+    const deckClasses = () => ancestors(deckCard()).map((a) => a.className);
+    const closedClasses = deckClasses();
 
     await user.click(shuffledOutButton());
 
@@ -94,14 +91,15 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     expect(open).not.toContainElement(deckCard());
     expect(currentWord()).toBe(word);
     // jsdom has no layout, so the classes are checked. The panel floats over the page (fixed, so
-    // it takes no room and pushes nothing down) in the top right: 72px down from sm up (just below
-    // the one-line header) and 24px from the right and 300px wide from lg (1024px) up.
-    expect(open).toHaveClass('fixed', 'sm:top-[72px]', 'lg:right-6', 'lg:w-[300px]');
+    // it takes no room and pushes nothing down) in the top right: just below the header (its top
+    // is measured from the header, ADJ2_5) and, in the wide layout, 24px from the right and 300px wide.
+    expect(open).toHaveClass('fixed', 'top-(--panel-top)', 'wide:right-6', 'wide:w-[300px]');
     // Top right, not top left (the FEAT5 mode menu goes top left).
     expect(open.className).not.toMatch(/(^|\s)(\w+:)?(left|inset|inset-x)-/);
-    // The deck stays centred in its column: opening the panel only changes the deck below lg.
-    for (const el of ancestors(deckCard())) expect(el.className).not.toMatch(/(^|\s)lg:/);
+    // The deck stays centred in its column: in the wide layout opening the panel changes nothing.
+    expect(deckClasses()).toEqual(closedClasses);
     expect(ancestors(deckCard()).some((a) => a.classList.contains('justify-center'))).toBe(true);
+    expect(within(deckCard()).getByText('READING BREAKDOWN')).toBeInTheDocument();
   });
 
   test('the panel is a sky-50 panel with a sky-200 border, rounded corners and a large shadow, titled "Shuffled-out cards" with a × button', async () => {
@@ -119,28 +117,34 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     expect(within(closeButton()).getByText('×')).toHaveAttribute('aria-hidden', 'true');
   });
 
-  test('from lg (1024px) up the panel is 300px wide and at most 560px tall, and below lg it is a smaller pop-up that never makes the page scroll sideways', async () => {
+  test('in the wide layout the panel is 300px wide and at most 560px tall, and below it the pop-up is always 260px tall and never makes the page scroll sideways', async () => {
     const { user } = await appWithShuffledOut();
     await user.click(shuffledOutButton());
 
-    // jsdom has no layout, so the classes are checked; the sizes are checked in a real browser at
-    // 360/640/1024px too. From lg: 300px wide, 24px from the right, at most 560px tall and never
-    // taller than the screen less 96px (72px above it, 24px below).
-    expect(openPanel()).toHaveClass('lg:w-[300px]', 'lg:right-6', 'lg:max-h-[min(560px,calc(100dvh-96px))]');
-    // Below lg, a pop-up: 300px wide but never wider than the screen less 16px (so no sideways
-    // scrolling at 360px), 8px from the right, at most 380px tall, below the header (which is two
-    // lines high on a narrow phone, where the title wraps).
+    // jsdom has no layout, so the classes are checked; the sizes are checked in a real browser
+    // too. In the wide layout (wide:, 1100px and up): 300px wide, 24px from the right, as tall as
+    // it needs up to 560px, and never reaching closer than 24px to the bottom of the screen.
+    expect(openPanel()).toHaveClass(
+      'wide:w-[300px]',
+      'wide:right-6',
+      'wide:h-auto',
+      'wide:max-h-[min(560px,calc(100dvh-var(--panel-top)-24px))]',
+    );
+    // Below it, a pop-up (ADJ2_5): 300px wide but never wider than the screen less 16px (so no
+    // sideways scrolling at 360px), 8px from the right, and always 260px tall (it doesn't grow),
+    // or less on a screen too short for it, where it stops 8px above the bottom of the screen.
     expect(openPanel()).toHaveClass(
       'w-[min(300px,calc(100vw-16px))]',
       'right-2',
-      'max-h-[min(380px,calc(100dvh-100px))]',
-      'top-[92px]',
+      'h-[min(260px,calc(100dvh-var(--panel-top)-8px))]',
     );
-    // Nothing else sets a width that could be wider than the screen.
+    expect(openPanel().className).not.toMatch(/(^|\s)max-h-/);
+    // Nothing else sets a width that could be wider than the screen, or uses the old lg layout.
     const widths = openPanel()
       .className.match(/(^|\s)(\w+:)?w-\S+/g)!
       .map((w) => w.trim());
-    expect(widths.sort()).toEqual(['lg:w-[300px]', 'w-[min(300px,calc(100vw-16px))]']);
+    expect(widths.sort()).toEqual(['w-[min(300px,calc(100vw-16px))]', 'wide:w-[300px]']);
+    expect(openPanel().className).not.toMatch(/(^|\s)(max-)?lg:/);
   });
 
   test('the cards are shown 2 per row and scroll inside the panel, and Add Back Cards and Clear List are pinned side by side at the bottom', async () => {
@@ -174,20 +178,20 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     expect(clearButton()).toHaveClass('bg-rose-600');
   });
 
-  test("the panel's cards are smaller than the deck card, and smaller again below lg", async () => {
+  test("the panel's cards are smaller than the deck card, and smaller again below the wide layout", async () => {
     const { user, out } = await appWithShuffledOut();
     await user.click(shuffledOutButton());
 
     const card = cardOf(addBackCheckbox(out[0]));
     const word = within(card).getByText(out[0]!.replace(/【.*$/, '')).closest('p')!;
-    // jsdom has no font sizes, so the classes are checked: a 14px word and 8-10px text below lg,
-    // a 16px word and 9-11px text from lg up; the deck card's word is 30px (text-3xl).
-    expect(word).toHaveClass('text-sm', 'lg:text-base');
-    expect(within(card).getByText(/^【/)).toHaveClass('text-[9px]', 'lg:text-[10px]');
-    expect(within(card).getByText('JLPT N5')).toHaveClass('text-[8px]', 'lg:text-[9px]');
-    expect(within(card).getByText(/^word number/)).toHaveClass('text-[10px]', 'lg:text-[11px]');
-    expect(within(card).getByText('From JLPT N5')).toHaveClass('text-[9px]', 'lg:text-[10px]');
-    expect(within(card.closest('li')!).getByText('1')).toHaveClass('text-[10px]', 'lg:text-[11px]');
+    // jsdom has no font sizes, so the classes are checked: a 14px word and 8-10px text below the wide layout (1100px),
+    // a 16px word and 9-11px text in it; the deck card's word is 30px (text-3xl).
+    expect(word).toHaveClass('text-sm', 'wide:text-base');
+    expect(within(card).getByText(/^【/)).toHaveClass('text-[9px]', 'wide:text-[10px]');
+    expect(within(card).getByText('JLPT N5')).toHaveClass('text-[8px]', 'wide:text-[9px]');
+    expect(within(card).getByText(/^word number/)).toHaveClass('text-[10px]', 'wide:text-[11px]');
+    expect(within(card).getByText('From JLPT N5')).toHaveClass('text-[9px]', 'wide:text-[10px]');
+    expect(within(card.closest('li')!).getByText('1')).toHaveClass('text-[10px]', 'wide:text-[11px]');
     expect(screen.getByRole('heading', { level: 2 })).toHaveClass('text-3xl');
   });
 
@@ -342,31 +346,36 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     expect(openPanel().className).not.toMatch(/(^|\s)(\w+:)?animate-/);
   });
 
-  test('when I open the panel on a phone, the deck card gets smaller, and it goes back to normal when I close the panel', async () => {
+  test('when I open the panel on a phone, the deck card moves to the top of its space, at its normal size, and goes back when I close the panel', async () => {
+    setScreen({ wide: false });
     const { user } = await appWithShuffledOut();
-    const shrunk = () => ancestors(deckCard()).find((a) => a.classList.contains('max-lg:scale-[0.73]'));
-    expect(shrunk()).toBeUndefined();
+    const atTop = () => ancestors(deckCard()).some((a) => a.classList.contains('items-start'));
+    expect(atTop()).toBe(false);
 
     await user.click(shuffledOutButton());
-    // jsdom has no layout, so the classes are checked: below lg the card is scaled from its top
-    // edge to about 240px wide on a 360px phone, and sits at the top of its space (so it can
-    // move down below the pop-up). Only max-lg: classes change, so from lg up it stays as it is.
-    expect(shrunk()).toHaveClass('max-lg:origin-top');
-    expect(ancestors(deckCard()).some((a) => a.classList.contains('max-lg:items-start'))).toBe(true);
+    // jsdom has no layout, so the classes are checked: the card sits at the top of its space (so
+    // it can move down below the pop-up), and is no longer scaled down (ADJ2_5: it is the slim
+    // card instead, see floating-panel-fixes.test.tsx).
+    expect(atTop()).toBe(true);
+    for (const el of [deckCard(), ...ancestors(deckCard())]) expect(el.className).not.toMatch(/(^|\s)(\S+:)?scale-/);
     expect(deckCard()).toBeVisible();
 
     await user.click(closeButton());
-    expect(shrunk()).toBeUndefined();
-    expect(ancestors(deckCard()).some((a) => a.classList.contains('max-lg:items-start'))).toBe(false);
+    expect(atTop()).toBe(false);
   });
 
-  test('on a phone the smaller deck card moves down to just below the pop-up while it is open, and back when it closes; from lg up it stays put', async () => {
-    // jsdom has no layout, so the positions are made up: the pop-up ends 470px down the screen and
-    // the deck card's space starts 200px down. The card has to start 12px below the pop-up.
+  test('on a phone the deck card moves down to just below the pop-up while it is open, and back when it closes; in the wide layout it stays put', async () => {
+    // jsdom has no layout, so the positions are made up: the pop-up is laid out from 92px down the
+    // screen and is 260px tall, and the deck card's space starts 200px down. The card has to
+    // start 12px below the pop-up.
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-      const top = this.id === 'shuffled-out-panel' ? 92 : 200;
-      const bottom = this.id === 'shuffled-out-panel' ? 470 : 600;
-      return { top, bottom, left: 0, right: 300, width: 300, height: bottom - top, x: 0, y: top, toJSON: () => ({}) };
+      return { top: 200, bottom: 600, left: 0, right: 300, width: 300, height: 400, x: 0, y: 200, toJSON: () => ({}) };
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.id === 'shuffled-out-panel' ? 92 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.id === 'shuffled-out-panel' ? 260 : 0;
     });
     const cardSpace = () => ancestors(deckCard()).find((a) => a.classList.contains('flex-1'))!;
 
@@ -374,15 +383,39 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
     const { user } = await appWithShuffledOut();
     expect(cardSpace().style.paddingTop).toBe('');
     await user.click(shuffledOutButton());
-    expect(cardSpace().style.paddingTop).toBe(`${470 + 12 - 200}px`);
+    expect(cardSpace().style.paddingTop).toBe(`${92 + 260 + 12 - 200}px`);
     await user.click(closeButton());
     expect(cardSpace().style.paddingTop).toBe('');
 
-    // From lg up the panel floats beside the deck, so the card doesn't move.
+    // In the wide layout the panel floats beside the deck, so the card doesn't move.
     setScreen({ wide: true });
     await user.click(shuffledOutButton());
     expect(openPanel()).toBeInTheDocument();
     expect(cardSpace().style.paddingTop).toBe('');
+  });
+
+  test('the pop-up is measured where it is laid out, not where it is drawn as it slides down, so the deck card never ends up under it', async () => {
+    // The panel-drop slide draws the pop-up higher and smaller at first (index.css). Where it is
+    // drawn (getBoundingClientRect) is made up to show that: 16px higher and shorter. Where it is
+    // laid out (offsetTop and offsetHeight) is where it ends up.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const [top, bottom] = this.id === 'shuffled-out-panel' ? [76, 328] : [200, 600];
+      return { top, bottom, left: 0, right: 300, width: 300, height: bottom - top, x: 0, y: top, toJSON: () => ({}) };
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.id === 'shuffled-out-panel' ? 92 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.id === 'shuffled-out-panel' ? 260 : 0;
+    });
+    setScreen({ wide: false });
+    const { user } = await appWithShuffledOut();
+
+    await user.click(shuffledOutButton());
+
+    const cardSpace = ancestors(deckCard()).find((a) => a.classList.contains('flex-1'))!;
+    expect(openPanel()).toHaveClass('panel-drop');
+    expect(cardSpace.style.paddingTop).toBe(`${92 + 260 + 12 - 200}px`);
   });
 
   test('when I add cards back from the panel in its new place, they are in my deck, the same as before, and focus goes back to "Shuffled out (N)"', async () => {

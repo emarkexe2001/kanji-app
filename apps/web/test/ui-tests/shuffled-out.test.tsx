@@ -17,6 +17,7 @@ import {
   makeWords,
   renderApp,
   serveDeck,
+  setScreen,
   shuffleIn,
   type User,
 } from './helpers';
@@ -220,6 +221,9 @@ describe('Shuffled-out cards shown as cards', () => {
   });
 
   test('when I look at a shuffled-out card, it shows its word and meaning but no Reading Breakdown', async () => {
+    // On a wide screen, where the deck card keeps its Reading Breakdown while the panel is open
+    // (below it, the deck card leaves it out too, ADJ2_5: see shuffled-out-panel.test.tsx).
+    setScreen({ wide: true });
     const user = await renderApp(DECKS);
     const shuffledOut = await shuffleOutOne(user);
     expect(screen.getByText('READING BREAKDOWN')).toBeInTheDocument(); // the card on screen has one
