@@ -67,7 +67,7 @@ interface PickCardProps {
 function PickCard({ number, ...props }: PickCardProps & { number: number }) {
   return (
     <li>
-      <span className="mb-1 block text-[10px] font-bold text-slate-500 tabular-nums lg:text-[11px]">{number}</span>
+      <span className="mb-1 block text-[10px] font-bold text-slate-500 tabular-nums wide:text-[11px]">{number}</span>
       <CardErrorBoundary>
         <PickCardBody {...props} />
       </CardErrorBoundary>
@@ -111,7 +111,7 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId
         className="sr-only"
       />
       <WordCard entry={card.entry} compact isNew={card.isNew} idPrefix={id}>
-        <p id={`${id}-from`} className="text-[9px] font-semibold text-sky-800 lg:text-[10px]">
+        <p id={`${id}-from`} className="text-[9px] font-semibold text-sky-800 wide:text-[10px]">
           From {DECK_LABELS[card.deck]}
         </p>
       </WordCard>
@@ -155,19 +155,22 @@ const toggleButton = () => document.querySelector<HTMLElement>(`[aria-controls="
 const CARD_GRID = 'grid grid-cols-2 gap-x-2 gap-y-3 p-2';
 
 /**
- * Where the panel sits (ADJ2). It floats over the page (fixed), so the deck never moves for it:
- * - from lg (1024px) up: 300px wide in the top right, 72px from the top (just below the header)
- *   and 24px from the right, at most 560px tall and never taller than the screen;
- * - below lg, where a 300px panel would cover the deck card: a smaller pop-up, 300px wide but
- *   never wider than the screen less 16px (so the page can't scroll sideways), 8px from the right,
- *   just below the header (two lines high when the title wraps on a narrow phone, one line from
- *   sm up) and at most 380px tall. The deck card shrinks and moves below it while it is open.
+ * Where the panel sits (ADJ2, ADJ2_5). It floats over the page (fixed). Its top is just below the
+ * header, measured from the header itself (`--panel-top`, see usePanelTop), so it never covers
+ * "Shuffled out (N)" however tall the header is:
+ * - in the wide layout (`wide:`, WIDE_LAYOUT_MIN_WIDTH, 1100px, and up), beside the deck, which
+ *   doesn't move: 300px wide, 24px from the right, at most 560px tall and never reaching closer
+ *   than 24px to the bottom of the screen;
+ * - below it, where a 300px panel would cover the deck: a pop-up, 300px wide but never wider than
+ *   the screen less 16px (so the page can't scroll sideways), 8px from the right, and always 260px
+ *   tall (its lists scroll inside it), so it doesn't grow when the Take out list appears and the
+ *   deck card below it stays still. On a screen too short for that, it stops 8px above the bottom.
+ *   The deck card moves below it while it is open (see Deck).
  */
 const PANEL_PLACE = [
-  'fixed z-40 flex flex-col',
-  'top-[92px] right-2 w-[min(300px,calc(100vw-16px))] max-h-[min(380px,calc(100dvh-100px))]',
-  'sm:top-[72px]',
-  'lg:right-6 lg:w-[300px] lg:max-h-[min(560px,calc(100dvh-96px))]',
+  'fixed z-40 flex flex-col top-(--panel-top)',
+  'right-2 w-[min(300px,calc(100vw-16px))] h-[min(260px,calc(100dvh-var(--panel-top)-8px))]',
+  'wide:right-6 wide:w-[300px] wide:h-auto wide:max-h-[min(560px,calc(100dvh-var(--panel-top)-24px))]',
 ].join(' ');
 
 /** Its look (ADJ2): a sky-50 panel with a sky-200 border, rounded corners and a large shadow. */
@@ -260,10 +263,13 @@ export function ShuffledOutPanel({
   study,
   onClose,
   flights,
+  top = 0,
 }: {
   study: StudyDeck;
   onClose: () => void;
   flights?: Pick<CardFlights, 'whenBackLands'>;
+  /** How far down the screen its top goes: just below the header (ADJ2_5, see usePanelTop). */
+  top?: number;
 }) {
   const [adding, setAdding] = useState<string[]>([]);
   const [takingOut, setTakingOut] = useState<string[]>([]);
@@ -315,24 +321,35 @@ export function ShuffledOutPanel({
       target instanceof Node &&
       !panel.contains(target) &&
       !(target instanceof Element && target.closest(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`));
-    // A press that starts inside the panel (e.g. selecting text) and ends outside doesn't close it.
+    // A press that starts inside the panel (e.g. selecting text) and ends outside doesn't close it:
+    // the click the browser sends for that press is ignored. Only that click (ADJ2_5): a press
+    // that ends without one (dragged away, or cancelled by the browser to scroll) is forgotten, and
+    // a click that isn't the end of a press (e.g. Enter or Space on a button, detail 0) is never
+    // ignored, so the next click outside always closes the panel.
     let pressedInside = false;
     const onPointerDown = (e: Event) => {
       pressedInside = !isOutside(e.target);
     };
-    const onClick = (e: Event) => {
-      const startedInside = pressedInside;
+    const forgetPress = () => {
       pressedInside = false;
-      if (!startedInside && isOutside(e.target)) closeFromOutside();
+    };
+    const onClick = (e: MouseEvent) => {
+      const endsPressInside = pressedInside && e.detail > 0;
+      pressedInside = false;
+      if (!endsPressInside && isOutside(e.target)) closeFromOutside();
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeFromOutside();
     };
     document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('pointercancel', forgetPress, true);
+    document.addEventListener('dragstart', forgetPress, true);
     document.addEventListener('click', onClick, true);
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('pointercancel', forgetPress, true);
+      document.removeEventListener('dragstart', forgetPress, true);
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('keydown', onKeyDown);
     };
@@ -373,6 +390,7 @@ export function ShuffledOutPanel({
       id={SHUFFLED_OUT_PANEL_ID}
       aria-labelledby="shuffled-out-heading"
       inert={sent !== null}
+      style={{ '--panel-top': `${top}px` } as CSSProperties}
       className={`${PANEL_PLACE} ${PANEL_LOOK} ${reducedMotion ? '' : lifting ? 'panel-lift' : 'panel-drop'}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">

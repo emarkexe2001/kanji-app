@@ -23,6 +23,9 @@ const ARRIVE_CLASS: Record<Move, string> = {
  * means the card has already slid into the deck (cards added back, ADJ3), so it isn't dealt in as
  * well. With "reduce motion" on, nothing moves.
  *
+ * `noBreakdown` leaves the Reading Breakdown off the card (ADJ2_5, while the shuffled-out pop-up
+ * is open), and `data-no-breakdown` says so, so a card sliding in or out of the deck matches it.
+ *
  * `data-card-stack` marks it so the cards sliding in and out can find it on screen.
  */
 export function CardStack({
@@ -30,23 +33,25 @@ export function CardStack({
   move,
   isNew,
   arrive = true,
+  noBreakdown = false,
 }: {
   entry: WordEntry;
   move: Move;
   isNew: boolean;
   arrive?: boolean;
+  noBreakdown?: boolean;
 }) {
   const reducedMotion = useReducedMotion();
 
   return (
-    <div data-card-stack className="relative w-full max-w-sm pb-8">
+    <div data-card-stack data-no-breakdown={noBreakdown || undefined} className="relative w-full max-w-sm pb-8">
       <div aria-hidden className="deck-back deck-back-far" />
       <div aria-hidden className="deck-back deck-back-near" />
       <div
         key={entry.id ?? entry.word}
         className={`relative z-10 ${reducedMotion || !arrive ? '' : ARRIVE_CLASS[move]}`}
       >
-        <WordCard entry={entry} isNew={isNew} />
+        <WordCard entry={entry} isNew={isNew} noBreakdown={noBreakdown} />
       </div>
     </div>
   );

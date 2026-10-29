@@ -8,6 +8,7 @@ import { Deck } from '../features/deck/components/deck';
 import { DeckPicker } from '../features/deck/components/deck-picker';
 import { ShuffleInControl } from '../features/deck/components/shuffle-in-control';
 import { ShuffledOutButton, ShuffledOutPanel } from '../features/deck/components/shuffled-out-view';
+import { usePanelTop } from '../features/deck/hooks/use-panel-top';
 import { useCardFlights } from '../features/deck/hooks/use-card-flights';
 import { useDeck } from '../features/deck/hooks/use-deck';
 import { useStudyDeck } from '../features/deck/hooks/use-study-deck';
@@ -17,9 +18,10 @@ import { DeckErrorBoundary } from './deck-error-boundary';
 /**
  * Combines the deck and card-limit features: the deck has as many cards as the card limit.
  * The "Shuffled out (N)" button goes in the header, top right (ADJ1), through a portal into
- * `headerSlot`. Its panel floats in the top right, just below the header, over the page (ADJ2); it
- * comes before the deck picker in the page, so Tab goes from the button into the panel, then on to
- * the deck. While it is open on a phone or tablet, the deck card gets smaller (see Deck).
+ * `headerSlot`. Its panel floats in the top right, just below the header, over the page (ADJ2),
+ * measured from the header the slot is in (ADJ2_5, see usePanelTop); it comes before the deck
+ * picker in the page, so Tab goes from the button into the panel, then on to the deck. While it is
+ * open on a phone or tablet, the deck card moves below it, without its Reading Breakdown (see Deck).
  * Cards slide between the deck and the button or the panel as they move (ADJ3, see useCardFlights).
  */
 function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTMLElement | null }) {
@@ -28,6 +30,7 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
   const [shuffledOutOpen, setShuffledOutOpen] = useState(false);
   const closeShuffledOut = useCallback(() => setShuffledOutOpen(false), []);
   const flights = useCardFlights(study);
+  const panelTop = usePanelTop(shuffledOutOpen, headerSlot?.closest('header') ?? null);
 
   return (
     <>
@@ -41,9 +44,11 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
           />,
           headerSlot,
         )}
-      {shuffledOutOpen && <ShuffledOutPanel study={study} onClose={closeShuffledOut} flights={flights} />}
+      {shuffledOutOpen && (
+        <ShuffledOutPanel study={study} onClose={closeShuffledOut} flights={flights} top={panelTop} />
+      )}
       <DeckPicker decks={study.decks} value={study.studied} onChange={study.chooseDeck} />
-      <Deck study={study} shuffledOutOpen={shuffledOutOpen} flights={flights}>
+      <Deck study={study} shuffledOutOpen={shuffledOutOpen} panelTop={panelTop} flights={flights}>
         <ShuffleInControl study={study} />
         <CardLimitControl
           size={study.cards.length}

@@ -41,6 +41,8 @@ export interface Flight {
   countChange: number;
   /** Whether it is a card being added back. */
   back: boolean;
+  /** The card is drawn without its Reading Breakdown, like the deck card under the pop-up (ADJ2_5). */
+  noBreakdown?: boolean;
 }
 
 /** The cards sliding between the deck and the shuffled-out list, and what is shown until they land (ADJ3). */
@@ -79,7 +81,8 @@ function measureDeck() {
   const box = boxOf(stack);
   const width = stack.offsetWidth;
   const scale = width ? box.w / width : 1;
-  return { stack: box, front: { ...box, h: Math.max(0, box.h - STACK_PADDING * scale) }, width, scale };
+  const front = { ...box, h: Math.max(0, box.h - STACK_PADDING * scale) };
+  return { stack: box, front, width, scale, noBreakdown: stack.hasAttribute('data-no-breakdown') };
 }
 
 /** Where a card shuffled out lands: shrunk onto the middle of the "Shuffled out (N)" button. */
@@ -111,7 +114,7 @@ let nextKey = 1;
 function plan(moved: CardsMoved): Flight[] {
   const deck = measureDeck();
   if (!deck) return [];
-  const { stack, front, width, scale } = deck;
+  const { stack, front, width, scale, noBreakdown } = deck;
   // The card's height when laid out at the deck's width, drawn at the deck's scale.
   const drawnHeight = (h: number) => h * scale;
 
@@ -124,6 +127,7 @@ function plan(moved: CardsMoved): Flight[] {
         {
           key: nextKey++,
           entry,
+          noBreakdown,
           width,
           place: (h) => ({ from, to: { ...front, h: drawnHeight(h) } }),
           delay: i * FLIGHT_GAP_MS,
@@ -144,6 +148,7 @@ function plan(moved: CardsMoved): Flight[] {
     flights.push({
       key: nextKey++,
       entry: moved.onScreen,
+      noBreakdown,
       width,
       place: (h) => {
         const from = { x: front.x, y: front.y + front.h / 2 - drawnHeight(h) / 2, w: front.w, h: drawnHeight(h) };
