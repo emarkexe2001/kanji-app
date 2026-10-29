@@ -51,6 +51,7 @@ Answers (agreed 2026-10-29, from the mockup):
 - Reduced motion on: no sliding at all. Cards appear in their new place and the count changes at once, as before.
 - The moving cards are only there to be seen: hidden from screen readers, can't be clicked and can't be focused.
 - Next, Back (FEAT6, in from the left) and Deck Shuffle keep their current animations.
+- Next: the card slides in from the right, the mirror of Back (agreed 2026-10-29).
 
 Dependencies:
 ADJ2 must be merged first, since the cards slide to and from its floating panel.

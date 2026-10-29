@@ -43,10 +43,11 @@ body {
 }
 
 /* ---- Dealing animations for the front card ---- */
+/* Next: the card slides in from the right, the mirror of Back (ADJ3). */
 @keyframes deal-next {
   from {
     opacity: 0.4;
-    transform: translateY(14px) scale(0.955);
+    transform: translateX(40px) scale(0.955);
   }
   to {
     opacity: 1;
