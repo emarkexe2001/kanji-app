@@ -85,28 +85,49 @@ describe('usePanelClearance (keeps the deck card below the phone pop-up)', () =>
     expect(result.current).toBe(0);
   });
 
-  test('in the wide layout it is 0, as the panel floats beside the deck', () => {
+  test('in the wide layout it is 0, as the panel floats beside the deck, and nothing is measured or watched', () => {
+    const { panel, ref, areaRect } = setUp();
+    const added = vi.spyOn(window, 'addEventListener');
+    const { result } = renderHook(() => usePanelClearance(true, 'panel', ref, 92, true));
+    expect(result.current).toBe(0);
+    expect(areaRect).not.toHaveBeenCalled();
+    expect(added.mock.calls.filter(([type]) => type === 'resize')).toHaveLength(0);
+    expect(watching(panel)).toHaveLength(0);
+  });
+
+  test('it takes the wide layout from the deck (useWideLayout), not from its own media query', () => {
+    // The screen's media query says wide, but the deck says it isn't: the deck is the one source.
     wide = true;
     const { ref } = setUp();
-    const { result } = renderHook(() => usePanelClearance(true, 'panel', ref));
+    const { result, rerender } = renderHook(({ isWide }) => usePanelClearance(true, 'panel', ref, 92, isWide), {
+      initialProps: { isWide: false },
+    });
+    expect(result.current).toBe(92 + 260 + 12 - 200);
+    // And the other way round: the deck says wide, the media query doesn't.
+    wide = false;
+    rerender({ isWide: true });
     expect(result.current).toBe(0);
   });
 
   test('when the window is resized, it is measured again, including going in and out of the wide layout', () => {
     const { layout, ref } = setUp();
-    const { result } = renderHook(() => usePanelClearance(true, 'panel', ref));
+    const { result, rerender } = renderHook(({ isWide }) => usePanelClearance(true, 'panel', ref, 92, isWide), {
+      initialProps: { isWide: false },
+    });
 
     layout.areaTop = 150;
     resize();
     expect(result.current).toBe(92 + 260 + 12 - 150);
 
-    wide = true;
+    rerender({ isWide: true });
     resize();
     expect(result.current).toBe(0);
 
-    wide = false;
-    resize();
+    rerender({ isWide: false });
     expect(result.current).toBe(92 + 260 + 12 - 150);
+    layout.areaTop = 100;
+    resize();
+    expect(result.current).toBe(92 + 260 + 12 - 100);
   });
 
   test('when the pop-up changes size, it is measured again', () => {

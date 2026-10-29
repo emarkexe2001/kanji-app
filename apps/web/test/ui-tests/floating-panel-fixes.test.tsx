@@ -336,6 +336,14 @@ describe('The deck under the phone pop-up (ADJ2_5, requirements 3 and 4)', () =>
     await user.click(shuffledOutButton());
     const before = cardSpace().style.paddingTop;
     expect(before).toBe(belowPopUp(92));
+    // jsdom has no layout, so the deck card staying still below would also pass if the panel
+    // could grow. Its height comes from its class: a fixed 260px (h-), never a max-height that
+    // grows with its lists (max-h-), so that is checked too.
+    const fixedHeight = () => {
+      expect(openPanel()).toHaveClass('h-[min(260px,calc(100dvh-var(--panel-top)-8px))]');
+      expect(openPanel().className).not.toMatch(/(^|\s)max-h-/);
+    };
+    fixedHeight();
 
     await user.click(cardOf(addBackGroup().getByRole('checkbox', { name: out[0]! })));
     // The Take out list appears inside the panel. If the browser told us the panel changed size,
@@ -343,9 +351,11 @@ describe('The deck under the phone pop-up (ADJ2_5, requirements 3 and 4)', () =>
     expect(takeOutGroup().getAllByRole('checkbox').length).toBeGreaterThan(0);
     FakeResizeObserver.resized(openPanel());
     expect(cardSpace().style.paddingTop).toBe(before);
+    fixedHeight();
     await user.click(cardOf(takeOutGroup().getByRole('checkbox', { name: /^Card 1: / })));
     FakeResizeObserver.resized(openPanel());
     expect(cardSpace().style.paddingTop).toBe(before);
+    fixedHeight();
   });
 
   test('on a screen too short for it (e.g. a phone on its side), the 260px pop-up stops 8px above the bottom of the screen', async () => {
