@@ -38,13 +38,25 @@ Answers (agreed 2026-10-22):
 - Cards going into the shuffled-out list slide up and out of the deck and into the list.
 - This is its own ticket, separate from ADJ2.
 
-Open Questions (to confirm with a mockup before starting - standards 5.1):
-- How long should each slide take, and when several cards move, do they go one after another or all at once?
-- When the panel is closed and a card is shuffled out, should it slide towards the "Shuffled out (N)" button, or just fade out of the deck?
-- Should the "Shuffled out (N)" count change when the card lands, or straight away?
+Mockup (approved, default options): https://claude.ai/artifact/JAoaHPXxDeJ7n6xmW3dHuC
+
+Answers (agreed 2026-10-29, from the mockup):
+- How long each slide takes: 400ms.
+- Several cards: "close behind each other". Each card starts 90ms after the one before.
+- Panel closed: this is always the case when shuffling out, because pressing Shuffle In Cards or changing the card limit is a click outside the panel, which closes it. The card shuffled out shrinks and slides up into the "Shuffled out (N)" header button, fading to about 20% as it arrives. This replaces the old downward slide for the card leaving on Shuffle In Cards. The new card still drops on.
+- The "Shuffled out (N)" count changes as each card lands (one step per card), with a small bump on the button. The deck, the list and what is saved change straight away, as before. Only the number shown waits. Screen-reader messages stay exactly as they were.
+- Add Back Cards: the picked cards slide down out of the open panel into the deck card, growing from their small panel size to the deck card's size. The panel closes (lifts away) only after the last card has left it. The deck then shows the first card added back, as before.
+- Cards taken out from inside the deck that aren't on screen (lowering the card limit, or the extra cards when Shuffle In Cards takes more than one) each show as a blank card back peeling off the back of the deck and sliding into the "Shuffled out (N)" button, 90ms apart.
+- Pressing any button while cards are moving makes them land straight away (the count jumps to its final value), then the new action runs. Nothing may be left half-way, doubled, or with an old count.
+- Reduced motion on: no sliding at all. Cards appear in their new place and the count changes at once, as before.
+- The moving cards are only there to be seen: hidden from screen readers, can't be clicked and can't be focused.
+- Next, Back (FEAT6, in from the left) and Deck Shuffle keep their current animations.
 
 Dependencies:
 ADJ2 must be merged first, since the cards slide to and from its floating panel.
 
 Branch name Examples:
 feature/card-slide-animations
+
+Completed On:
+2026-10-29
