@@ -41,6 +41,8 @@ export interface Flight {
   countChange: number;
   /** Whether it is a card being added back. */
   back: boolean;
+  /** The card is drawn as the slim card, like the deck card under the pop-up (ADJ2_5). */
+  slim?: boolean;
 }
 
 /** The cards sliding between the deck and the shuffled-out list, and what is shown until they land (ADJ3). */
@@ -72,14 +74,19 @@ const boxOf = (el: Element): Box => {
   return { x: r.left, y: r.top, w: r.width, h: r.height };
 };
 
-/** The card stack and the front card in it, and the scale it is drawn at (smaller while the pop-up is open). */
+/**
+ * The card stack and the front card in it, the scale it is drawn at, and whether it shows the slim
+ * card (ADJ2_5, while the pop-up is open), which has no blank cards or room for them below it.
+ */
 function measureDeck() {
   const stack = document.querySelector<HTMLElement>('[data-card-stack]');
   if (!stack) return null;
   const box = boxOf(stack);
   const width = stack.offsetWidth;
   const scale = width ? box.w / width : 1;
-  return { stack: box, front: { ...box, h: Math.max(0, box.h - STACK_PADDING * scale) }, width, scale };
+  const slim = stack.hasAttribute('data-slim');
+  const front = { ...box, h: Math.max(0, box.h - (slim ? 0 : STACK_PADDING) * scale) };
+  return { stack: box, front, width, scale, slim };
 }
 
 /** Where a card shuffled out lands: shrunk onto the middle of the "Shuffled out (N)" button. */
@@ -111,7 +118,7 @@ let nextKey = 1;
 function plan(moved: CardsMoved): Flight[] {
   const deck = measureDeck();
   if (!deck) return [];
-  const { stack, front, width, scale } = deck;
+  const { stack, front, width, scale, slim } = deck;
   // The card's height when laid out at the deck's width, drawn at the deck's scale.
   const drawnHeight = (h: number) => h * scale;
 
@@ -124,6 +131,7 @@ function plan(moved: CardsMoved): Flight[] {
         {
           key: nextKey++,
           entry,
+          slim,
           width,
           place: (h) => ({ from, to: { ...front, h: drawnHeight(h) } }),
           delay: i * FLIGHT_GAP_MS,
@@ -144,6 +152,7 @@ function plan(moved: CardsMoved): Flight[] {
     flights.push({
       key: nextKey++,
       entry: moved.onScreen,
+      slim,
       width,
       place: (h) => {
         const from = { x: front.x, y: front.y + front.h / 2 - drawnHeight(h) / 2, w: front.w, h: drawnHeight(h) };

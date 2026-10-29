@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import App from '../../src/app/app';
+import { WIDE_LAYOUT_QUERY } from '../../src/features/deck/utils/wide-layout';
 
 export type User = ReturnType<typeof userEvent.setup>;
 
@@ -152,4 +153,21 @@ export async function shuffleIn(user: User, count = '1') {
   input.focus();
   if (count !== '') await user.paste(count);
   await user.click(shuffleInButton());
+}
+
+/**
+ * Sets what the screen reports, as jsdom has no media queries (window.matchMedia is replaced):
+ * `wide` for the wide layout (WIDE_LAYOUT_MIN_WIDTH, 1100px, and up), where the shuffled-out
+ * panel floats beside the deck, and the "reduce motion" setting.
+ */
+export function setScreen({ wide = false, reduceMotion = false }: { wide?: boolean; reduceMotion?: boolean } = {}) {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      matches: (reduceMotion && query === '(prefers-reduced-motion: reduce)') || (wide && query === WIDE_LAYOUT_QUERY),
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
 }

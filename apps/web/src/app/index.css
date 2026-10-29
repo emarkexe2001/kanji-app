@@ -15,6 +15,11 @@
   --color-jlpt-n1: #f43f5e;
 
   --font-jp: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+
+  /* The wide layout (ADJ2_5), for wide: and max-wide:: from here up the shuffled-out panel floats
+     beside the deck. Keep it the same as WIDE_LAYOUT_MIN_WIDTH in
+     src/features/deck/utils/wide-layout.ts, which the code uses (wide-layout.test.tsx checks). */
+  --breakpoint-wide: 1100px;
 }
 
 body {

@@ -14,6 +14,7 @@ import {
   makeDecks,
   renderApp,
   serveDeck,
+  setScreen,
   shuffleIn,
   type User,
 } from './helpers';
@@ -908,5 +909,107 @@ describe('other ways a slide is cut short (PR #48 review)', () => {
 
     expect(flyers()).toHaveLength(1);
     expect(onScreenIsNew()).toBe(false);
+  });
+});
+
+describe('with the slim deck card under the phone pop-up (ADJ2_5)', () => {
+  /** The card stack, and the deck card's space around it, which is pushed down below the pop-up. */
+  const stack = () => screen.getByRole('article').closest<HTMLElement>('[data-card-stack]')!;
+  const cardSpace = () => stack().parentElement!.parentElement!;
+  const hasBreakdown = (el: HTMLElement) => within(el).queryByText('READING BREAKDOWN') !== null;
+
+  test('on a phone, cards added back slide in as slim cards, onto the slim deck card', async () => {
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    expect(stack()).toHaveAttribute('data-slim');
+    fakeAnimate();
+
+    await user.click(addBackButton());
+
+    expect(flyers()).toHaveLength(2);
+    for (const f of flyers()) {
+      expect(hasBreakdown(f)).toBe(false);
+      // The slim card's one-line meaning (a class: jsdom can't draw the "…").
+      expect(within(f).getByText(/^word number \d+$/)).toHaveClass('line-clamp-1');
+      expectBox(endBox(f), FRONT);
+    }
+    expect(stack()).toHaveAttribute('data-slim');
+    expect(hasBreakdown(screen.getByRole('article'))).toBe(false);
+  });
+
+  test('in the wide layout, cards added back slide in as full cards, as before', async () => {
+    setScreen({ wide: true });
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0]]);
+    expect(stack()).not.toHaveAttribute('data-slim');
+    fakeAnimate();
+
+    await user.click(addBackButton());
+
+    expect(flyers()).toHaveLength(1);
+    expect(hasBreakdown(flyers()[0])).toBe(true);
+    expect(hasBreakdown(screen.getByRole('article'))).toBe(true);
+  });
+
+  test('while cards added back slide in, the deck card stays where it is, just below the pop-up', async () => {
+    // The pop-up is laid out 92px down and 260px tall; the deck card's space starts at 0 (fakeLayout).
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.id === 'shuffled-out-panel' ? 92 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      if (this.id === 'shuffled-out-panel') return 260;
+      return this.matches('.card-flyer') ? FLYER_HEIGHT : 0;
+    });
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    const below = `${92 + 260 + 12}px`;
+    expect(cardSpace().style.paddingTop).toBe(below);
+    fakeAnimate();
+
+    await user.click(addBackButton());
+    expect(flyers()).toHaveLength(2);
+    expect(cardSpace().style.paddingTop).toBe(below);
+    expect(cardSpace()).toHaveClass('items-start');
+    landNext();
+    expect(cardSpace().style.paddingTop).toBe(below);
+    landNext();
+    // Once they have all landed, the pop-up lifts away and the deck card goes back to its place.
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+    expect(cardSpace().style.paddingTop).toBe('');
+    expect(hasBreakdown(screen.getByRole('article'))).toBe(true);
+  });
+
+  test('opening the panel while cards slide into the button lands them, and the deck card becomes the slim card', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '3');
+    expect(flyers().length).toBeGreaterThan(0);
+    expect(hasBreakdown(screen.getByRole('article'))).toBe(true);
+
+    await user.click(shuffledOutButton());
+
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(3);
+    expect(panel()).toBeInTheDocument();
+    expect(stack()).toHaveAttribute('data-slim');
+    expect(hasBreakdown(screen.getByRole('article'))).toBe(false);
+    expect(stack().querySelectorAll('.deck-back')).toHaveLength(0);
+  });
+
+  test('resizing the window while cards added back slide in lands them, the panel lifts away and the deck card is the full card again', async () => {
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    fakeAnimate();
+    await user.click(addBackButton());
+    expect(flyers()).toHaveLength(2);
+
+    fireEvent(window, new Event('resize'));
+
+    expect(flyers()).toHaveLength(0);
+    expect(currentWord()).toBe(out[0]);
+    expect(panel()).toHaveClass('panel-lift');
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+    expect(hasBreakdown(screen.getByRole('article'))).toBe(true);
+    expect(stack().querySelectorAll('.deck-back')).toHaveLength(2);
   });
 });

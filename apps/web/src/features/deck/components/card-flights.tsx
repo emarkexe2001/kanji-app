@@ -49,7 +49,7 @@ function Flyer({ flight, onLand }: { flight: Flight; onLand: (key: number) => vo
     >
       {flight.entry && (
         <CardErrorBoundary>
-          <WordCard entry={flight.entry} />
+          <WordCard entry={flight.entry} slim={flight.slim} />
         </CardErrorBoundary>
       )}
     </div>

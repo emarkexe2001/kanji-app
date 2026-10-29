@@ -58,7 +58,7 @@ function Word({ entry, compact }: { entry: WordEntry; compact: boolean }) {
   // The compact card's word isn't a heading, so the card on screen keeps the only card heading.
   const Tag = compact ? 'p' : 'h2';
   return (
-    <Tag className={`flex flex-wrap items-baseline ${compact ? 'gap-x-1 text-sm lg:text-base' : 'gap-x-3 text-3xl'}`}>
+    <Tag className={`flex flex-wrap items-baseline ${compact ? 'gap-x-1 text-sm wide:text-base' : 'gap-x-3 text-3xl'}`}>
       <span>
         {entry.segments.map((seg, i) => (
           <span key={i} className={HL_CLASS[seg.kind]}>
@@ -66,12 +66,15 @@ function Word({ entry, compact }: { entry: WordEntry; compact: boolean }) {
           </span>
         ))}
       </span>
-      <span className={`font-normal text-slate-500 ${compact ? 'text-[9px] lg:text-[10px]' : 'text-lg'}`}>
+      <span className={`font-normal text-slate-500 ${compact ? 'text-[9px] wide:text-[10px]' : 'text-lg'}`}>
         【{entry.reading}】
       </span>
     </Tag>
   );
 }
+
+/** The slim card's meaning (ADJ2_5): one line, ending in … if longer. The text itself is all there. */
+const SLIM_MEANING = 'line-clamp-1';
 
 /** The diagonal "NEW" ribbon across the top-right corner of a card that was shuffled in. */
 function NewRibbon({ id }: { id?: string }) {
@@ -91,7 +94,12 @@ function NewRibbon({ id }: { id?: string }) {
  * the lists of cards to pick (FEAT2_5): the header, the word and the meaning, with no Reading
  * Breakdown, and `children` at the bottom (e.g. "From JLPT N4"). `isNew` adds the "NEW" ribbon.
  * Since ADJ2 it is smaller again, so more fit in the floating panel: a 14px word and 8-10px text
- * below the lg breakpoint (the phone pop-up), a 16px word and 9-11px text from lg up.
+ * below the wide layout (the pop-up, WIDE_LAYOUT_MIN_WIDTH), a 16px word and 9-11px text in it.
+ * `slim` is the card on screen while the shuffled-out pop-up is open (ADJ2_5): its header, word,
+ * reading and meaning at their normal size, with no Reading Breakdown, and the ★ Common Word
+ * badge and the "Full Word Meaning" label hidden from view (screen readers still hear them). The
+ * meaning is kept to one line, ending in … if it is longer; only how it is drawn is cut, so
+ * screen readers still hear all of it.
  * `idPrefix` gives the compact card's meaning and ribbon the ids `<idPrefix>-meaning` and
  * `<idPrefix>-new`, so a pick card can have screen readers read them out (FEAT2_6).
  */
@@ -99,12 +107,14 @@ export function WordCard({
   entry,
   compact = false,
   isNew = false,
+  slim = false,
   idPrefix,
   children,
 }: {
   entry: WordEntry;
   compact?: boolean;
   isNew?: boolean;
+  slim?: boolean;
   idPrefix?: string;
   children?: ReactNode;
 }) {
@@ -119,7 +129,7 @@ export function WordCard({
       }`}
     >
       <header
-        className={`font-bold tracking-wide text-white ${compact ? 'px-2 py-0.5 text-[8px] lg:text-[9px]' : 'px-4 py-2 text-xs'}`}
+        className={`font-bold tracking-wide text-white ${compact ? 'px-2 py-0.5 text-[8px] wide:text-[9px]' : 'px-4 py-2 text-xs'}`}
         style={{ backgroundColor: headerColor }}
       >
         {entry.jlpt ? `JLPT ${entry.jlpt}` : 'Vocabulary'}
@@ -129,7 +139,7 @@ export function WordCard({
       {compact ? (
         <div className="space-y-1 px-2 py-1.5">
           <Word entry={entry} compact />
-          <p id={idPrefix && `${idPrefix}-meaning`} className="text-[10px] meaning-text lg:text-[11px]">
+          <p id={idPrefix && `${idPrefix}-meaning`} className="text-[10px] meaning-text wide:text-[11px]">
             {entry.meaning}
           </p>
           {children}
@@ -139,24 +149,26 @@ export function WordCard({
           <div>
             <Word entry={entry} compact={false} />
             {entry.common && (
-              <p className="mt-1 badge-common" style={{ color: COMMON_COLOR }}>
+              <p className={slim ? 'sr-only' : 'mt-1 badge-common'} style={{ color: COMMON_COLOR }}>
                 ★ Common Word
               </p>
             )}
           </div>
 
-          <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
-            <ul>
-              {entry.segments.map((seg, i) => (
-                <SegmentRow key={i} seg={seg} />
-              ))}
-            </ul>
-          </section>
+          {!slim && (
+            <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
+              <ul>
+                {entry.segments.map((seg, i) => (
+                  <SegmentRow key={i} seg={seg} />
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section>
-            <h3 className="text-xs font-bold text-slate-500">Full Word Meaning</h3>
-            <p className="meaning-text">{entry.meaning}</p>
+            <h3 className={slim ? 'sr-only' : 'text-xs font-bold text-slate-500'}>Full Word Meaning</h3>
+            <p className={`meaning-text ${slim ? SLIM_MEANING : ''}`}>{entry.meaning}</p>
           </section>
         </div>
       )}
