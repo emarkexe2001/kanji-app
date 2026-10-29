@@ -31,7 +31,7 @@ const BACK_BUTTON = [
  * `shuffledOutOpen` says the Shuffled-out cards panel is open, `panelTop` how far down the screen
  * it starts. Below the wide layout (WIDE_LAYOUT_MIN_WIDTH) it is a pop-up over the page, so the
  * card moves down to just below it, and goes back when it closes (ADJ2). While it is there, the
- * card leaves out its Reading Breakdown, at its normal size, so the card, Back, Next and Deck
+ * card is the slim card (header, word, reading and a one-line meaning, see WordCard), so it, Back, Next and Deck
  * Shuffle all fit on a 360x640 phone below the pop-up (ADJ2_5). In the wide layout the panel
  * floats beside the deck, which doesn't change.
  *
@@ -57,7 +57,7 @@ export function Deck({
   const cardArea = useRef<HTMLDivElement>(null);
   const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea, panelTop);
   const wide = useWideLayout();
-  // The card sits below the pop-up, without its Reading Breakdown (ADJ2_5).
+  // The card sits below the pop-up, as the slim card (ADJ2_5).
   const underPopUp = shuffledOutOpen && !wide;
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function Deck({
             move={move}
             isNew={held ? !!flights?.heldIsNew : isNew(index)}
             arrive={!flights?.quietArrival}
-            noBreakdown={underPopUp}
+            slim={underPopUp}
           />
         </div>
       </div>

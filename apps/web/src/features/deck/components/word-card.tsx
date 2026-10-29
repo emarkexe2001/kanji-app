@@ -73,6 +73,9 @@ function Word({ entry, compact }: { entry: WordEntry; compact: boolean }) {
   );
 }
 
+/** The slim card's meaning (ADJ2_5): one line, ending in … if longer. The text itself is all there. */
+const SLIM_MEANING = 'line-clamp-1';
+
 /** The diagonal "NEW" ribbon across the top-right corner of a card that was shuffled in. */
 function NewRibbon({ id }: { id?: string }) {
   return (
@@ -92,8 +95,11 @@ function NewRibbon({ id }: { id?: string }) {
  * Breakdown, and `children` at the bottom (e.g. "From JLPT N4"). `isNew` adds the "NEW" ribbon.
  * Since ADJ2 it is smaller again, so more fit in the floating panel: a 14px word and 8-10px text
  * below the wide layout (the pop-up, WIDE_LAYOUT_MIN_WIDTH), a 16px word and 9-11px text in it.
- * `noBreakdown` leaves the Reading Breakdown off the card on screen, so it is shorter (ADJ2_5:
- * while the shuffled-out pop-up is open). Everything else stays, at its normal size.
+ * `slim` is the card on screen while the shuffled-out pop-up is open (ADJ2_5): its header, word,
+ * reading and meaning at their normal size, with no Reading Breakdown, and the ★ Common Word
+ * badge and the "Full Word Meaning" label hidden from view (screen readers still hear them). The
+ * meaning is kept to one line, ending in … if it is longer; only how it is drawn is cut, so
+ * screen readers still hear all of it.
  * `idPrefix` gives the compact card's meaning and ribbon the ids `<idPrefix>-meaning` and
  * `<idPrefix>-new`, so a pick card can have screen readers read them out (FEAT2_6).
  */
@@ -101,14 +107,14 @@ export function WordCard({
   entry,
   compact = false,
   isNew = false,
-  noBreakdown = false,
+  slim = false,
   idPrefix,
   children,
 }: {
   entry: WordEntry;
   compact?: boolean;
   isNew?: boolean;
-  noBreakdown?: boolean;
+  slim?: boolean;
   idPrefix?: string;
   children?: ReactNode;
 }) {
@@ -143,13 +149,13 @@ export function WordCard({
           <div>
             <Word entry={entry} compact={false} />
             {entry.common && (
-              <p className="mt-1 badge-common" style={{ color: COMMON_COLOR }}>
+              <p className={slim ? 'sr-only' : 'mt-1 badge-common'} style={{ color: COMMON_COLOR }}>
                 ★ Common Word
               </p>
             )}
           </div>
 
-          {!noBreakdown && (
+          {!slim && (
             <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
               <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
               <ul>
@@ -161,8 +167,8 @@ export function WordCard({
           )}
 
           <section>
-            <h3 className="text-xs font-bold text-slate-500">Full Word Meaning</h3>
-            <p className="meaning-text">{entry.meaning}</p>
+            <h3 className={slim ? 'sr-only' : 'text-xs font-bold text-slate-500'}>Full Word Meaning</h3>
+            <p className={`meaning-text ${slim ? SLIM_MEANING : ''}`}>{entry.meaning}</p>
           </section>
         </div>
       )}

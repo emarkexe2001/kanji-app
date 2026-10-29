@@ -21,7 +21,7 @@ import { DeckErrorBoundary } from './deck-error-boundary';
  * `headerSlot`. Its panel floats in the top right, just below the header, over the page (ADJ2),
  * measured from the header the slot is in (ADJ2_5, see usePanelTop); it comes before the deck
  * picker in the page, so Tab goes from the button into the panel, then on to the deck. While it is
- * open on a phone or tablet, the deck card moves below it, without its Reading Breakdown (see Deck).
+ * open on a phone or tablet, the deck card moves below it as a slim card (see Deck).
  * Cards slide between the deck and the button or the panel as they move (ADJ3, see useCardFlights).
  */
 function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTMLElement | null }) {
