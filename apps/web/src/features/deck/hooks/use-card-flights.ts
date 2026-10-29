@@ -182,9 +182,9 @@ function plan(moved: CardsMoved): Flight[] {
  * each move in `study.moved`. The deck, the list and what is saved change straight away; only the
  * count shown on the button, and the deck card while cards are added back, wait for the cards to
  * land. Pressing anything (a click, a tap or a key) while cards are sliding makes them all land
- * straight away, before the press is handled. So does any other change to the list (e.g. Clear
- * List, or studying another deck). With reduced motion on, or where the browser can't animate,
- * nothing slides and everything changes at once.
+ * straight away, before the press is handled. So does the next move of any kind (e.g. studying
+ * another deck), so nothing is left sliding with an old count. With reduced motion on, or where
+ * the browser can't animate, nothing slides and everything changes at once.
  */
 export function useCardFlights(study: StudyDeck): CardFlights {
   const reducedMotion = useReducedMotion();
@@ -229,15 +229,10 @@ export function useCardFlights(study: StudyDeck): CardFlights {
   }, [finishAll]);
 
   const { moved, shuffledOut } = study;
-  const seen = useRef({ moved, shuffledOut });
+  const seen = useRef(moved);
   useLayoutEffect(() => {
-    const before = seen.current;
-    seen.current = { moved, shuffledOut };
-    if (moved === before.moved) {
-      // The list changed some other way: nothing may be left sliding with an old count.
-      if (shuffledOut !== before.shuffledOut) finishAll();
-      return;
-    }
+    if (moved === seen.current) return;
+    seen.current = moved;
     // The cards are measured on screen once the move has been drawn, before it is painted.
     const launch = (m: CardsMoved) => {
       const planned = !reducedMotion && canAnimate() ? plan(m) : [];
@@ -254,7 +249,7 @@ export function useCardFlights(study: StudyDeck): CardFlights {
     };
     finishAll();
     if (moved) launch(moved);
-  }, [moved, shuffledOut, reducedMotion, finishAll, update]);
+  }, [moved, reducedMotion, finishAll, update]);
 
   const whenBackLands = useCallback((done: (animated: boolean) => void) => {
     backDone.current = { done, started: false };

@@ -580,6 +580,7 @@ describe('pressing a button while cards are sliding', () => {
     await user.click(addBackButton());
     // Pressing Add Back Cards again does nothing while the panel is closing.
     await user.click(addBackButton());
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(flyers()).toHaveLength(0);
     expect(currentWord()).toBe(out[1]);
     await waitFor(() => expect(panel()).not.toBeInTheDocument());
