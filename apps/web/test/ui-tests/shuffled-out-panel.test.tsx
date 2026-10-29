@@ -2,7 +2,7 @@
 import { StrictMode, type ComponentProps } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
 import type { CardStack as RealCardStack } from '../../src/features/deck/components/card-stack';
 import {
@@ -71,6 +71,9 @@ async function appWithShuffledOut(count = 1) {
   for (let i = 0; i < count; i++) out.unshift(await shuffleOutOne(user));
   return { user, out };
 }
+
+// Each test sets its own screen (setScreen), so none carries over to the next.
+afterEach(() => vi.unstubAllGlobals());
 
 describe('Floating shuffled-out panel (ADJ2)', () => {
   test('when I press "Shuffled out (N)", the panel opens in the top right and the deck stays in the centre and is still shown', async () => {

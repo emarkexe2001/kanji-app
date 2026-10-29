@@ -1,7 +1,7 @@
 // FEAT2: the Shuffled-out cards view, for adding shuffled-out cards back.
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, onTestFinished, test, vi } from 'vitest';
 import { PICK_COLORS } from '@kanji/core';
 import App from '../../src/app/app';
 import {
@@ -224,6 +224,7 @@ describe('Shuffled-out cards shown as cards', () => {
     // On a wide screen, where the deck card keeps its Reading Breakdown while the panel is open
     // (below it, the deck card leaves it out too, ADJ2_5: see shuffled-out-panel.test.tsx).
     setScreen({ wide: true });
+    onTestFinished(() => vi.unstubAllGlobals());
     const user = await renderApp(DECKS);
     const shuffledOut = await shuffleOutOne(user);
     expect(screen.getByText('READING BREAKDOWN')).toBeInTheDocument(); // the card on screen has one
