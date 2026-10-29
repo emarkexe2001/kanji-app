@@ -52,6 +52,7 @@ Answers (agreed 2026-10-29, from the mockup):
 - The moving cards are only there to be seen: hidden from screen readers, can't be clicked and can't be focused.
 - Next, Back (FEAT6, in from the left) and Deck Shuffle keep their current animations.
 - Next: the card slides in from the right, the mirror of Back (agreed 2026-10-29).
+- Page load and deck switch: the first card still deals up from below; only Next slides in from the right (agreed 2026-10-29).
 - Scrolled page: if the header is off screen, a shuffled-out card still slides up out of the top of the window towards the button (agreed 2026-10-29).
 
 Dependencies:

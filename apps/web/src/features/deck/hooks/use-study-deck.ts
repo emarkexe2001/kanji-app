@@ -120,7 +120,7 @@ function loadState(library: Library, studied: DeckId, limit: number): StudyState
     limit,
     cards,
     index: 0,
-    move: 'next',
+    move: 'deal',
     replaced: null,
     ...fitChoice(library, studied, loadShuffleChoice()),
     removed: recordRemoved(loadRemovedCards(library), [], cards),
@@ -304,7 +304,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
           studied: deck,
           cards,
           index: 0,
-          move: 'next',
+          move: 'deal',
           replaced: null,
           // A ticked deck that is now the studied one is unticked, and under Multiple decks the user is told.
           ...fitChoice(library, deck, s.choice),

@@ -2,10 +2,14 @@ import type { WordEntry } from '@kanji/core';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import { WordCard } from './word-card';
 
-/** How the card on screen got there: Next, Back, Deck Shuffle (or adding cards back), or Shuffle In Cards. */
-export type Move = 'next' | 'back' | 'shuffle' | 'shuffle-in';
+/**
+ * How the card on screen got there: dealt as the first card (the page loading or another deck
+ * studied), Next, Back, Deck Shuffle (or adding cards back), or Shuffle In Cards.
+ */
+export type Move = 'deal' | 'next' | 'back' | 'shuffle' | 'shuffle-in';
 
 const ARRIVE_CLASS: Record<Move, string> = {
+  deal: 'deal-in',
   next: 'deal-next',
   back: 'deal-back',
   shuffle: 'deal-shuffle',

@@ -43,6 +43,18 @@ body {
 }
 
 /* ---- Dealing animations for the front card ---- */
+/* The first card (the page loading, or another deck studied) deals up from below (ADJ3: it keeps
+   the old Next animation). */
+@keyframes deal-in {
+  from {
+    opacity: 0.4;
+    transform: translateY(14px) scale(0.955);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 /* Next: the card slides in from the right, the mirror of Back (ADJ3). */
 @keyframes deal-next {
   from {
@@ -77,6 +89,9 @@ body {
     opacity: 1;
     transform: none;
   }
+}
+.deal-in {
+  animation: deal-in 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .deal-next {
   animation: deal-next 260ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -175,6 +190,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .deal-in,
   .deal-next,
   .deal-back,
   .deal-shuffle,
