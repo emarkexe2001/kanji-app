@@ -399,6 +399,20 @@ export function stillNew(newIds: string[], cards: DeckCard[], movedOnFrom?: stri
   return kept.length === newIds.length ? newIds : kept;
 }
 
+/**
+ * Which of the cards replaced at `replaced` (positions from 0) left from the screen and which from
+ * inside the deck (ADJ3): `onScreen` is the card at `index` if it was replaced, else null, and
+ * `hidden` how many of the others there were. It doesn't depend on the order of `replaced`.
+ */
+export function shuffledOutFrom(
+  cards: DeckCard[],
+  index: number,
+  replaced: number[],
+): { onScreen: DeckCard | null; hidden: number } {
+  const unique = new Set(replaced);
+  return { onScreen: unique.has(index) ? cards[index] : null, hidden: unique.size - (unique.has(index) ? 1 : 0) };
+}
+
 /** "Shuffled out card 5 of 20" or "Shuffled out cards 3, 7 and 12 of 20" (positions start at 1). */
 export function describeReplaced(positions: number[], total: number): string {
   const sorted = [...positions].sort((a, b) => a - b);

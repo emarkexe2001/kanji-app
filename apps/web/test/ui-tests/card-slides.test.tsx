@@ -1,6 +1,6 @@
 // ADJ3: cards slide between the deck and the shuffled-out list (the "Shuffled out (N)" button or the panel).
 import { StrictMode, type ComponentProps } from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
@@ -42,6 +42,7 @@ const addBackGroup = () => within(screen.getByRole('group', { name: 'Add back' }
 const takeOutGroup = () => within(screen.getByRole('group', { name: /^Take out of your deck/ }));
 const cardOf = (checkbox: HTMLElement) => checkbox.closest('label')!;
 const nextButton = () => screen.getByRole('button', { name: 'Next →' });
+const onScreenIsNew = () => within(screen.getByRole('article')).queryByText('New') !== null;
 const savedRemoved = () => (JSON.parse(localStorage.getItem('kanji.removedCards') ?? '[]') as unknown[]).length;
 
 /** Turns the device's "reduce motion" setting on or off (jsdom has no media queries). */
@@ -719,5 +720,169 @@ describe('the sliding cards are only there to be seen', () => {
     expect(flyers()).toHaveLength(0);
     expect(panel()).not.toBeInTheDocument();
     expect(currentWord()).toBe(out[0]);
+  });
+});
+
+describe('other ways a slide is cut short (PR #48 review)', () => {
+  /** Every slide that was started has been stopped, so nothing is left running. */
+  const allCancelledOrDone = () => animations.every((a) => a.cancelled || !a.el.isConnected);
+
+  test('pressing "Shuffled out (N)" while cards slide into it lands them at once, then opens the panel', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '3');
+    expect(shownCount()).toBe(0);
+
+    await user.click(shuffledOutButton());
+
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(3);
+    expect(panel()).toBeInTheDocument();
+    expect(addBackGroup().getAllByRole('checkbox')).toHaveLength(3);
+  });
+
+  test('pressing Escape while cards added back are sliding: the panel goes, focus is on the button, nothing is left sliding', async () => {
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    fakeAnimate();
+    await user.click(addBackButton());
+    expect(flyers()).toHaveLength(2);
+
+    await user.keyboard('{Escape}');
+
+    expect(panel()).not.toBeInTheDocument();
+    expect(shuffledOutButton()).toHaveFocus();
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(3);
+    expect(currentWord()).toBe(out[0]);
+  });
+
+  test('a click outside the panel while cards added back are sliding: the panel goes, focus is on the button, nothing is left sliding', async () => {
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    fakeAnimate();
+    await user.click(addBackButton());
+    expect(flyers()).toHaveLength(2);
+
+    await user.click(screen.getByRole('heading', { level: 1 }));
+
+    expect(panel()).not.toBeInTheDocument();
+    expect(shuffledOutButton()).toHaveFocus();
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(3);
+    expect(currentWord()).toBe(out[0]);
+  });
+
+  test('if the app goes away while cards are sliding, the slides are stopped', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '3');
+    expect(sliding()).toHaveLength(3);
+
+    cleanup(); // unmounts the app
+
+    expect(animations).toHaveLength(3);
+    expect(animations.every((a) => a.cancelled)).toBe(true);
+    expect(document.querySelector('[data-card-flights]')).toBeNull();
+  });
+
+  test('if the app goes away while the panel is lifting away, its timer is cleared', async () => {
+    const { user, out } = await appWithShuffledOut(2);
+    await pickToAddBack(user, [out[0]]);
+    fakeAnimate();
+    const setTimer = vi.spyOn(window, 'setTimeout');
+    const clearTimer = vi.spyOn(window, 'clearTimeout');
+    await user.click(addBackButton());
+    landNext();
+    expect(panel()).toHaveClass('panel-lift');
+    // The panel closes 180ms after it starts lifting (the panel-lift animation).
+    const lift = setTimer.mock.calls.findIndex(([, ms]) => ms === 180);
+    expect(lift).toBeGreaterThanOrEqual(0);
+    const liftTimer = setTimer.mock.results[lift].value as unknown;
+
+    cleanup();
+
+    expect(clearTimer).toHaveBeenCalledWith(liftTimer);
+  });
+
+  test('studying another deck while cards are sliding stops their slides', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '3');
+
+    fireEvent.change(screen.getByLabelText('Deck'), { target: { value: 'N4' } });
+
+    expect(sliding()).toHaveLength(0);
+    expect(allCancelledOrDone()).toBe(true);
+    expect(animations.every((a) => a.cancelled)).toBe(true);
+  });
+
+  test('scrolling the page while cards are sliding lands them at once, with the final count', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '3');
+    expect(shownCount()).toBe(0);
+
+    fireEvent.scroll(window);
+
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(3);
+  });
+
+  test('resizing the window while cards are sliding lands them at once, with the final count', async () => {
+    const user = await renderApp(DECKS);
+    const { total } = counter();
+    fakeAnimate();
+    await enterCardLimit(user, String(total - 2));
+    expect(shownCount()).toBe(0);
+
+    fireEvent(window, new Event('resize'));
+
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(2);
+  });
+
+  test('scrolling the panel while cards added back slide out of it lands them, and the panel then lifts away', async () => {
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    fakeAnimate();
+    await user.click(addBackButton());
+
+    fireEvent.scroll(document.querySelector('[data-flight-clip]')!);
+
+    expect(flyers()).toHaveLength(0);
+    expect(panel()).toHaveClass('panel-lift');
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+    expect(currentWord()).toBe(out[0]);
+  });
+
+  test('while cards added back slide in, a "New" card still on screen keeps its New ribbon', async () => {
+    const { user, out } = await appWithShuffledOut(2);
+    await shuffleIn(user, '1'); // the card on screen is now a new one
+    const before = currentWord();
+    expect(onScreenIsNew()).toBe(true);
+    await pickToAddBack(user, [out[0]], [2]);
+    fakeAnimate();
+
+    await user.click(addBackButton());
+
+    expect(currentWord()).toBe(before);
+    expect(onScreenIsNew()).toBe(true);
+    landNext();
+    // The first card added back isn't new.
+    expect(currentWord()).toBe(out[0]);
+    expect(onScreenIsNew()).toBe(false);
+  });
+
+  test('while cards added back slide in, a card on screen that is not new shows no New ribbon', async () => {
+    const { user, out } = await appWithShuffledOut(2);
+    expect(onScreenIsNew()).toBe(false);
+    await pickToAddBack(user, [out[0]], [2]);
+    fakeAnimate();
+
+    await user.click(addBackButton());
+
+    expect(flyers()).toHaveLength(1);
+    expect(onScreenIsNew()).toBe(false);
   });
 });

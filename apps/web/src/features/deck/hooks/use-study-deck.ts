@@ -26,6 +26,7 @@ import {
   recordRemoved,
   resizeCards,
   shuffleIn,
+  shuffledOutFrom,
   stillNew,
   takeCards,
   type DeckCard,
@@ -66,7 +67,7 @@ interface StudyState {
 /** Cards that moved between the deck and the shuffled-out list, by their saved ids (see CardsMoved). */
 type MovedState =
   | { kind: 'out'; onScreen: DeckCard | null; hidden: number; countChange: number }
-  | { kind: 'back'; ids: string[]; onScreen: DeckCard; countChange: number };
+  | { kind: 'back'; ids: string[]; onScreen: DeckCard; onScreenIsNew: boolean; countChange: number };
 
 interface FittedChoice {
   choice: ShuffleChoice | null;
@@ -195,12 +196,20 @@ export interface StudyDeck {
  *   the card that was on screen, when it was one of them, and `hidden` how many others there were
  *   (cards inside the deck, not on screen);
  * - `back`: the cards added back, in the order of the list (newest first). The first is the card
- *   the deck now shows. `onScreen` is the card that was on screen before.
+ *   the deck now shows. `onScreen` is the card that was on screen before, and `onScreenIsNew`
+ *   whether it showed "New" then.
  * `countChange` is how much the length of the shuffled-out list changed.
  */
 export type CardsMoved =
   | { kind: 'out'; onScreen: WordEntry | null; hidden: number; countChange: number }
-  | { kind: 'back'; ids: string[]; cards: WordEntry[]; onScreen: WordEntry; countChange: number };
+  | {
+      kind: 'back';
+      ids: string[];
+      cards: WordEntry[];
+      onScreen: WordEntry;
+      onScreenIsNew: boolean;
+      countChange: number;
+    };
 
 export interface ShuffledOutCard {
   id: string;
@@ -357,11 +366,9 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
           replaced: result.replaced,
           removed,
           newIds: [...stillNew(s.newIds, result.cards), ...result.replaced.map((p) => result.cards[p].id)],
-          // The card on screen is always replaced first; the others were inside the deck.
           moved: {
             kind: 'out',
-            onScreen: s.cards[s.index],
-            hidden: result.replaced.length - 1,
+            ...shuffledOutFrom(s.cards, s.index, result.replaced),
             countChange: removed.length - s.removed.length,
           },
         };
@@ -384,6 +391,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
           kind: 'back',
           ids: addIds,
           onScreen: s.cards[s.index],
+          onScreenIsNew: s.newIds.includes(s.cards[s.index].id),
           countChange: result.removed.length - s.removed.length,
         },
       }));

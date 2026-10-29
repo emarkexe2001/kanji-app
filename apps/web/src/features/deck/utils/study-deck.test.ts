@@ -11,6 +11,7 @@ import {
   recordRemoved,
   resizeCards,
   shuffleIn,
+  shuffledOutFrom,
   stillNew,
   takeCards,
   type DeckCard,
@@ -263,4 +264,43 @@ test('the unticked notice names each deck, with "is" for one and "are" for sever
     describeUnticked(['N2', 'N1', 'common']),
     'JLPT N2, JLPT N1 and Common words are no longer available, so they have been unticked.',
   );
+});
+
+// ADJ3: which shuffled-out cards slide from the screen and which peel off the back of the deck.
+
+test('a multi-card Shuffle In replaces the card on screen first, then cards from inside the deck', () => {
+  for (const index of [0, 2, 4]) {
+    const cards = deck(5);
+    const result = shuffleIn({
+      cards,
+      index,
+      count: 3,
+      source: { kind: 'deck', deck: 'N4' },
+      library,
+      studied: 'N5',
+      now: 0,
+    });
+    assert.equal(result.ok, true);
+    if (!result.ok) continue;
+    assert.equal(result.replaced[0], index);
+    // One card slides from the screen and the other two from inside the deck.
+    assert.deepEqual(shuffledOutFrom(cards, index, result.replaced), { onScreen: cards[index], hidden: 2 });
+  }
+});
+
+test('shuffledOutFrom counts the cards from inside the deck whatever order the positions come in', () => {
+  const cards = deck(5);
+  assert.deepEqual(shuffledOutFrom(cards, 2, [4, 2, 0]), { onScreen: cards[2], hidden: 2 });
+  assert.deepEqual(shuffledOutFrom(cards, 2, [2]), { onScreen: cards[2], hidden: 0 });
+});
+
+test('shuffledOutFrom: when the card on screen stays, every card shuffled out was inside the deck', () => {
+  const cards = deck(5);
+  assert.deepEqual(shuffledOutFrom(cards, 1, [0, 3]), { onScreen: null, hidden: 2 });
+  assert.deepEqual(shuffledOutFrom(cards, 1, []), { onScreen: null, hidden: 0 });
+});
+
+test('shuffledOutFrom counts a position given twice once', () => {
+  const cards = deck(5);
+  assert.deepEqual(shuffledOutFrom(cards, 0, [0, 3, 3]), { onScreen: cards[0], hidden: 1 });
 });

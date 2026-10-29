@@ -86,7 +86,7 @@ export function Deck({
           <CardStack
             entry={held ?? cards[index]}
             move={move}
-            isNew={held ? false : isNew(index)}
+            isNew={held ? !!flights?.heldIsNew : isNew(index)}
             arrive={!flights?.quietArrival}
           />
         </div>
