@@ -12,25 +12,57 @@ This document describes the types of test used in the project, where each lives 
 | `npm run test:ui -w @kanji/web` | Only the web app's UI tests |
 | `npx vitest -w @kanji/web` (or `npx vitest` inside `apps/web`) | UI tests in watch mode, re-running as you save |
 | `npm test -w @kanji/core` | Only the `@kanji/core` unit tests |
+| `npm run typecheck` | Type-checks the code in `src/` and the tests in `test/` of every workspace |
+
+## Where tests live and how they are found
+
+Tests are kept apart from the code (standards 3), in a `test/` folder in each workspace:
+
+```
+apps/web/test/
+  unit/           # unit tests, grouped by feature (card-limit/, deck/)
+  ui-tests/       # UI / component tests, plus helpers.tsx
+  setup.ts        # Vitest setup for the UI tests
+  tsconfig.json   # type-checks everything in test/, plus vitest.config.ts
+packages/core/test/
+  unit/
+  tsconfig.json
+scripts/test/     # tests for the root scripts/
+```
+
+**Test files are found by pattern, so a new test file runs without changing any script.** Name it `*.test.ts` (unit) or `*.test.tsx` (UI) and put it in the right folder, in a subfolder if you like:
+
+| Tests | Pattern | Set in |
+|---|---|---|
+| Web unit tests | `test/unit/**/*.test.ts` | `test:unit` in `apps/web/package.json` |
+| Web UI tests | `test/ui-tests/**/*.test.{ts,tsx}` | `include` in `apps/web/vitest.config.ts` |
+| `@kanji/core` tests | `test/**/*.test.ts` | `test` in `packages/core/package.json` |
+| `scripts/` tests | `scripts/test/**/*.test.ts` | `test:scripts` in the root `package.json` |
+
+The patterns in the `package.json` scripts are in double quotes, so the shell leaves them alone and Node's test runner expands them itself. That way they work the same on Windows (where npm runs scripts with `cmd.exe`, which doesn't expand patterns) and on Linux in CI (where `sh` treats `**` as just one folder level, so tests in deeper subfolders would be missed). This needs Node 22 or later (CI uses 22).
+
+Test files and folders follow the same kebab-case naming rule as the code (e.g. `card-history.test.ts`), and ESLint checks it.
+
+**Tests are type-checked but never bundled.** Each `test/` folder has its own `tsconfig.json`, which extends the workspace's `tsconfig.json` and adds Node's types (for `node:test` and `node:assert`), so only the tests get them and the app code stays browser-only. The web one also covers `vitest.config.ts`. `npm run typecheck` checks both. Vite only bundles what `src/` imports, and nothing in `src/` imports from `test/`.
 
 ## Types of test
 
 ### Unit tests
 - **What they check:** one function or small piece of logic on its own, with no React and no browser. For example card-limit validation (`parseDeckSizeInput`) and splitting a word into its kanji readings (`segmentWord`).
 - **Tools:** Node's built-in test runner (`node:test`), run through `tsx`.
-- **Where they live (for now):** next to the code, as `*.test.ts`:
-  - `apps/web/src/features/card-limit/utils/deck-size.test.ts`
-  - `apps/web/src/features/deck/utils/study-deck.test.ts` (deck rules that need a fixed random source, e.g. Random taking each card from a random other deck, or Multiple decks picking across the ticked decks combined)
-  - `apps/web/src/features/deck/utils/card-history.test.ts` (where Back goes: the last card seen still in the deck, skipping gone cards and the card on screen, the card before in deck order when nothing is left, and the 50-card limit)
-  - `packages/core/src/segment.test.ts`
+- **Where they live:** in `test/unit/` as `*.test.ts`, grouped by the feature they test. They import the code they test from `src/` (e.g. `../../../src/features/deck/utils/card-history`). Every `*.test.ts` file there is picked up automatically.
+- **Current files:**
+  - `apps/web/test/unit/card-limit/deck-size.test.ts`
+  - `apps/web/test/unit/deck/study-deck.test.ts` (deck rules that need a fixed random source, e.g. Random taking each card from a random other deck, or Multiple decks picking across the ticked decks combined)
+  - `apps/web/test/unit/deck/card-history.test.ts` (where Back goes: the last card seen still in the deck, skipping gone cards and the card on screen, the card before in deck order when nothing is left, and the 50-card limit)
+  - `packages/core/test/unit/segment.test.ts`
   - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
-
-  Ticket TEST2 moves these into `test/unit/` folders and makes the test command find them by pattern. Until then, a new unit test file has to be added to the workspace's `test` / `test:unit` script.
+  - `scripts/test/check-commit-message.test.ts` (the commit message rules checked by the commit hook and `npm run check:commits`; runs with `npm run test:scripts`)
 
 ### UI / component tests
 - **What they check:** the app the way a user sees it. They render the real `App`, click buttons and type into fields with [Testing Library](https://testing-library.com/), and check what is on screen: the card shown, the "Card 3 of 10" counter, validation messages. They don't look at component state, so they keep passing if the code is refactored without changing behaviour.
 - **Tools:** [Vitest](https://vitest.dev/) with a `jsdom` browser environment, `@testing-library/react`, `@testing-library/user-event` and `@testing-library/jest-dom` (for matchers like `toBeInTheDocument()`).
-- **Where they live:** `apps/web/test/ui-tests/*.test.tsx`. Vitest finds every `*.test.ts(x)` file there automatically (`apps/web/vitest.config.ts`).
+- **Where they live:** `apps/web/test/ui-tests/*.test.tsx`. Vitest finds every `*.test.ts(x)` file there (and in its subfolders) automatically (`apps/web/vitest.config.ts`).
 - **Data:** the tests never download the real dictionary. `test/ui-tests/helpers.tsx` replaces `fetch` so the app receives a list of made-up words (`makeWords`, or `makeDecks` for words in several JLPT decks), and has helpers to read the counter and the current card, type a card limit, pick decks, shuffle cards in and list every card in the deck (`deckContents`).
 - **Current files:**
   - `deck.test.tsx`: Next, the → key, wrapping round, Deck Shuffle and the S key, the "Card 5 of 20" position

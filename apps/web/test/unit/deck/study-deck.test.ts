@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { JlptLevel, WordEntry } from '@kanji/core';
-import { buildLibrary } from './decks';
+import { buildLibrary } from '../../../src/features/deck/utils/decks';
 import {
   addBack,
   checkTicked,
@@ -17,7 +17,7 @@ import {
   type DeckCard,
   type RemovedCard,
   type ShuffleSource,
-} from './study-deck';
+} from '../../../src/features/deck/utils/study-deck';
 
 const word = (id: string, jlpt?: JlptLevel, common = false): WordEntry => ({
   id,

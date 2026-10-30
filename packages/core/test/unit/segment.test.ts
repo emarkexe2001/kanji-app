@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { segmentWord, type KanjiIndex, type KanjiInfo } from './segment';
+import { segmentWord, type KanjiIndex, type KanjiInfo } from '../../src/segment';
 
 const k = (on: string[], kun: string[], meaning = ''): KanjiInfo => ({
   on,
