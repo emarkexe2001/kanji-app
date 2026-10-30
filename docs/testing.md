@@ -56,6 +56,7 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `apps/web/test/unit/deck/study-deck.test.ts` (deck rules that need a fixed random source, e.g. Random taking each card from a random other deck, or Multiple decks picking across the ticked decks combined)
   - `apps/web/test/unit/deck/card-history.test.ts` (where Back goes: the last card seen still in the deck, skipping gone cards and the card on screen, the card before in deck order when nothing is left, and the 50-card limit)
   - `packages/core/test/unit/segment.test.ts`
+  - `packages/core/test/unit/color-modes.test.ts` (FEAT5: the colour modes, the Dark palette and reading/pick colours from the ticket, and the 4.5:1 / 3:1 contrast pairs in Dark)
   - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
   - `scripts/test/check-commit-message.test.ts` (the commit message rules checked by the commit hook and `npm run check:commits`; runs with `npm run test:scripts`)
 
@@ -78,6 +79,10 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `missing-card-data.test.tsx`: a shuffled-out card or a deck card whose data is missing completely (FEAT2_6): only that card shows "This card can't be shown." (in "Add back" or "Take out of your deck") and the rest of the view and the deck keep working
   - `card-limit.test.tsx`: setting the limit, + / −, saving it, and every validation message
   - `failure-paths.test.tsx`: the dictionary failing to load, a card failing to draw (error boundary), blocked browser storage, a corrupt saved limit
+  - `color-mode.test.tsx`: the colour mode menu (FEAT5): the button in the top left of the two-row header and what screen readers hear, the menu and its tick, choosing Light or Dark (instant, saved, opens in it next time), the keyboard, pressing outside, the Shuffled-out panel staying open (Escape closes only the menu), broken or unknown saved values and blocked storage (Light), and the Dark reading colours, pick outlines and the colours that stay the same
+  - `color-mode-script.test.ts`: the small script in `index.html` that puts the saved mode on the page before it is first drawn (no flash): it runs first, and opens in the same mode as the app for every saved value, including broken ones and blocked storage
+  - `color-mode-css.test.ts` (runs in Node, not jsdom): `index.css` against the colour tokens in `@kanji/core`, Light against the Tailwind colours it used before, and the stylesheet built the way the production build builds it (`index.css` compiled as `@tailwindcss/vite` does: Tailwind's compiler, its file scanner, then the minifier; the rest of the app isn't built), so a colour class that Tailwind doesn't generate is caught. Helpers for it are in `mode-colors.ts`
+  - `card-slides.test.tsx` also checks that changing the colour mode while cards slide lands them first, as any press does (FEAT5)
 
 ### Commit message check
 Commit messages are checked against [standards.md, section 5.5](standards/standards.md#55-commit-messages) by `scripts/check-commit-message.ts`. The `commit-msg` hook runs it on every commit and CI runs it on every commit in a pull request. To run it by hand (from the repo root):

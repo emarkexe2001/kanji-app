@@ -3,6 +3,7 @@ import { StrictMode, type ComponentProps } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { MODE_COLORS } from '@kanji/core';
 import App from '../../src/app/app';
 import type { CardStack as RealCardStack } from '../../src/features/deck/components/card-stack';
 import {
@@ -16,6 +17,7 @@ import {
   shuffleIn,
   type User,
 } from './helpers';
+import { tailwindColor } from './mode-colors';
 
 /** Set to make the deck card fail to draw, to crash the deck while the panel is open. */
 const crash = vi.hoisted(() => ({ deckCard: false }));
@@ -111,7 +113,10 @@ describe('Floating shuffled-out panel (ADJ2)', () => {
 
     const open = openPanel();
     // jsdom has no colours or shadows, so the classes are checked.
-    expect(open).toHaveClass('bg-sky-50', 'border', 'border-sky-200', 'rounded-xl', 'shadow-xl');
+    // Since FEAT5 its colours are colour mode tokens, sky-50 and sky-200 in Light as before.
+    expect(open).toHaveClass('bg-panel', 'border', 'border-panel-line', 'rounded-xl', 'shadow-xl');
+    expect(MODE_COLORS.light.panel).toBe(tailwindColor('sky-50'));
+    expect(MODE_COLORS.light['panel-line']).toBe(tailwindColor('sky-200'));
     const heading = within(open).getByRole('heading', { name: 'Shuffled-out cards' });
     // The × is in the title row, after the title, and screen readers hear its label, not "×".
     expect(heading.parentElement).toContainElement(closeButton());

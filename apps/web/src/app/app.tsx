@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { WordEntry } from '@kanji/core';
+import { ColorModeMenu } from '../features/color-mode/components/color-mode-menu';
+import { useColorModeChoice } from '../features/color-mode/hooks/use-color-mode-choice';
 import { CardLimitControl } from '../features/card-limit/components/card-limit-control';
 import { useCardLimit } from '../features/card-limit/hooks/use-card-limit';
 import { CardFlightLayer } from '../features/deck/components/card-flights';
@@ -13,6 +15,7 @@ import { useCardFlights } from '../features/deck/hooks/use-card-flights';
 import { useDeck } from '../features/deck/hooks/use-deck';
 import { useStudyDeck } from '../features/deck/hooks/use-study-deck';
 import { buildLibrary, type Library } from '../features/deck/utils/decks';
+import { ColorModeContext } from '../hooks/use-color-mode';
 import { DeckErrorBoundary } from './deck-error-boundary';
 
 /**
@@ -68,7 +71,7 @@ function Decks({ words, headerSlot }: { words: WordEntry[]; headerSlot: HTMLElem
   const library = useMemo(() => buildLibrary(words), [words]);
   if (!library.decks.size) {
     return (
-      <p className="flex flex-1 items-center justify-center text-center text-rose-600">
+      <p className="flex flex-1 items-center justify-center text-center text-danger-ink">
         The word deck has no words to study.
       </p>
     );
@@ -78,55 +81,62 @@ function Decks({ words, headerSlot }: { words: WordEntry[]; headerSlot: HTMLElem
 
 export default function App() {
   const deck = useDeck();
+  const [colorMode, chooseColorMode] = useColorModeChoice();
   // Where the deck puts the "Shuffled out (N)" button: top right of the header (ADJ1).
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 py-6">
-      {/* The title wraps onto two lines when the button doesn't fit beside it (ADJ1). */}
-      <header className="flex items-start justify-between gap-3">
-        <h1 className="min-w-0 text-lg font-bold">Kanji Reading Highlighter</h1>
-        <div ref={setHeaderSlot} className="contents" />
-      </header>
+    <ColorModeContext value={colorMode}>
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 py-6">
+        {/* Two rows (FEAT5, option B): the colour mode menu top left and "Shuffled out (N)" top right
+          (ADJ1), then the title on its own row, so it stays on one line from 320px up. */}
+        <header className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <ColorModeMenu mode={colorMode} onChoose={chooseColorMode} />
+            <div ref={setHeaderSlot} className="contents" />
+          </div>
+          <h1 className="text-lg font-bold">Kanji Reading Highlighter</h1>
+        </header>
 
-      {deck.status === 'loading' && (
-        <p className="flex flex-1 items-center justify-center text-slate-500">Loading dictionary…</p>
-      )}
-      {deck.status === 'error' && (
-        <p className="flex flex-1 items-center justify-center text-center text-rose-600">
-          Couldn&apos;t load the word deck: {deck.message}
-        </p>
-      )}
-      {deck.status === 'ready' && (
-        <DeckErrorBoundary>
-          <Decks words={deck.words} headerSlot={headerSlot} />
-        </DeckErrorBoundary>
-      )}
+        {deck.status === 'loading' && (
+          <p className="flex flex-1 items-center justify-center text-muted">Loading dictionary…</p>
+        )}
+        {deck.status === 'error' && (
+          <p className="flex flex-1 items-center justify-center text-center text-danger-ink">
+            Couldn&apos;t load the word deck: {deck.message}
+          </p>
+        )}
+        {deck.status === 'ready' && (
+          <DeckErrorBoundary>
+            <Decks words={deck.words} headerSlot={headerSlot} />
+          </DeckErrorBoundary>
+        )}
 
-      <footer className="mt-6 text-center text-[11px] leading-snug text-slate-400">
-        Dictionary data from{' '}
-        <a className="underline" href="https://www.edrdg.org/" target="_blank" rel="noreferrer">
-          JMdict &amp; KANJIDIC2
-        </a>{' '}
-        © EDRDG, used under{' '}
-        <a className="underline" href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noreferrer">
-          CC BY-SA 4.0
-        </a>
-        . JLPT levels from{' '}
-        <a
-          className="underline"
-          href="https://github.com/jamsinclair/open-anki-jlpt-decks"
-          target="_blank"
-          rel="noreferrer"
-        >
-          open-anki-jlpt-decks
-        </a>
-        , based on the lists at{' '}
-        <a className="underline" href="http://www.tanos.co.uk/jlpt/" target="_blank" rel="noreferrer">
-          tanos.co.uk
-        </a>
-        .
-      </footer>
-    </main>
+        <footer className="mt-6 text-center text-[11px] leading-snug text-faint">
+          Dictionary data from{' '}
+          <a className="underline" href="https://www.edrdg.org/" target="_blank" rel="noreferrer">
+            JMdict &amp; KANJIDIC2
+          </a>{' '}
+          © EDRDG, used under{' '}
+          <a className="underline" href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noreferrer">
+            CC BY-SA 4.0
+          </a>
+          . JLPT levels from{' '}
+          <a
+            className="underline"
+            href="https://github.com/jamsinclair/open-anki-jlpt-decks"
+            target="_blank"
+            rel="noreferrer"
+          >
+            open-anki-jlpt-decks
+          </a>
+          , based on the lists at{' '}
+          <a className="underline" href="http://www.tanos.co.uk/jlpt/" target="_blank" rel="noreferrer">
+            tanos.co.uk
+          </a>
+          .
+        </footer>
+      </main>
+    </ColorModeContext>
   );
 }

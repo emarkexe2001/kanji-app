@@ -8,6 +8,49 @@
   --color-okurigana: #43a047;
   --color-common: #eba834;
 
+  /* The colours of the page, its boxes and its text (FEAT5), as in MODE_COLORS in @kanji/core: these
+     are Light, the app as it always looked; Dark is under [data-color-mode='dark'] below. */
+  --color-page: #f8fafc;
+  --color-ink: #0f172a;
+  --color-ink-strong: oklch(20.8% 0.042 265.755);
+  --color-ink-soft: oklch(37.2% 0.044 257.287);
+  --color-ink-firm: oklch(27.9% 0.041 260.031);
+  --color-muted: oklch(55.4% 0.046 257.417);
+  --color-muted-strong: oklch(44.6% 0.043 257.281);
+  --color-faint: oklch(70.4% 0.04 256.788);
+  --color-card: #fff;
+  --color-card-line: oklch(92.9% 0.013 255.508);
+  --color-card-back-near: #f8fafc;
+  --color-card-back-far: #f1f5f9;
+  --color-card-back-line: #e2e8f0;
+  --color-card-shadow: rgb(15 23 42 / 0.35);
+  --color-box: oklch(98.4% 0.003 247.858);
+  --color-box-line: oklch(92.9% 0.013 255.508);
+  --color-section: oklch(96.8% 0.007 247.896);
+  --color-field: #fff;
+  --color-field-line: oklch(86.9% 0.022 252.894);
+  --color-field-hover: oklch(98.4% 0.003 247.858);
+  --color-seg-line: oklch(86.9% 0.022 252.894);
+  --color-back: #fff;
+  --color-back-line: oklch(70.4% 0.04 256.788);
+  --color-back-hover: oklch(96.8% 0.007 247.896);
+  --color-next: oklch(20.8% 0.042 265.755);
+  --color-next-ink: #fff;
+  --color-next-hover: oklch(37.2% 0.044 257.287);
+  --color-shuffle-box: oklch(97.9% 0.021 166.113);
+  --color-shuffle-line: transparent;
+  --color-ticks-line: oklch(90.5% 0.093 164.15);
+  --color-panel: oklch(97.7% 0.013 236.62);
+  --color-panel-line: oklch(90.1% 0.058 230.902);
+  --color-panel-hover: oklch(95.1% 0.026 236.824);
+  --color-from-ink: oklch(44.3% 0.11 240.79);
+  --color-success-ink: oklch(50.8% 0.118 165.612);
+  --color-warn-ink: oklch(55.5% 0.163 48.998);
+  --color-danger-ink: oklch(58.6% 0.253 17.585);
+  --color-danger-ink-strong: oklch(51.4% 0.222 16.935);
+  --color-danger-line: oklch(89.2% 0.058 10.001);
+  --color-menu-selected: oklch(96.8% 0.007 247.896);
+
   --color-jlpt-n5: #10b981;
   --color-jlpt-n4: #06b6d4;
   --color-jlpt-n3: #6366f1;
@@ -24,8 +67,69 @@
 
 body {
   font-family: var(--font-jp);
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+/* ---- Dark mode (FEAT5): the slate palette, as in MODE_COLORS, READING_COLORS_BY_MODE and
+   PICK_OUTLINE_COLORS in @kanji/core. index.html puts the saved mode on <html> before the page is
+   first drawn. The coloured buttons, JLPT headers, ★ Common Word badge and NEW ribbon keep their
+   colours. In a forced-colours (high-contrast) mode the device's colours win, as before. ---- */
+:root[data-color-mode='dark'] {
+  /* The browser's own parts (dropdown lists, number field arrows, scrollbars) go dark too. */
+  color-scheme: dark;
+
+  --color-page: #0f172a;
+  --color-ink: #f1f5f9;
+  --color-ink-strong: #f1f5f9;
+  --color-ink-soft: #e2e8f0;
+  --color-ink-firm: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-muted-strong: #94a3b8;
+  --color-faint: #94a3b8;
+  --color-card: #1e293b;
+  --color-card-line: #334155;
+  --color-card-back-near: #1a2436;
+  --color-card-back-far: #162032;
+  --color-card-back-line: #334155;
+  --color-card-shadow: rgb(0 0 0 / 0.6);
+  --color-box: #162032;
+  --color-box-line: #334155;
+  --color-section: #1e293b;
+  --color-field: #0f172a;
+  --color-field-line: #475569;
+  --color-field-hover: #1e293b;
+  --color-seg-line: #334155;
+  --color-back: transparent;
+  --color-back-line: #64748b;
+  --color-back-hover: #1e293b;
+  --color-next: #f1f5f9;
+  --color-next-ink: #0f172a;
+  --color-next-hover: #cbd5e1;
+  --color-shuffle-box: #06261f;
+  --color-shuffle-line: #065f46;
+  --color-ticks-line: #065f46;
+  --color-panel: #132136;
+  --color-panel-line: #1e3a5f;
+  --color-panel-hover: #1e3a5f;
+  --color-from-ink: #7dd3fc;
+  --color-success-ink: #34d399;
+  --color-warn-ink: #fcd34d;
+  --color-danger-ink: #fb7185;
+  --color-danger-ink-strong: #fda4af;
+  --color-danger-line: #9f1239;
+  --color-menu-selected: #334155;
+
+  --color-onyomi: #64b5f6;
+  --color-kunyomi: #f87171;
+  --color-okurigana: #4ade80;
+}
+
+/* Switching modes is instant (FEAT5): nothing fades from one mode's colours to the other's while
+   the switch is made (see holdTransitions in src/lib/color-mode.ts). */
+:root[data-color-mode-switching],
+:root[data-color-mode-switching] * {
+  transition: none !important;
 }
 
 /* ---- Card deck: two blank cards fanned out behind the front card ---- */
@@ -33,18 +137,18 @@ body {
   position: absolute;
   inset: 0 0 32px 0; /* matches the deck's pb-8 so the backs align with the front card */
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--color-card);
   box-shadow:
-    0 0 0 1px #e2e8f0,
-    0 8px 16px -6px rgb(15 23 42 / 0.35);
+    0 0 0 1px var(--color-card-back-line),
+    0 8px 16px -6px var(--color-card-shadow);
 }
 .deck-back-near {
   transform: translateY(13px) rotate(-2.4deg) scale(0.97);
-  background: #f8fafc;
+  background: var(--color-card-back-near);
 }
 .deck-back-far {
   transform: translateY(26px) rotate(2.8deg) scale(0.94);
-  background: #f1f5f9;
+  background: var(--color-card-back-far);
 }
 
 /* ---- Dealing animations for the front card ---- */
@@ -164,10 +268,10 @@ body {
 }
 .card-flyer-blank {
   border-radius: 0.75rem;
-  background: #f1f5f9;
+  background: var(--color-card-back-far);
   box-shadow:
-    0 0 0 1px #e2e8f0,
-    0 8px 16px -6px rgb(15 23 42 / 0.35);
+    0 0 0 1px var(--color-card-back-line),
+    0 8px 16px -6px var(--color-card-shadow);
 }
 @media (forced-colors: active) {
   /* Shadows are dropped in a high-contrast mode, so the blank card gets a border to be seen. */
@@ -233,5 +337,5 @@ body {
 }
 @utility meaning-text {
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-ink);
 }

@@ -18,7 +18,7 @@ export class DeckErrorBoundary extends Component<{ children: ReactNode }, { hasE
   render() {
     if (this.state.hasError) {
       return (
-        <p role="alert" className="flex flex-1 items-center justify-center text-center text-rose-600">
+        <p role="alert" className="flex flex-1 items-center justify-center text-center text-danger-ink">
           Something went wrong showing the cards. Please reload the page to try again.
         </p>
       );

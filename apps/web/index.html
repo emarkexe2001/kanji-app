@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kanji Reading Highlighter</title>
+    <!--
+      FEAT5: puts the saved colour mode on the page before it is first drawn, so it opens in Dark
+      with no flash of Light. It runs before the stylesheet and the app, so it can't import the
+      app's code: it does the same as loadColorMode and applyColorMode in src/lib/color-mode.ts
+      (the same storage key and modes; anything else, or blocked storage, is Light).
+      test/ui-tests/color-mode-script.test.ts checks the two agree.
+    -->
+    <script>
+      (function () {
+        var modes = ['light', 'dark'];
+        var mode = 'light';
+        try {
+          var saved = window.localStorage.getItem('kanji.colorMode');
+          if (modes.indexOf(saved) !== -1) mode = saved;
+        } catch (e) {
+          /* storage blocked: Light */
+        }
+        document.documentElement.setAttribute('data-color-mode', mode);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

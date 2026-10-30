@@ -11,8 +11,8 @@ import {
   type ShuffleMode,
 } from '../utils/study-deck';
 
-const fieldClass = 'rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm font-semibold';
-const errorClass = 'text-xs font-semibold text-rose-600';
+const fieldClass = 'rounded-lg border border-field-line bg-field px-2 py-1.5 text-sm font-semibold';
+const errorClass = 'text-xs font-semibold text-danger-ink';
 
 const MODE_LABELS: Record<ShuffleMode, string> = {
   deck: 'One deck',
@@ -30,10 +30,10 @@ const MODE_LABELS: Record<ShuffleMode, string> = {
  */
 const SEGMENT_CLASS = [
   'flex min-h-9 cursor-pointer items-center justify-center px-1 py-1 text-center text-[13px] leading-tight font-semibold',
-  'text-slate-700 not-first:border-l not-first:border-slate-300',
+  'text-ink-soft not-first:border-l not-first:border-seg-line',
   'has-checked:bg-emerald-700 has-checked:text-white',
   'has-focus-visible:outline-2 has-focus-visible:-outline-offset-4 has-focus-visible:outline-current',
-  'has-disabled:cursor-not-allowed has-disabled:bg-slate-100 has-disabled:text-slate-400',
+  'has-disabled:cursor-not-allowed has-disabled:bg-section has-disabled:text-faint',
   'forced-colors:forced-color-adjust-none forced-colors:bg-[color:Canvas] forced-colors:text-[color:CanvasText]',
   'forced-colors:has-checked:bg-[color:Highlight] forced-colors:has-checked:text-[color:HighlightText]',
   'forced-colors:has-disabled:text-[color:GrayText]',
@@ -50,8 +50,8 @@ interface ModeSwitchProps {
 function ModeSwitch({ mode, multipleAllowed, onChange }: ModeSwitchProps) {
   return (
     <fieldset>
-      <legend className="mb-1.5 text-sm font-semibold text-slate-700">Shuffle in from</legend>
-      <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-300 bg-white">
+      <legend className="mb-1.5 text-sm font-semibold text-ink-soft">Shuffle in from</legend>
+      <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-seg-line bg-field">
         {SHUFFLE_MODES.map((m) => {
           const disabled = m === 'multiple' && !multipleAllowed;
           return (
@@ -72,7 +72,7 @@ function ModeSwitch({ mode, multipleAllowed, onChange }: ModeSwitchProps) {
         })}
       </div>
       {!multipleAllowed && (
-        <p id="shuffle-in-multiple-hint" className="mt-1 text-right text-xs text-slate-600">
+        <p id="shuffle-in-multiple-hint" className="mt-1 text-right text-xs text-muted-strong">
           Needs at least two other decks.
         </p>
       )}
@@ -94,10 +94,10 @@ function TickedDecks({ sources, ticked, error, onChange }: TickedDecksProps) {
   return (
     <fieldset
       aria-describedby={error ? 'shuffle-in-decks-error' : undefined}
-      className="rounded-lg border border-emerald-200 bg-white px-2.5 pb-2"
+      className="rounded-lg border border-ticks-line bg-field px-2.5 pb-2"
     >
-      <legend className="px-1 text-[13px] font-semibold text-slate-700">Decks to shuffle in from</legend>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-slate-800">
+      <legend className="px-1 text-[13px] font-semibold text-ink-soft">Decks to shuffle in from</legend>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-ink-firm">
         {sources.map((deck) => (
           <label key={deck} className="flex min-h-8 cursor-pointer items-center gap-2">
             <input
@@ -142,7 +142,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
 
   if (!choice || !sources.length) {
     return (
-      <div className="mt-4 rounded-xl bg-emerald-50 px-3 py-2">
+      <div className="mt-4 rounded-xl bg-shuffle-box px-3 py-2 ring-1 ring-shuffle-line">
         <button
           type="button"
           disabled
@@ -151,7 +151,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
         >
           Shuffle In Cards
         </button>
-        <p id="shuffle-in-unavailable" className="mt-2 text-center text-xs text-slate-600">
+        <p id="shuffle-in-unavailable" className="mt-2 text-center text-xs text-muted-strong">
           There&apos;s no other deck to shuffle in from.
         </p>
       </div>
@@ -177,7 +177,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
   return (
     <form
       noValidate
-      className="mt-4 space-y-2 rounded-xl bg-emerald-50 px-3 py-2"
+      className="mt-4 space-y-2 rounded-xl bg-shuffle-box px-3 py-2 ring-1 ring-shuffle-line"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -218,12 +218,12 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
         />
       )}
       {unticked.length > 0 && (
-        <p role="status" className="text-xs font-semibold text-amber-700">
+        <p role="status" className="text-xs font-semibold text-warn-ink">
           {describeUnticked(unticked)}
         </p>
       )}
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor="shuffle-in-count" className="text-sm font-semibold text-slate-700">
+        <label htmlFor="shuffle-in-count" className="text-sm font-semibold text-ink-soft">
           Cards to shuffle in
         </label>
         <input

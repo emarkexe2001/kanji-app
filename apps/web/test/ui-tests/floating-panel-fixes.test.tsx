@@ -6,9 +6,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { WordEntry } from '@kanji/core';
+import { MODE_COLORS, type WordEntry } from '@kanji/core';
 import { WIDE_LAYOUT_MIN_WIDTH, WIDE_LAYOUT_QUERY } from '../../src/features/deck/utils/wide-layout';
 import { currentWord, makeDecks, makeWords, renderApp, shuffleIn, type User } from './helpers';
+import { tailwindColor } from './mode-colors';
 
 const DECKS = makeDecks({ N5: 30, N4: 30 });
 
@@ -420,7 +421,9 @@ describe('Checks on the compact cards and the panel footer (ADJ2_5, from the ADJ
     // jsdom has no borders or colours, so the classes are checked.
     const footer = screen.getByRole('button', { name: 'Add Back Cards' }).parentElement!.parentElement!;
     expect(openPanel()).toContainElement(footer);
-    expect(footer).toHaveClass('border-t', 'border-sky-200', 'shrink-0');
+    // Since FEAT5 its colour is a colour mode token, sky-200 in Light as before.
+    expect(footer).toHaveClass('border-t', 'border-panel-line', 'shrink-0');
+    expect(MODE_COLORS.light['panel-line']).toBe(tailwindColor('sky-200'));
   });
 
   test('a compact card that is new keeps the 11px "New" ribbon text', async () => {

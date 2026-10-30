@@ -6,20 +6,25 @@ import type { StudyDeck } from '../hooks/use-study-deck';
 import { CardStack } from './card-stack';
 import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-view';
 
-/** Keyboard shortcuts shouldn't fire while the user is typing in a field or using a list. */
+/**
+ * Keyboard shortcuts shouldn't fire while the user is typing in a field or using a list, or while
+ * they are in an open menu (e.g. the colour mode menu, FEAT5), where the keys are the menu's.
+ */
 const isTyping = (target: EventTarget | null) =>
-  target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
+  target instanceof HTMLElement &&
+  (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest('[role="menu"]') !== null);
 
 /**
- * The Back button (FEAT6): an outline button (white, slate-400 border, slate-900 text) so it
+ * The Back button (FEAT6): an outline button (white, slate-400 border, slate-900 text; in Dark
+ * mode see-through, with a slate-500 border and light text, FEAT5) so it
  * reads as the quieter partner of Next. Its focus ring is drawn on purpose, and in a forced-colours
  * (high-contrast) mode its border uses the system ButtonText colour so it can still be told apart.
  * Its padding is 1px less than the other buttons' so that, with the border, it is 48px tall too.
  */
 const BACK_BUTTON = [
-  'min-h-12 rounded-xl border border-slate-400 bg-white px-4 py-2.75 font-semibold text-slate-900 shadow-sm transition',
-  'hover:bg-slate-100 active:scale-95',
-  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900',
+  'min-h-12 rounded-xl border border-back-line bg-back px-4 py-2.75 font-semibold text-ink-strong shadow-sm transition',
+  'hover:bg-back-hover active:scale-95',
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-strong',
   'forced-colors:border-[color:ButtonText]',
 ].join(' ');
 
@@ -73,10 +78,10 @@ export function Deck({
 
   return (
     <>
-      <p className="mt-4 text-center text-sm text-slate-500 tabular-nums">
+      <p className="mt-4 text-center text-sm text-muted tabular-nums">
         Card {index + 1} of {cards.length}
       </p>
-      <p role="status" className="min-h-5 text-center text-sm font-semibold text-emerald-700">
+      <p role="status" className="min-h-5 text-center text-sm font-semibold text-success-ink">
         {summary}
       </p>
 
@@ -104,7 +109,7 @@ export function Deck({
         <button
           type="button"
           onClick={next}
-          className="min-h-12 rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-slate-700 active:scale-95"
+          className="min-h-12 rounded-xl bg-next px-4 py-3 font-semibold text-next-ink shadow-sm transition hover:bg-next-hover active:scale-95"
         >
           Next →
         </button>
@@ -119,9 +124,7 @@ export function Deck({
 
       {children}
 
-      <p className="mt-3 hidden text-center text-xs text-slate-400 sm:block">
-        Keyboard: ← back · → next · S deck shuffle
-      </p>
+      <p className="mt-3 hidden text-center text-xs text-faint sm:block">Keyboard: ← back · → next · S deck shuffle</p>
     </>
   );
 }
