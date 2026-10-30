@@ -5,13 +5,13 @@ Feature Name:
 High-Contrast Mode
 
 Origin:
-Split from FEAT5 on 2026-10-22. FEAT5 adds the start page, the mode menu and Light and Dark modes. This ticket adds a third mode, High contrast.
+Split from FEAT5 on 2026-10-22. FEAT5 adds the mode menu and Light and Dark modes, and FEAT5_1 adds the start page (split on 2026-10-30). This ticket adds a third mode, High contrast.
 
 Feature Description:
 As a user I would like a high-contrast mode, black with white text, that I can choose on the start page or from the mode menu, so the app is as easy as possible to read.
 
 Feature Requirements / Expected Behaviours:
-- High contrast is a third option on the start page and in the mode menu from FEAT5, next to Light and Dark.
+- High contrast is a third option on the start page (FEAT5_1) and in the mode menu (FEAT5), next to Light and Dark. The start page tile layout for three modes is decided here, with a mockup.
 - High-contrast mode is black with white text across the whole app (header, start page, menu, deck, cards, Shuffled-out panel, controls and footer). Text has a contrast of at least 7:1, with no faint greys.
 - Buttons, inputs, cards and picked cards have thick, clear white outlines, and focus outlines are always easy to see.
 - The colour coding still works: the reading colours, JLPT headers, green/red pick colours, red danger buttons and the NEW ribbon use brighter versions that stay readable on black and can still be told apart, not by colour alone where it matters (e.g. the tick on picked cards stays).
@@ -43,7 +43,7 @@ Open Questions (to confirm with a mockup before starting - standards 5.1):
 - Should the JLPT card headers keep their coloured backgrounds, or become black with a coloured outline and white text?
 
 Dependencies:
-FEAT5 must be merged first, since this adds an option to its start page and menu.
+FEAT5 and FEAT5_1 must be merged first, since this adds an option to the menu and the start page.
 
 Branch name Examples:
 feature/high-contrast-mode
