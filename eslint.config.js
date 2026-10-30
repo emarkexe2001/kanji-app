@@ -43,10 +43,11 @@ export default tseslint.config(
   { files: ['apps/web/**/*.tsx'], ...react.configs.flat['jsx-runtime'] },
   { files: ['apps/web/**/*.{ts,tsx}'], ...reactHooks.configs.flat['recommended-latest'] },
 
-  // Naming (standards 2.2): files and folders use kebab-case. Test folders and config files are exempt.
+  // Naming (standards 2.2): files and folders use kebab-case, tests in test/ included
+  // (e.g. deck-size.test.ts, ui-tests/). Config files are exempt.
   {
     files: ['**/*.{ts,tsx,js}'],
-    ignores: ['**/test/**', '*.config.{js,ts}', '**/*.config.{js,ts}'],
+    ignores: ['*.config.{js,ts}', '**/*.config.{js,ts}'],
     plugins: { 'check-file': checkFile },
     rules: {
       'check-file/filename-naming-convention': [
