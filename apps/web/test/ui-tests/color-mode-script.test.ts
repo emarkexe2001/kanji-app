@@ -33,11 +33,25 @@ describe('the colour mode script in index.html (FEAT5)', () => {
     // A plain script runs as soon as it is read (a module script would wait until the page is parsed).
     expect(script().getAttribute('type')).toBeNull();
     expect(script().hasAttribute('defer') || script().hasAttribute('async')).toBe(false);
+    // Only the page's details (charset, viewport, title) come before it in <head>: nothing it would
+    // wait for, and no stylesheet that could be drawn first.
+    const before = [...page.head.children].slice(0, [...page.head.children].indexOf(script()));
+    expect(before.map((el) => el.tagName)).toEqual(['META', 'META', 'TITLE']);
+    // The app (its module script) comes after it.
     const app = page.querySelector('script[type="module"]')!;
     expect(script().compareDocumentPosition(app) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    for (const sheet of page.querySelectorAll('link[rel="stylesheet"], style')) {
-      expect(script().compareDocumentPosition(sheet) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    }
+  });
+
+  test('the stylesheet only comes in through the app, which the build links after the script', () => {
+    // index.html has no stylesheet of its own: the colours come from index.css, which the app's
+    // entry imports. The build turns that into a <link> at the end of <head>, after both scripts
+    // (checked in the built index.html in the PR), so the script has always run by the time the
+    // page can be drawn with the stylesheet.
+    expect(page.querySelectorAll('link[rel="stylesheet"], style')).toHaveLength(0);
+    const app = page.querySelector('script[type="module"]')!;
+    expect(app.getAttribute('src')).toBe('/src/app/main.tsx');
+    const entry = readFileSync(resolve(__dirname, '../../src/app/main.tsx'), 'utf8');
+    expect(entry).toMatch(/^import '\.\/index\.css';$/m);
   });
 
   test('it reads the same storage key and sets the same attribute as the app', () => {

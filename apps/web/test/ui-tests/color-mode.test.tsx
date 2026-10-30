@@ -321,6 +321,49 @@ describe('The colour mode menu with the keyboard (FEAT5)', () => {
     expect(item('Light')).toBeChecked();
     expect(item('Dark')).not.toBeChecked();
   });
+
+  test.each([
+    ['{ArrowRight}', '→ (Next)'],
+    ['{ArrowLeft}', '← (Back)'],
+    ['s', 'S (Deck Shuffle)'],
+    ['S', 'Shift+S (Deck Shuffle)'],
+  ])('%s with the menu open does nothing to the cards behind it: %s', async (key) => {
+    const user = await renderApp(DECKS);
+    await user.click(screen.getByRole('button', { name: 'Next →' })); // so Back has somewhere to go
+    const before = { word: currentWord(), position: counter().position };
+    modeButton().focus();
+    await user.keyboard('{Enter}');
+    expect(item('Light')).toHaveFocus();
+
+    await user.keyboard(key);
+
+    expect(currentWord()).toBe(before.word);
+    expect(counter().position).toBe(before.position);
+    // The menu is still open, and its own keys still work.
+    expect(menu()).toBeInTheDocument();
+    await user.keyboard('{ArrowDown}');
+    expect(item('Dark')).toHaveFocus();
+    await user.keyboard('{End}{Home}');
+    expect(item('Light')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(menu()).not.toBeInTheDocument();
+    expect(modeButton()).toHaveFocus();
+  });
+
+  test('with the menu closed, →, ← and S work as before, even with focus on the mode button', async () => {
+    const user = await renderApp(DECKS);
+    const first = currentWord();
+    modeButton().focus();
+    await user.keyboard('{ArrowRight}');
+    expect(counter().position).toBe(2);
+    expect(currentWord()).not.toBe(first);
+    await user.keyboard('{ArrowLeft}');
+    expect(counter().position).toBe(1);
+    expect(currentWord()).toBe(first);
+    await user.keyboard('s');
+    expect(currentWord()).not.toBe(first);
+    expect(menu()).not.toBeInTheDocument();
+  });
 });
 
 describe('Saving the colour mode (FEAT5): failure paths', () => {

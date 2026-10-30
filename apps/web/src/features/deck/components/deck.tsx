@@ -6,9 +6,13 @@ import type { StudyDeck } from '../hooks/use-study-deck';
 import { CardStack } from './card-stack';
 import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-view';
 
-/** Keyboard shortcuts shouldn't fire while the user is typing in a field or using a list. */
+/**
+ * Keyboard shortcuts shouldn't fire while the user is typing in a field or using a list, or while
+ * they are in an open menu (e.g. the colour mode menu, FEAT5), where the keys are the menu's.
+ */
 const isTyping = (target: EventTarget | null) =>
-  target instanceof HTMLElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
+  target instanceof HTMLElement &&
+  (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.closest('[role="menu"]') !== null);
 
 /**
  * The Back button (FEAT6): an outline button (white, slate-400 border, slate-900 text; in Dark
