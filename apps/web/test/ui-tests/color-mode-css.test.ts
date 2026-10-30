@@ -1,11 +1,13 @@
 // @vitest-environment node
 // FEAT5: the colour mode colours in the stylesheet. jsdom draws no colours and doesn't run
 // Tailwind, so the stylesheet itself is checked: index.css against the tokens in @kanji/core, Light
-// against the colours the app used before, and the real production build, so a colour class or a
-// rule that Tailwind doesn't actually generate is caught (a class name test can't see that).
+// against the colours the app used before, and the stylesheet built as the production build builds
+// it, so a colour class or a rule that Tailwind doesn't actually generate is caught (a class name
+// test can't see that).
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { build, type Rollup } from 'vite';
+import { compile, optimize } from '@tailwindcss/node';
+import { Scanner } from '@tailwindcss/oxide';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { MODE_COLORS, READING_COLORS, READING_COLORS_BY_MODE, type ModeColorName } from '@kanji/core';
 import { INDEX_CSS, blockAfter, colorVariables, tailwindColor } from './mode-colors';
@@ -130,23 +132,19 @@ function tokenClassesInSource(): string[] {
 /** A class as Tailwind writes it in a selector: ":" and "/" are escaped. */
 const selectorOf = (cls: string) => `.${cls.replace(/[:/[\]]/g, (c) => `\\${c}`)}`;
 
-describe('the production build (FEAT5)', () => {
+describe('the built stylesheet (FEAT5)', () => {
   let css = '';
 
+  // Builds index.css the way the production build does (@tailwindcss/vite): Tailwind compiles it,
+  // scans the app's files for the classes they use, generates them, and the result is minified.
+  // Only the stylesheet is built, not the whole app, so it is quick and doesn't slow other tests.
   beforeAll(async () => {
-    const result = (await build({
-      root: WEB,
-      configFile: join(WEB, 'vite.config.ts'),
-      logLevel: 'silent',
-      publicDir: false,
-      build: { write: false, outDir: join(WEB, 'dist-test-unused') },
-    })) as Rollup.RollupOutput | Rollup.RollupOutput[];
-    const outputs = (Array.isArray(result) ? result : [result]).flatMap((r) => r.output);
-    css = outputs
-      .filter((o): o is Rollup.OutputAsset => o.type === 'asset' && o.fileName.endsWith('.css'))
-      .map((o) => String(o.source))
-      .join('\n');
-  }, 120_000);
+    const compiler = await compile(INDEX_CSS, { base: join(WEB, 'src/app'), onDependency: () => {} });
+    const root =
+      compiler.root === 'none' ? [] : compiler.root === null ? [{ base: WEB, pattern: '**/*' }] : [compiler.root];
+    const scanner = new Scanner({ sources: [...root.map((s) => ({ ...s, negated: false })), ...compiler.sources] });
+    css = optimize(compiler.build(scanner.scan()), { minify: true }).code;
+  }, 60_000);
 
   test('every colour token class used in the code is generated', () => {
     const classes = tokenClassesInSource();
