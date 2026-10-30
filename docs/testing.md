@@ -23,7 +23,7 @@ apps/web/test/
   unit/           # unit tests, grouped by feature (card-limit/, deck/)
   ui-tests/       # UI / component tests, plus helpers.tsx
   setup.ts        # Vitest setup for the UI tests
-  tsconfig.json   # type-checks everything in test/
+  tsconfig.json   # type-checks everything in test/, plus vitest.config.ts
 packages/core/test/
   unit/
   tsconfig.json
@@ -43,7 +43,7 @@ The patterns in the `package.json` scripts are in double quotes, so the shell le
 
 Test files and folders follow the same kebab-case naming rule as the code (e.g. `card-history.test.ts`), and ESLint checks it.
 
-**Tests are type-checked but never bundled.** Each `test/` folder has its own `tsconfig.json`, which extends the workspace's `tsconfig.json` and adds Node's types (for `node:test` and `node:assert`), so only the tests get them and the app code stays browser-only. `npm run typecheck` checks both. Vite only bundles what `src/` imports, and nothing in `src/` imports from `test/`.
+**Tests are type-checked but never bundled.** Each `test/` folder has its own `tsconfig.json`, which extends the workspace's `tsconfig.json` and adds Node's types (for `node:test` and `node:assert`), so only the tests get them and the app code stays browser-only. The web one also covers `vitest.config.ts`. `npm run typecheck` checks both. Vite only bundles what `src/` imports, and nothing in `src/` imports from `test/`.
 
 ## Types of test
 
@@ -57,6 +57,7 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `apps/web/test/unit/deck/card-history.test.ts` (where Back goes: the last card seen still in the deck, skipping gone cards and the card on screen, the card before in deck order when nothing is left, and the 50-card limit)
   - `packages/core/test/unit/segment.test.ts`
   - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
+  - `scripts/test/check-commit-message.test.ts` (the commit message rules checked by the commit hook and `npm run check:commits`; runs with `npm run test:scripts`)
 
 ### UI / component tests
 - **What they check:** the app the way a user sees it. They render the real `App`, click buttons and type into fields with [Testing Library](https://testing-library.com/), and check what is on screen: the card shown, the "Card 3 of 10" counter, validation messages. They don't look at component state, so they keep passing if the code is refactored without changing behaviour.
