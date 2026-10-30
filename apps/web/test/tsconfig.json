@@ -1,0 +1,10 @@
+// Type-checks the tests in test/ and vitest.config.ts (run by `npm run typecheck`). Kept apart from ../tsconfig.json
+// so only the tests get Node's types (node:test, node:assert); the app code in src/ stays
+// browser-only. Nothing in src/ imports from test/, so Vite never bundles a test.
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"]
+  },
+  "include": [".", "../vitest.config.ts"]
+}

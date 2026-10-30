@@ -1,0 +1,9 @@
+// Type-checks the tests in test/ (run by `npm run typecheck`). Kept apart from ../tsconfig.json
+// so only the tests get Node's types (node:test, node:assert); the code in src/ stays free of them.
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["."]
+}

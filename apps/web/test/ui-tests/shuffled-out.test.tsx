@@ -224,7 +224,9 @@ describe('Shuffled-out cards shown as cards', () => {
     // On a wide screen, where the deck card keeps its Reading Breakdown while the panel is open
     // (below it, the deck card leaves it out too, ADJ2_5: see shuffled-out-panel.test.tsx).
     setScreen({ wide: true });
-    onTestFinished(() => vi.unstubAllGlobals());
+    onTestFinished(() => {
+      vi.unstubAllGlobals();
+    });
     const user = await renderApp(DECKS);
     const shuffledOut = await shuffleOutOne(user);
     expect(screen.getByText('READING BREAKDOWN')).toBeInTheDocument(); // the card on screen has one

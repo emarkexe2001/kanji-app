@@ -9,9 +9,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "lint": "eslint .",
-    "test": "tsx --test src/segment.test.ts"
+    "test": "tsx --test \"test/**/*.test.ts\""
   },
   "devDependencies": {
     "typescript": "^5.6.0"

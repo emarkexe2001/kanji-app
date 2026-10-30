@@ -7,10 +7,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "lint": "eslint .",
     "test": "npm run test:unit && npm run test:ui",
-    "test:unit": "tsx --test src/features/card-limit/utils/deck-size.test.ts src/features/deck/utils/study-deck.test.ts src/features/deck/utils/card-history.test.ts",
+    "test:unit": "tsx --test \"test/unit/**/*.test.ts\"",
     "test:ui": "vitest run"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_HISTORY, goBack, rememberCard } from './card-history';
+import { MAX_HISTORY, goBack, rememberCard } from '../../../src/features/deck/utils/card-history';
 
 const deck = ['a', 'b', 'c', 'd', 'e'];
 
