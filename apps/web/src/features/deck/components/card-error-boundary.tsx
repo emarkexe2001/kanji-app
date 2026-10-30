@@ -19,7 +19,7 @@ export class CardErrorBoundary extends Component<{ children: ReactNode }, { hasE
   render() {
     if (this.state.hasError) {
       return (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-white p-2 text-xs text-slate-600">
+        <p className="rounded-lg border border-dashed border-field-line bg-card p-2 text-xs text-muted-strong">
           This card can&apos;t be shown.
         </p>
       );

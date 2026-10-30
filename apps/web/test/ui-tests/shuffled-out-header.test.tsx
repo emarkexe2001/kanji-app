@@ -1,4 +1,5 @@
 // ADJ1: the "Shuffled out (N)" button in the top right of the header, and its panel just below it.
+// Since FEAT5 the header has two rows: the colour mode menu and the button, then the title.
 import { StrictMode } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
@@ -24,6 +25,7 @@ const header = () => title().closest('header')!;
 const shuffledOutButton = () => screen.getByRole('button', { name: /^Shuffled out \(\d+\)$/ });
 const panel = () => screen.queryByRole('region', { name: 'Shuffled-out cards' });
 const deckPicker = () => screen.getByLabelText('Deck');
+const colorModeButton = () => screen.getByRole('button', { name: /^Colour mode: / });
 
 /** True when `a` comes before `b` on the page. */
 const isBefore = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -37,13 +39,15 @@ async function shuffleOutOne(user: User) {
 }
 
 describe('Shuffled-out button in the top right of the header', () => {
-  test('when I open the app, the "Shuffled out (N)" button is in the header next to the title, and not under Shuffle In Cards', async () => {
+  test('when I open the app, the "Shuffled out (N)" button is in the header above the title, and not under Shuffle In Cards', async () => {
     await renderApp(DECKS);
 
-    // There is only one such button, and it is in the header, after the title.
+    // There is only one such button, and it is in the header: after the colour mode button, on the
+    // row above the title (FEAT5).
     expect(screen.getAllByRole('button', { name: /^Shuffled out/ })).toHaveLength(1);
     expect(header()).toContainElement(shuffledOutButton());
-    expect(isBefore(title(), shuffledOutButton())).toBe(true);
+    expect(isBefore(colorModeButton(), shuffledOutButton())).toBe(true);
+    expect(isBefore(shuffledOutButton(), title())).toBe(true);
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (0)');
 
     // It comes before the deck, not under Shuffle In Cards.
@@ -52,20 +56,26 @@ describe('Shuffled-out button in the top right of the header', () => {
     expect(header()).not.toContainElement(shuffleInButton());
   });
 
-  test('the title and the button share one row at the top: the button stays top right and the title wraps when they do not fit', async () => {
+  test('the button is top right on the first row, with the colour mode button top left, and the title has its own row below (FEAT5, option B)', async () => {
     await renderApp(DECKS);
 
-    // jsdom has no layout, so the classes are checked: the header is one row with the title on the
-    // left and the button on the right, both at the top (the button lines up with the title's
-    // first line); the title may shrink (and so wrap onto two lines), the button never shrinks or
-    // wraps. That is also what keeps the page from scrolling sideways on a phone: the title gives
-    // way instead of the row overflowing. Checked in a real browser at 360/640/1024px.
-    expect(header()).toHaveClass('flex', 'items-start', 'justify-between');
-    expect(header().className).not.toMatch(/(^|\s)(flex-col|flex-wrap)(\s|$)/);
-    expect(title()).toHaveClass('min-w-0');
+    // jsdom has no layout, so the classes are checked: the header is a column of two rows. The
+    // first row has the colour mode button on the left and "Shuffled out (N)" on the right, lined
+    // up across the middle; neither shrinks or wraps. The title is the second row, on its own, so it
+    // fits on one line from 320px up (checked in a real browser at 320/360/640/1024/1200px). It
+    // isn't cut short, so with very large text it can still wrap instead of overflowing.
+    expect(header()).toHaveClass('flex', 'flex-col', 'gap-2');
+    expect(header().children).toHaveLength(2);
+    const firstRow = header().firstElementChild!;
+    expect(firstRow).toHaveClass('flex', 'items-center', 'justify-between');
+    expect(firstRow).toContainElement(colorModeButton());
+    expect(firstRow).toContainElement(shuffledOutButton());
+    expect(firstRow).not.toContainElement(title());
+    expect(header().lastElementChild).toBe(title());
     expect(title()).not.toHaveClass('truncate', 'whitespace-nowrap');
     expect(shuffledOutButton()).toHaveClass('shrink-0', 'whitespace-nowrap');
     expect(shuffledOutButton()).not.toHaveClass('w-full');
+    expect(colorModeButton().parentElement).toHaveClass('shrink-0');
   });
 
   test('the button keeps its sky blue filled style, sized to its label', async () => {
@@ -177,12 +187,14 @@ describe('Shuffled-out button in the top right of the header', () => {
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)'); // the swapped-out card
   });
 
-  test('with the keyboard, Tab reaches the button first, then the panel when it is open, then the deck', async () => {
+  test('with the keyboard, Tab reaches the button straight after the colour mode button, then the panel when it is open, then the deck', async () => {
     const user = await renderApp(DECKS);
     const word = await shuffleOutOne(user);
     (document.activeElement as HTMLElement | null)?.blur();
 
-    // Closed: the button, then the deck picker.
+    // Closed: the colour mode button (FEAT5), the button, then the deck picker.
+    await user.tab();
+    expect(colorModeButton()).toHaveFocus();
     await user.tab();
     expect(shuffledOutButton()).toHaveFocus();
     await user.tab();
@@ -226,7 +238,8 @@ describe('Shuffled-out button in the top right of the header', () => {
       await screen.findByText('Something went wrong showing the cards. Please reload the page to try again.'),
     ).toBeInTheDocument();
     expect(title()).toBeInTheDocument();
-    expect(within(header()).queryByRole('button')).not.toBeInTheDocument();
+    // Only the colour mode button is left in the header (FEAT5).
+    expect(within(header()).getAllByRole('button')).toEqual([colorModeButton()]);
     expect(screen.queryByRole('button', { name: /^Shuffled out/ })).not.toBeInTheDocument();
     consoleError.mockRestore();
   });
@@ -237,7 +250,8 @@ describe('Shuffled-out button in the top right of the header', () => {
 
     expect(await screen.findByText('The word deck has no words to study.')).toBeInTheDocument();
     expect(title()).toBeInTheDocument();
-    expect(within(header()).queryByRole('button')).not.toBeInTheDocument();
+    // Only the colour mode button is in the header (FEAT5).
+    expect(within(header()).getAllByRole('button')).toEqual([colorModeButton()]);
   });
 
   test('in React strict mode there is still exactly one "Shuffled out" button, in the header', async () => {

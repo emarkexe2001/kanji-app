@@ -1,5 +1,7 @@
 import { useEffect, useEffectEvent, useId, useRef, useState, type CSSProperties } from 'react';
-import { PICK_COLORS, type PickKind, type WordEntry } from '@kanji/core';
+import { PICK_COLORS, PICK_OUTLINE_COLORS, type PickKind, type WordEntry } from '@kanji/core';
+import { useColorMode } from '../../../hooks/use-color-mode';
+import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
@@ -67,7 +69,7 @@ interface PickCardProps {
 function PickCard({ number, ...props }: PickCardProps & { number: number }) {
   return (
     <li>
-      <span className="mb-1 block text-[10px] font-bold text-slate-500 tabular-nums wide:text-[11px]">{number}</span>
+      <span className="mb-1 block text-[10px] font-bold text-muted tabular-nums wide:text-[11px]">{number}</span>
       <CardErrorBoundary>
         <PickCardBody {...props} />
       </CardErrorBoundary>
@@ -89,12 +91,14 @@ function PickCard({ number, ...props }: PickCardProps & { number: number }) {
 function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId, gone }: PickCardProps) {
   const id = useId();
   const color = PICK_COLORS[kind];
+  // The outline is brighter in Dark mode, so it shows on the dark panel (FEAT5); the tick keeps its colour.
+  const outline = PICK_OUTLINE_COLORS[useColorMode()][kind];
   const describedBy = [`${id}-meaning`, `${id}-from`, ...(card.isNew ? [`${id}-new`] : [])].join(' ');
   return (
     <label
-      style={{ '--pick': color } as CSSProperties}
+      style={{ '--pick': outline } as CSSProperties}
       data-flight-source={sourceId}
-      className={`${gone ? 'invisible' : ''} relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-slate-700 ${FORCED_COLORS_PICK_CARD}`}
+      className={`${gone ? 'invisible' : ''} relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink-soft ${FORCED_COLORS_PICK_CARD}`}
     >
       <input
         type="checkbox"
@@ -111,7 +115,7 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId
         className="sr-only"
       />
       <WordCard entry={card.entry} compact isNew={card.isNew} idPrefix={id}>
-        <p id={`${id}-from`} className="text-[9px] font-semibold text-sky-800 wide:text-[10px]">
+        <p id={`${id}-from`} className="text-[9px] font-semibold text-from-ink wide:text-[10px]">
           From {DECK_LABELS[card.deck]}
         </p>
       </WordCard>
@@ -173,8 +177,11 @@ const PANEL_PLACE = [
   'wide:right-6 wide:w-[300px] wide:h-auto wide:max-h-[min(560px,calc(100dvh-var(--panel-top)-24px))]',
 ].join(' ');
 
-/** Its look (ADJ2): a sky-50 panel with a sky-200 border, rounded corners and a large shadow. */
-const PANEL_LOOK = 'rounded-xl border border-sky-200 bg-sky-50 text-sm shadow-xl';
+/**
+ * Its look (ADJ2): a sky-50 panel with a sky-200 border (in Dark mode a dark blue panel with a
+ * darker blue border, FEAT5), rounded corners and a large shadow.
+ */
+const PANEL_LOOK = 'rounded-xl border border-panel-line bg-panel text-sm shadow-xl';
 
 /**
  * The panel's body, between the title row and the buttons: the card lists scroll here. A card
@@ -183,7 +190,7 @@ const PANEL_LOOK = 'rounded-xl border border-sky-200 bg-sky-50 text-sm shadow-xl
 const PANEL_BODY = 'min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2';
 
 /** The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages. */
-const PANEL_FOOTER = 'shrink-0 space-y-2 border-t border-sky-200 px-3 py-3';
+const PANEL_FOOTER = 'shrink-0 space-y-2 border-t border-panel-line px-3 py-3';
 
 /** Add Back Cards and Clear List, side by side (ADJ2). */
 const FOOTER_ROW = 'grid grid-cols-2 gap-2';
@@ -250,8 +257,9 @@ export function ShuffledOutButton({
  * It floats in the top right, below the header (ADJ2, see PANEL_PLACE), and slides down into
  * place unless "reduce motion" is on. Focus moves to its × button when it opens. It closes with
  * the × button, Escape, a click or tap outside it (the "Shuffled out (N)" button toggles it
- * itself), or once cards have been added back; focus then goes back to "Shuffled out (N)",
- * unless the click outside put it somewhere else. Closing it unmounts it, which drops any picks.
+ * itself, and the colour mode menu leaves it open, FEAT5), or once cards have been added back;
+ * focus then goes back to "Shuffled out (N)", unless the click outside put it somewhere else.
+ * Closing it unmounts it, which drops any picks.
  * `onClose` closes it.
  *
  * Cards added back slide down out of the panel into the deck (ADJ3, `flights`). Until they have
@@ -317,10 +325,15 @@ export function ShuffledOutPanel({
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
+    // The "Shuffled out (N)" button toggles the panel itself, and the colour mode menu leaves it
+    // open (FEAT5), so presses on them aren't outside it.
     const isOutside = (target: EventTarget | null) =>
       target instanceof Node &&
       !panel.contains(target) &&
-      !(target instanceof Element && target.closest(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`));
+      !(
+        target instanceof Element &&
+        target.closest(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"], [${KEEP_PANEL_OPEN_ATTRIBUTE}]`)
+      );
     // A press that starts inside the panel (e.g. selecting text) and ends outside doesn't close it:
     // the click the browser sends for that press is ignored. Only that click (ADJ2_5): a press
     // that ends without one (dragged away, or cancelled by the browser to scroll) is forgotten, and
@@ -394,7 +407,7 @@ export function ShuffledOutPanel({
       className={`${PANEL_PLACE} ${PANEL_LOOK} ${reducedMotion ? '' : lifting ? 'panel-lift' : 'panel-drop'}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 px-3 pt-2">
-        <h3 id="shuffled-out-heading" className="font-bold text-slate-700">
+        <h3 id="shuffled-out-heading" className="font-bold text-ink-soft">
           Shuffled-out cards
         </h3>
         <button
@@ -402,7 +415,7 @@ export function ShuffledOutPanel({
           type="button"
           aria-label="Close shuffled-out cards"
           onClick={close}
-          className="flex size-8 items-center justify-center rounded-lg text-xl leading-none text-slate-600 transition hover:bg-sky-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-slate-700"
+          className="flex size-8 items-center justify-center rounded-lg text-xl leading-none text-muted-strong transition hover:bg-panel-hover hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-ink-soft"
         >
           <span aria-hidden>×</span>
         </button>
@@ -411,7 +424,7 @@ export function ShuffledOutPanel({
       {shuffledOut.length === 0 ? (
         <>
           <div className={PANEL_BODY}>
-            <p className="text-slate-600">No cards have been shuffled out yet.</p>
+            <p className="text-muted-strong">No cards have been shuffled out yet.</p>
           </div>
           {study.clearedCount > 0 && (
             <div className={PANEL_FOOTER}>
@@ -430,7 +443,7 @@ export function ShuffledOutPanel({
         >
           <div data-flight-clip className={PANEL_BODY}>
             <fieldset>
-              <legend className="font-semibold text-slate-700">Add back</legend>
+              <legend className="font-semibold text-ink-soft">Add back</legend>
               <ul className={CARD_GRID}>
                 {shuffledOut.map((card, i) => (
                   <PickCard
@@ -452,7 +465,7 @@ export function ShuffledOutPanel({
 
             {adding.length > 0 && (
               <fieldset>
-                <legend className="font-semibold text-slate-700">
+                <legend className="font-semibold text-ink-soft">
                   Take out of your deck ({adding.length} to make room)
                 </legend>
                 <ul className={CARD_GRID}>
@@ -477,7 +490,7 @@ export function ShuffledOutPanel({
 
           <div className={PANEL_FOOTER}>
             {error && (
-              <p role="alert" className="text-xs font-semibold text-rose-600">
+              <p role="alert" className="text-xs font-semibold text-danger-ink">
                 {error}
               </p>
             )}
@@ -494,8 +507,8 @@ export function ShuffledOutPanel({
               </button>
             </div>
             {confirmingClear ? (
-              <div className="space-y-2 rounded-lg border border-rose-200 bg-white p-2">
-                <p className="font-semibold text-rose-700">{confirmClearText(shuffledOut.length)}</p>
+              <div className="space-y-2 rounded-lg border border-danger-line bg-card p-2">
+                <p className="font-semibold text-danger-ink-strong">{confirmClearText(shuffledOut.length)}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -513,7 +526,7 @@ export function ShuffledOutPanel({
                   <button
                     type="button"
                     onClick={() => setConfirmingClear(false)}
-                    className={`border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 ${panelButton}`}
+                    className={`border border-field-line bg-field text-ink-soft hover:bg-field-hover ${panelButton}`}
                   >
                     Cancel
                   </button>

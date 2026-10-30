@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { MODE_COLORS } from '@kanji/core';
 import App from '../../src/app/app';
 import {
   COUNTER,
@@ -21,6 +22,7 @@ import {
   wordsSeenWithNext,
   type User,
 } from './helpers';
+import { tailwindColor } from './mode-colors';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -465,12 +467,20 @@ describe('the Back button on screen', () => {
   test('Back is an outline button with a visible focus ring that can be told apart in forced-colours mode', async () => {
     await renderApp();
     // Colours, focus rings and forced colours can't be seen in jsdom, so this checks the classes.
-    expect(backButton()).toHaveClass('border', 'border-slate-400', 'bg-white', 'text-slate-900', 'font-semibold');
-    expect(backButton()).toHaveClass('hover:bg-slate-100');
-    expect(backButton()).toHaveClass('focus-visible:outline-2', 'focus-visible:outline-slate-900');
+    // Since FEAT5 the colours are colour mode tokens; in Light they are the same colours as before
+    // (white, a slate-400 border, slate-900 text, slate-100 under the pointer).
+    expect(backButton()).toHaveClass('border', 'border-back-line', 'bg-back', 'text-ink-strong', 'font-semibold');
+    expect(backButton()).toHaveClass('hover:bg-back-hover');
+    expect(backButton()).toHaveClass('focus-visible:outline-2', 'focus-visible:outline-ink-strong');
     expect(backButton()).toHaveClass('forced-colors:border-[color:ButtonText]');
-    // Next and Deck Shuffle keep their colours.
-    expect(nextButton()).toHaveClass('bg-slate-900', 'text-white');
+    expect(MODE_COLORS.light['back-line']).toBe(tailwindColor('slate-400'));
+    expect(MODE_COLORS.light.back).toBe('#fff');
+    expect(MODE_COLORS.light['back-hover']).toBe(tailwindColor('slate-100'));
+    expect(MODE_COLORS.light['ink-strong']).toBe(tailwindColor('slate-900'));
+    // Next and Deck Shuffle keep their colours (Next: slate-900 with white text in Light).
+    expect(nextButton()).toHaveClass('bg-next', 'text-next-ink');
+    expect(MODE_COLORS.light.next).toBe(tailwindColor('slate-900'));
+    expect(MODE_COLORS.light['next-ink']).toBe('#fff');
     expect(deckShuffleButton()).toHaveClass('bg-indigo-600', 'text-white');
   });
 

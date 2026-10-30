@@ -3,12 +3,15 @@ import {
   COMMON_COLOR,
   JLPT_COLORS,
   NEW_COLOR,
-  READING_COLORS,
+  READING_COLORS_BY_MODE,
   READING_LABELS,
+  type ColorMode,
   type ReadingSegment,
   type WordEntry,
 } from '@kanji/core';
+import { useColorMode } from '../../../hooks/use-color-mode';
 
+/** The header of a word with no JLPT level: slate-500 with white text, in every mode, like the JLPT headers. */
 const NEUTRAL_HEADER = '#64748b';
 
 // Literal class names so Tailwind's scanner generates them.
@@ -18,11 +21,17 @@ const HL_CLASS = {
   okurigana: 'hl-okurigana',
 } as const;
 
-/** Appends ~10% alpha to a 6-digit hex color for the tinted pill backgrounds. */
-const tint = (hex: string) => `${hex}1a`;
+/**
+ * Appends an alpha to a 6-digit hex color for the tinted pill backgrounds: ~10% in Light, and a
+ * little more (~16%) in Dark so the pill still shows on the dark box (FEAT5, as in the mockup).
+ */
+const TINT_ALPHA: Record<ColorMode, string> = { light: '1a', dark: '29' };
+const tint = (hex: string, mode: ColorMode) => `${hex}${TINT_ALPHA[mode]}`;
 
+/** One row of the Reading Breakdown, in the reading's colour for the mode that is on (FEAT5). */
 function SegmentRow({ seg }: { seg: ReadingSegment }) {
-  const color = READING_COLORS[seg.kind];
+  const mode = useColorMode();
+  const color = READING_COLORS_BY_MODE[mode][seg.kind];
   const detail =
     seg.kind === 'okurigana'
       ? `Grammar: ${seg.grammar ?? 'Inflection Suffix'}`
@@ -31,11 +40,11 @@ function SegmentRow({ seg }: { seg: ReadingSegment }) {
         : null;
 
   return (
-    <li className="border-t border-dashed border-slate-200 py-2 first:border-t-0 first:pt-0 last:pb-0">
+    <li className="border-t border-dashed border-box-line py-2 first:border-t-0 first:pt-0 last:pb-0">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-bold text-slate-900">
+        <span className="font-bold text-ink-strong">
           {seg.text}
-          {seg.reading && <span className="ml-1 font-normal text-slate-600">({seg.reading})</span>}
+          {seg.reading && <span className="ml-1 font-normal text-muted-strong">({seg.reading})</span>}
         </span>
         <span className="text-sm font-bold underline decoration-2 underline-offset-2" style={{ color }}>
           {READING_LABELS[seg.kind]}
@@ -44,7 +53,7 @@ function SegmentRow({ seg }: { seg: ReadingSegment }) {
       {detail && (
         <p
           className="mt-1 inline-block rounded-sm border-l-[3px] px-2 py-0.5 text-sm font-semibold"
-          style={{ color, borderColor: color, backgroundColor: tint(color) }}
+          style={{ color, borderColor: color, backgroundColor: tint(color, mode) }}
         >
           {detail}
         </p>
@@ -66,7 +75,7 @@ function Word({ entry, compact }: { entry: WordEntry; compact: boolean }) {
           </span>
         ))}
       </span>
-      <span className={`font-normal text-slate-500 ${compact ? 'text-[9px] wide:text-[10px]' : 'text-lg'}`}>
+      <span className={`font-normal text-muted ${compact ? 'text-[9px] wide:text-[10px]' : 'text-lg'}`}>
         【{entry.reading}】
       </span>
     </Tag>
@@ -124,7 +133,7 @@ export function WordCard({
 
   return (
     <Root
-      className={`relative w-full overflow-hidden bg-white ring-1 ring-slate-200 ${
+      className={`relative w-full overflow-hidden bg-card ring-1 ring-card-line ${
         compact ? 'rounded-lg shadow-sm' : 'max-w-sm rounded-xl shadow-lg'
       }`}
     >
@@ -156,8 +165,8 @@ export function WordCard({
           </div>
 
           {!slim && (
-            <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400">READING BREAKDOWN</h3>
+            <section className="rounded-lg border border-box-line bg-box p-3">
+              <h3 className="mb-2 text-xs font-bold tracking-wider text-faint">READING BREAKDOWN</h3>
               <ul>
                 {entry.segments.map((seg, i) => (
                   <SegmentRow key={i} seg={seg} />
@@ -167,7 +176,7 @@ export function WordCard({
           )}
 
           <section>
-            <h3 className={slim ? 'sr-only' : 'text-xs font-bold text-slate-500'}>Full Word Meaning</h3>
+            <h3 className={slim ? 'sr-only' : 'text-xs font-bold text-muted'}>Full Word Meaning</h3>
             <p className={`meaning-text ${slim ? SLIM_MEANING : ''}`}>{entry.meaning}</p>
           </section>
         </div>

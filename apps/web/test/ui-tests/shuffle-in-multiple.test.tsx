@@ -1,7 +1,7 @@
 // FEAT3: Shuffle In Cards from multiple decks, and the "Shuffle in from" switch (One deck | Random | Multiple decks).
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { WordEntry } from '@kanji/core';
+import { MODE_COLORS, type WordEntry } from '@kanji/core';
 import { describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
 import {
@@ -25,6 +25,7 @@ import {
   tickDecks,
   wordsSeenWithNext,
 } from './helpers';
+import { tailwindColor } from './mode-colors';
 
 /** The app studies JLPT N5 by default; N4, N3 and N2 can be shuffled in from. */
 const FOUR_DECKS = makeDecks({ N5: 30, N4: 30, N3: 30, N2: 30 });
@@ -362,7 +363,9 @@ describe('Shuffle In Cards from multiple decks: failure paths', () => {
     const notice = screen.getByText('JLPT N1 is no longer available, so it has been unticked.');
     expect(notice).toHaveAttribute('role', 'status');
     // jsdom can't show colours, so the class is checked: amber, which passes 4.5:1 on the panel.
-    expect(notice).toHaveClass('text-amber-700');
+    // Since FEAT5 it is a colour mode token, amber-700 in Light as before.
+    expect(notice).toHaveClass('text-warn-ink');
+    expect(MODE_COLORS.light['warn-ink']).toBe(tailwindColor('amber-700'));
     // It is saved unticked, so it isn't reported again on the next reload.
     await reload(makeDecks({ N5: 30, N4: 30, N3: 30 }));
     expect(untickedNotice()).not.toBeInTheDocument();
