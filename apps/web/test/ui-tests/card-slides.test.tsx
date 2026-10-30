@@ -1013,3 +1013,69 @@ describe('with the slim deck card under the phone pop-up (ADJ2_5)', () => {
     expect(stack().querySelectorAll('.deck-back')).toHaveLength(2);
   });
 });
+
+// Like any press while cards slide (ADJ3), pressing the colour mode button lands them all at once
+// first; then the menu opens and the mode can be changed as usual. Nothing is left sliding or stuck.
+describe('changing the colour mode while cards are sliding (FEAT5)', () => {
+  const modeButton = () => screen.getByRole('button', { name: /^Colour mode: / });
+  const modeOnPage = () => document.documentElement.getAttribute('data-color-mode');
+
+  async function chooseMode(user: User, name: 'Light' | 'Dark') {
+    await user.click(modeButton());
+    await user.click(screen.getByRole('menuitemradio', { name }));
+  }
+
+  test('pressing the mode button while cards slide into "Shuffled out (N)" lands them at once with the right count, and Dark then comes on', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '3');
+    expect(flyers()).toHaveLength(3);
+    expect(shownCount()).toBe(0);
+
+    await user.click(modeButton());
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(3);
+    expect(screen.getByRole('menu', { name: 'Colour mode' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('menuitemradio', { name: 'Dark' }));
+    expect(modeOnPage()).toBe('dark');
+    expect(shownCount()).toBe(3);
+    // The next Shuffle In slides as usual in Dark.
+    await shuffleIn(user, '1');
+    expect(flyers()).toHaveLength(1);
+    landNext();
+    expect(shownCount()).toBe(4);
+  });
+
+  test('pressing it while cards added back slide out of the waiting panel lands them; the panel then lifts away and Dark comes on', async () => {
+    const { user, out } = await appWithShuffledOut(3);
+    await pickToAddBack(user, [out[0], out[1]]);
+    fakeAnimate();
+    await user.click(addBackButton());
+    expect(panel()).toHaveAttribute('inert');
+    expect(flyers()).toHaveLength(2);
+
+    await chooseMode(user, 'Dark');
+
+    expect(modeOnPage()).toBe('dark');
+    expect(flyers()).toHaveLength(0);
+    expect(currentWord()).toBe(out[0]);
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+    expect(shownCount()).toBe(3); // the one left, and the two deck cards swapped out
+  });
+
+  test('with the keyboard too: the key that opens the menu lands the cards first', async () => {
+    const user = await renderApp(DECKS);
+    modeButton().focus();
+    fakeAnimate();
+    await shuffleIn(user, '2');
+    modeButton().focus();
+    expect(flyers()).toHaveLength(2);
+
+    await user.keyboard('{ArrowDown}');
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(2);
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(modeOnPage()).toBe('dark');
+  });
+});
