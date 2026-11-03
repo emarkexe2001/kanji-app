@@ -1,8 +1,9 @@
 import type { JlptLevel, WordEntry } from '@kanji/core';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import App from '../../src/app/app';
+import { COLOR_MODE_KEY, DEVICE_DARK_QUERY } from '../../src/lib/color-mode';
 import { WIDE_LAYOUT_QUERY } from '../../src/features/deck/utils/wide-layout';
 
 export type User = ReturnType<typeof userEvent.setup>;
@@ -48,6 +49,86 @@ export async function renderApp(words: WordEntry[] = makeWords(200)) {
   const user = userEvent.setup();
   render(<App />);
   await screen.findByText(COUNTER);
+  return user;
+}
+
+/**
+ * Nothing saved for the colour mode, as on a first visit (FEAT5_1). test/setup.ts saves Light
+ * before every test so the app opens on the cards; call this first to open on the start page.
+ */
+export function firstVisit() {
+  localStorage.removeItem(COLOR_MODE_KEY);
+}
+
+/** The heading of the colour mode start page (FEAT5_1). */
+export const startPageHeading = () => screen.queryByRole('heading', { level: 2, name: 'Choose how the app looks' });
+
+/** A tile on the start page: the button named exactly "Light" or "Dark". */
+export const startPageTile = (name: 'Light' | 'Dark') =>
+  within(screen.getByRole('group', { name: 'Choose how the app looks' })).getByRole('button', { name });
+
+/**
+ * Stands in for the device's colour scheme setting (FEAT5_1), as jsdom has no media queries
+ * (window.matchMedia is replaced; the wide layout and "reduce motion" queries answer no).
+ * `setDark` changes it live, as when the device switches, and tells the app's listeners.
+ */
+export function stubDevice({ dark = false }: { dark?: boolean } = {}) {
+  let deviceDark = dark;
+  const listeners = new Set<() => void>();
+  const addEventListener = vi.fn((type: string, listener: () => void) => {
+    if (type === 'change') listeners.add(listener);
+  });
+  const removeEventListener = vi.fn((type: string, listener: () => void) => {
+    if (type === 'change') listeners.delete(listener);
+  });
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) =>
+      query === DEVICE_DARK_QUERY
+        ? {
+            get matches() {
+              return deviceDark;
+            },
+            media: query,
+            addEventListener,
+            removeEventListener,
+          }
+        : { matches: false, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() },
+    ),
+  );
+  return {
+    setDark(next: boolean) {
+      deviceDark = next;
+      act(() => [...listeners].forEach((listener) => listener()));
+    },
+    listeners,
+    addEventListener,
+    removeEventListener,
+  };
+}
+
+/** Renders the whole app with `words` as the dictionary, expecting the start page (nothing usable saved). */
+export function renderStartPage(words: unknown = makeWords(200)) {
+  serveDeck(words);
+  const user = userEvent.setup();
+  render(<App />);
+  if (!startPageHeading()) throw new Error('Expected the colour mode start page');
+  return user;
+}
+
+/** Chooses a tile on the start page and waits for the first card. */
+export async function chooseOnStartPage(user: User, name: 'Light' | 'Dark' = 'Light') {
+  await user.click(startPageTile(name));
+  await screen.findByText(COUNTER);
+}
+
+/**
+ * Renders the app when it opens on the start page (e.g. storage blocked), chooses a mode there
+ * and waits for the first card (FEAT5_1).
+ */
+export async function renderAppFromStartPage(words: WordEntry[] = makeWords(200), mode: 'Light' | 'Dark' = 'Light') {
+  const user = renderStartPage(words);
+  await chooseOnStartPage(user, mode);
   return user;
 }
 

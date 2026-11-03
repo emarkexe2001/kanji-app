@@ -16,6 +16,7 @@ import {
   makeDecks,
   makeWords,
   renderApp,
+  renderAppFromStartPage,
   serveDeck,
   setScreen,
   shuffleIn,
@@ -603,7 +604,9 @@ describe('Shuffled-out cards view failure paths', () => {
       throw new DOMException('Access denied', 'SecurityError');
     });
 
-    const user = await renderApp(DECKS);
+    // Storage is blocked, so the saved mode can't be read and the app opens on the colour mode
+    // start page (FEAT5_1): a mode is chosen there first.
+    const user = await renderAppFromStartPage(DECKS);
     const out = await shuffleOutOne(user);
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)');
     await openView(user);
@@ -963,7 +966,9 @@ describe('Recovering a cleared shuffled-out list', () => {
       throw new DOMException('Access denied', 'SecurityError');
     });
 
-    const user = await renderApp(DECKS);
+    // Storage is blocked, so the saved mode can't be read and the app opens on the colour mode
+    // start page (FEAT5_1): a mode is chosen there first.
+    const user = await renderAppFromStartPage(DECKS);
     const first = await shuffleOutOne(user);
     const second = await shuffleOutOne(user);
     await clearList(user);
@@ -974,7 +979,9 @@ describe('Recovering a cleared shuffled-out list', () => {
 
     // Nothing was saved, so after a reload there is nothing to recover.
     await clearList(user);
-    const reloaded = await reload();
+    // After the reload the start page shows again, as nothing could be saved (FEAT5_1).
+    cleanup();
+    const reloaded = await renderAppFromStartPage(DECKS);
     await openView(reloaded);
     expect(recoverButton()).not.toBeInTheDocument();
   });
