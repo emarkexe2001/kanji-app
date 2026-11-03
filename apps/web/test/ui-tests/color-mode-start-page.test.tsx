@@ -232,9 +232,12 @@ describe('The start page and the device setting (FEAT5_1)', () => {
     // Nothing is awaited: the start page and the mode are there as soon as the app first renders,
     // before the dictionary has loaded. (index.html sets the mode even earlier:
     // color-mode-script.test.ts.)
+    holdFrames();
     render(<App />);
     expect(startPageHeading()).toBeInTheDocument();
     expect(modeOnPage()).toBe('dark');
+    // The page was never switched from another mode (a switch holds transitions until a frame).
+    expect(switching()).toBe(false);
   });
 
   test('if my device switches between light and dark while the start page is open, the start page follows it and nothing is saved', () => {
