@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { WordEntry } from '@kanji/core';
 import { ColorModeMenu } from '../features/color-mode/components/color-mode-menu';
+import { ColorModeStartPage } from '../features/color-mode/components/color-mode-start-page';
 import { useColorModeChoice } from '../features/color-mode/hooks/use-color-mode-choice';
 import { CardLimitControl } from '../features/card-limit/components/card-limit-control';
 import { useCardLimit } from '../features/card-limit/hooks/use-card-limit';
@@ -80,8 +81,11 @@ function Decks({ words, headerSlot }: { words: WordEntry[]; headerSlot: HTMLElem
 }
 
 export default function App() {
+  // The dictionary loads straight away, in the background while the start page is open (FEAT5_1).
   const deck = useDeck();
-  const [colorMode, chooseColorMode] = useColorModeChoice();
+  const [colorMode, chooseColorMode, colorModeChosen] = useColorModeChoice();
+  // Opened on the start page: once a mode is chosen there, focus goes to the colour mode button.
+  const [openedOnStartPage] = useState(!colorModeChosen);
   // Where the deck puts the "Shuffled out (N)" button: top right of the header (ADJ1).
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
 
@@ -89,24 +93,30 @@ export default function App() {
     <ColorModeContext value={colorMode}>
       <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 py-6">
         {/* Two rows (FEAT5, option B): the colour mode menu top left and "Shuffled out (N)" top right
-          (ADJ1), then the title on its own row, so it stays on one line from 320px up. */}
+          (ADJ1), then the title on its own row, so it stays on one line from 320px up. The start
+          page (FEAT5_1) shows the title only. */}
         <header className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
-            <ColorModeMenu mode={colorMode} onChoose={chooseColorMode} />
-            <div ref={setHeaderSlot} className="contents" />
-          </div>
+          {colorModeChosen && (
+            <div className="flex items-center justify-between gap-3">
+              <ColorModeMenu mode={colorMode} onChoose={chooseColorMode} autoFocus={openedOnStartPage} />
+              <div ref={setHeaderSlot} className="contents" />
+            </div>
+          )}
           <h1 className="text-lg font-bold">Kanji Reading Highlighter</h1>
         </header>
 
-        {deck.status === 'loading' && (
+        {/* Until a colour mode is chosen, the start page shows in place of the deck (FEAT5_1). The
+          deck isn't mounted, so its keyboard keys are off. */}
+        {!colorModeChosen && <ColorModeStartPage onChoose={chooseColorMode} />}
+        {colorModeChosen && deck.status === 'loading' && (
           <p className="flex flex-1 items-center justify-center text-muted">Loading dictionary…</p>
         )}
-        {deck.status === 'error' && (
+        {colorModeChosen && deck.status === 'error' && (
           <p className="flex flex-1 items-center justify-center text-center text-danger-ink">
             Couldn&apos;t load the word deck: {deck.message}
           </p>
         )}
-        {deck.status === 'ready' && (
+        {colorModeChosen && deck.status === 'ready' && (
           <DeckErrorBoundary>
             <Decks words={deck.words} headerSlot={headerSlot} />
           </DeckErrorBoundary>
