@@ -8,18 +8,27 @@
       FEAT5: puts the saved colour mode on the page before it is first drawn, so it opens in Dark
       with no flash of Light. It runs before the stylesheet and the app, so it can't import the
       app's code: it does the same as loadColorMode and applyColorMode in src/lib/color-mode.ts
-      (the same storage key and modes; anything else, or blocked storage, is Light).
-      test/ui-tests/color-mode-script.test.ts checks the two agree.
+      (the same storage key and modes). FEAT5_1: when nothing usable is saved (nothing, a broken or
+      unknown value, or blocked storage) it uses the device's setting: Dark if the device prefers
+      dark, otherwise Light. test/ui-tests/color-mode-script.test.ts checks the two agree.
     -->
     <script>
       (function () {
         var modes = ['light', 'dark'];
-        var mode = 'light';
+        var mode = null;
         try {
           var saved = window.localStorage.getItem('kanji.colorMode');
           if (modes.indexOf(saved) !== -1) mode = saved;
         } catch (e) {
-          /* storage blocked: Light */
+          /* storage blocked: nothing saved */
+        }
+        if (mode === null) {
+          mode = 'light';
+          try {
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) mode = 'dark';
+          } catch (e) {
+            /* no matchMedia: Light */
+          }
         }
         document.documentElement.setAttribute('data-color-mode', mode);
       })();
