@@ -47,6 +47,10 @@ export function deviceColorMode(): ColorMode {
 /**
  * The mode the page opens in: the saved mode, or the device's mode when nothing usable is saved
  * (FEAT5_1: nothing saved no longer means Light). index.html does the same before the first paint.
+ *
+ * The app itself doesn't call this (useColorModeChoice needs to know whether a mode was saved, so
+ * it uses loadSavedColorMode and deviceColorMode). It is kept as the rule the inline script in
+ * index.html must agree with: color-mode-script.test.ts checks the two give the same mode.
  */
 export function loadColorMode(): ColorMode {
   return loadSavedColorMode() ?? deviceColorMode();
