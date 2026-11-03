@@ -132,6 +132,9 @@ function tokenClassesInSource(): string[] {
 /** A class as Tailwind writes it in a selector: ":" and "/" are escaped. */
 const selectorOf = (cls: string) => `.${cls.replace(/[:/[\]]/g, (c) => `\\${c}`)}`;
 
+/** Any class as it appears in a selector: every character other than a letter, digit, - or _ is escaped. */
+const escapedSelector = (cls: string) => `.${cls.replace(/[^\w-]/g, (c) => `\\${c}`)}`;
+
 describe('the built stylesheet (FEAT5)', () => {
   let css = '';
 
@@ -163,6 +166,33 @@ describe('the built stylesheet (FEAT5)', () => {
       expect(dark![1], `--color-${name} in Dark`).toMatch(new RegExp(`--color-${name}:\\s*${short(value)}[;}]?`));
     }
     expect(dark![1]).toMatch(/color-scheme:\s*dark/);
+  });
+
+  test('every class on the colour mode start page is generated (FEAT5_1)', () => {
+    // The start page brings new classes (arbitrary sizes such as h-[112px] and w-[55%], the press-in
+    // active:scale-[0.98]); a class Tailwind doesn't generate would quietly do nothing.
+    const source = readFileSync(join(WEB, 'src/features/color-mode/components/color-mode-start-page.tsx'), 'utf8');
+    const tile = /const TILE = \[([\s\S]*?)\]\.join/.exec(source)![1];
+    const strings = [
+      ...[...source.matchAll(/className="([^"]+)"/g)].map((m) => m[1]),
+      ...[...tile.matchAll(/'([^']+)'/g)].map((m) => m[1]),
+    ];
+    const classes = [...new Set(strings.flatMap((s) => s.split(/\s+/)).filter(Boolean))].sort();
+    // A sample, so the search above can't quietly find nothing.
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        'h-[112px]',
+        'w-[55%]',
+        'w-4/5',
+        'text-[8px]',
+        'active:scale-[0.98]',
+        'hover:bg-menu-selected',
+        'forced-colors:border-[color:ButtonText]',
+        'justify-center',
+      ]),
+    );
+    const missing = classes.filter((cls) => !css.includes(escapedSelector(cls)));
+    expect(missing).toEqual([]);
   });
 
   test('switching modes turns transitions off for a moment, so nothing fades', () => {

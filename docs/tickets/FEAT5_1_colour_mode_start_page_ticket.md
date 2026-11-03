@@ -71,6 +71,10 @@ Answers (agreed 2026-11-03, mockup version 15: https://claude.ai/artifact/9bL6Uu
 - A broken or unknown saved mode is treated as nothing saved: the start page shows in the device's colours. If storage is blocked, my choice works until I close the page, and the start page shows again next time.
 - Fix found during the mockup: on a first visit to today's app, a device set to dark still got Light, because "nothing saved" was treated as Light. Now, when nothing is saved, the app uses the device's setting (in index.html before the page is first drawn, and in the app).
 
+Answers (agreed 2026-11-03, after the start page was built):
+- In high-contrast (forced colours) mode, the mini previews take the system colours and can look the same. The tile names and icons tell them apart. This is left as is; High contrast is FEAT5_5.
+- If the device switches between light and dark while the start page is open, the colours change at once, with no fade, like choosing a tile.
+
 Dependencies:
 FEAT5 (mode menu and Dark mode) must be merged first.
 
