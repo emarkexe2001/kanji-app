@@ -30,13 +30,18 @@ export function loadSavedColorMode(): ColorMode | null {
   return isColorMode(saved) ? saved : null;
 }
 
+/** The device's "prefers dark" setting, or null when the browser can't give it (no matchMedia, or it throws). */
+export function deviceDarkQuery(): MediaQueryList | null {
+  try {
+    return window.matchMedia(DEVICE_DARK_QUERY);
+  } catch {
+    return null;
+  }
+}
+
 /** The mode the device asks for: Dark if it prefers dark, otherwise (or if it can't say) Light. */
 export function deviceColorMode(): ColorMode {
-  try {
-    return window.matchMedia(DEVICE_DARK_QUERY).matches ? 'dark' : DEFAULT_COLOR_MODE;
-  } catch {
-    return DEFAULT_COLOR_MODE;
-  }
+  return deviceDarkQuery()?.matches ? 'dark' : DEFAULT_COLOR_MODE;
 }
 
 /**

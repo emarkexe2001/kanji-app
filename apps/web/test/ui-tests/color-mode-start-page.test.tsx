@@ -562,10 +562,7 @@ describe('The start page: failure paths (FEAT5_1)', () => {
     expect(startPageTile('Dark')).toBeInTheDocument();
   });
 
-  // Skipped: bug B1 for the feature agent (handover test/bugs-for-feature-agent.md). The hook's
-  // listener calls window.matchMedia without the try/catch deviceColorMode() has, so the page goes
-  // blank. Turn this back on once it is fixed.
-  test.skip('when reading the device setting throws an error, the start page still shows, in Light', () => {
+  test('when reading the device setting throws an error, the start page still shows, in Light', () => {
     vi.stubGlobal(
       'matchMedia',
       vi.fn(() => {

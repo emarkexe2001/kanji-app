@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import type { ColorMode } from '@kanji/core';
 import {
   applyColorMode,
-  DEVICE_DARK_QUERY,
   deviceColorMode,
+  deviceDarkQuery,
   holdTransitions,
   loadSavedColorMode,
   releaseTransitions,
@@ -37,8 +37,10 @@ export function useColorModeChoice(): [ColorMode, (mode: ColorMode) => void, boo
 
   // Until a mode is chosen, follow the device's setting as it changes (FEAT5_1).
   useEffect(() => {
-    if (chosen || typeof window.matchMedia !== 'function') return;
-    const query = window.matchMedia(DEVICE_DARK_QUERY);
+    if (chosen) return;
+    // Null when the device setting can't be read: the start page then just doesn't follow it.
+    const query = deviceDarkQuery();
+    if (!query) return;
     const follow = () => {
       const next = query.matches ? 'dark' : 'light';
       setChoice((current) => {
