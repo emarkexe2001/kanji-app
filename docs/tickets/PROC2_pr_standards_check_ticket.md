@@ -22,6 +22,11 @@ Possible Test Scenarios I would like to see:
 
 When I open a new pull request, the Standards Check section is in the description
 
+Answers (agreed 2026-11-04):
+- The Standards Check section goes right after the Summary section, so reviewers see it early.
+- The questions box reads "Questions about the ticket were asked and answered before starting, or none were needed (standards 5.1)", so a clear ticket can still tick it.
+- A box that doesn't apply (e.g. §1 UI Standards when nothing changes on screen) is left unticked with a short reason. There is no "N/A" option.
+
 Dependencies:
 PROC1 (pull request template)
 
