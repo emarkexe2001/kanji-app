@@ -21,7 +21,7 @@ e.g. "not ticked: the PR changes nothing on screen". -->
 - [ ] §2 Code Standards – strict TypeScript, naming, components, state and error handling
 - [ ] §3 Folder Structure Standards – code in `src/`, tests in `test/`, docs in `docs/`
 - [ ] §4 Test Standards – scenarios, agreed answers and "no X" items tested; validation messages tested; all tests pass
-- [ ] §5 Git, Branch and PR Standards – branch prefix, commit messages, one change per PR, ticket moved to `completed_tickets/`
+- [ ] §5 Git, Branch and Pull Request Standards – branch prefix, commit messages, one change per PR, ticket moved to `completed_tickets/`
 - [ ] Questions about the ticket were asked and answered before starting, or none were needed (standards 5.1)
 
 ## Test Scenarios
