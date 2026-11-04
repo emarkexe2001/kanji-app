@@ -144,7 +144,7 @@ describe('standards 4.2 agreed answers', () => {
     assert.match(rule, /covered by a test/);
   });
 
-  it('(addition) is not said again in 5.1', () => {
+  it('does not say again in 5.1 that Questions / Clarifications answers need a test (answer 3)', () => {
     assert.doesNotMatch(bullet(beforeStarting(), 'Check the ticket against these standards.'), /test/i);
   });
 });
