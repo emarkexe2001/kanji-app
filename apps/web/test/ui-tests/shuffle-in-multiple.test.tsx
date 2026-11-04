@@ -20,6 +20,7 @@ import {
   modeRadio,
   oneDeckSelect,
   renderApp,
+  renderAppFromStartPage,
   serveDeck,
   shuffleIn,
   tickDecks,
@@ -511,7 +512,9 @@ describe('Shuffle In Cards from multiple decks: failure paths', () => {
       throw new DOMException('Access denied', 'SecurityError');
     });
 
-    const user = await renderApp(FOUR_DECKS);
+    // Storage is blocked, so the saved mode can't be read and the app opens on the colour mode
+    // start page (FEAT5_1): a mode is chosen there first.
+    const user = await renderAppFromStartPage(FOUR_DECKS);
     await tickDecks(user, 'JLPT N3', 'JLPT N2');
     await shuffleIn(user, '2');
 

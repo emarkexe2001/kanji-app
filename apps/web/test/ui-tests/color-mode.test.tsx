@@ -18,11 +18,14 @@ import App from '../../src/app/app';
 import { COLOR_MODE_KEY } from '../../src/lib/color-mode';
 import {
   COUNTER,
+  chooseOnStartPage,
   counter,
   currentWord,
   deckShuffleButton,
+  firstVisit,
   makeDecks,
   renderApp,
+  renderStartPage,
   serveDeck,
   shuffleIn,
   shuffleInButton,
@@ -87,11 +90,18 @@ afterEach(() => {
 });
 
 describe('The colour mode button (FEAT5)', () => {
-  test('when I open the app for the first time (nothing saved), it opens in Light and nothing is saved yet', async () => {
-    await renderApp(DECKS);
+  test('when I open the app for the first time (nothing saved), the start page asks for a mode instead, and the button shows once I choose (FEAT5_1)', async () => {
+    // Before FEAT5_1 a first visit opened in Light with the button; now the start page shows first
+    // (color-mode-start-page.test.tsx covers it in full).
+    firstVisit();
+    const user = renderStartPage(DECKS);
+    expect(screen.queryByRole('button', { name: /^Colour mode: / })).not.toBeInTheDocument();
+    expect(saved()).toBeNull();
+
+    await chooseOnStartPage(user, 'Light');
     expect(modeOnPage()).toBe('light');
     expect(modeButton()).toHaveAccessibleName('Colour mode: Light');
-    expect(saved()).toBeNull();
+    expect(saved()).toBe('light');
   });
 
   test('the button is top left in the header, before "Shuffled out (N)", and shows a sun and "Light ▾"', async () => {
@@ -226,7 +236,8 @@ describe('The colour mode menu (FEAT5)', () => {
     expect(menu()).not.toBeInTheDocument();
     expect(modeButton()).toHaveAttribute('aria-expanded', 'false');
     expect(modeOnPage()).toBe('light');
-    expect(saved()).toBeNull();
+    // The mode saved before (Light, see test/setup.ts) is left as it was.
+    expect(saved()).toBe('light');
   });
 
   test('a press outside the menu still does what it was for: pressing Next closes the menu and moves on', async () => {
@@ -368,22 +379,30 @@ describe('The colour mode menu with the keyboard (FEAT5)', () => {
 
 describe('Saving the colour mode (FEAT5): failure paths', () => {
   test.each(['Dark', 'black', '', '{"mode":"dark"}', 'null'])(
-    'when the saved mode is broken or unknown (%j), the app opens in Light instead of crashing',
+    'when the saved mode is broken or unknown (%j), the start page shows instead of crashing, and the app works once I choose (FEAT5_1)',
     async (value) => {
+      // Before FEAT5_1 a broken value opened the app in Light; now it counts as nothing saved.
       localStorage.setItem(COLOR_MODE_KEY, value);
-      const user = await renderApp(DECKS);
+      const user = renderStartPage(DECKS);
+      // The device's mode (jsdom's device has no dark setting, so Light).
       expect(modeOnPage()).toBe('light');
-      expect(modeButton()).toHaveAccessibleName('Colour mode: Light');
+
+      await chooseOnStartPage(user, 'Dark');
+      expect(modeOnPage()).toBe('dark');
+      expect(saved()).toBe('dark');
+      expect(modeButton()).toHaveAccessibleName('Colour mode: Dark');
       // The app works, and the mode can still be changed.
       await user.click(screen.getByRole('button', { name: 'Next →' }));
       expect(counter().position).toBe(2);
-      await choose(user, 'Dark');
-      expect(modeOnPage()).toBe('dark');
-      expect(saved()).toBe('dark');
+      await choose(user, 'Light');
+      expect(modeOnPage()).toBe('light');
+      expect(saved()).toBe('light');
     },
   );
 
   test('when storage is blocked, I can still switch modes and use the app, and it opens in Light next time', async () => {
+    // Light was saved before storage was blocked (test/setup.ts), so that is what opens next time.
+    // With nothing saved, the start page would show again instead: color-mode-start-page.test.tsx.
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
     });
@@ -402,11 +421,14 @@ describe('Saving the colour mode (FEAT5): failure paths', () => {
     expect(modeButton()).toHaveAccessibleName('Colour mode: Light');
   });
 
-  test('when storage can’t be read at all, the app opens in Light', async () => {
+  test('when storage can’t be read at all, the start page shows, and the app works in the mode I choose (FEAT5_1)', async () => {
+    // Before FEAT5_1 this opened the app in Light; now the start page asks first.
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('The operation is insecure.', 'SecurityError');
     });
-    await renderApp(DECKS);
+    const user = renderStartPage(DECKS);
+    expect(modeOnPage()).toBe('light');
+    await chooseOnStartPage(user, 'Light');
     expect(modeOnPage()).toBe('light');
     expect(modeButton()).toHaveAccessibleName('Colour mode: Light');
   });

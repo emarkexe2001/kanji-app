@@ -17,6 +17,7 @@ import {
   modeRadio,
   oneDeckSelect,
   renderApp,
+  renderAppFromStartPage,
   serveDeck,
   shuffleIn,
   shuffleInButton,
@@ -353,7 +354,9 @@ describe('Shuffle In Cards failure paths', () => {
       throw new DOMException('Access denied', 'SecurityError');
     });
 
-    const user = await renderApp(THREE_DECKS);
+    // Storage is blocked, so the saved mode can't be read and the app opens on the colour mode
+    // start page (FEAT5_1): a mode is chosen there first.
+    const user = await renderAppFromStartPage(THREE_DECKS);
     await chooseSource(user, 'JLPT N3');
     await shuffleIn(user, '2');
 

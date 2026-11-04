@@ -3,7 +3,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import App from '../../src/app/app';
-import { COUNTER, counter, enterCardLimit, makeWords, renderApp, serveDeck } from './helpers';
+import { COUNTER, counter, enterCardLimit, makeWords, renderApp, renderAppFromStartPage, serveDeck } from './helpers';
 
 describe('failure paths', () => {
   test('if the dictionary fails to download, an error message is shown instead of the deck', async () => {
@@ -60,7 +60,9 @@ describe('failure paths', () => {
       throw new DOMException('Access denied', 'SecurityError');
     });
 
-    const user = await renderApp();
+    // Storage is blocked, so the saved mode can't be read and the app opens on the colour mode
+    // start page (FEAT5_1): a mode is chosen there first.
+    const user = await renderAppFromStartPage();
     expect(counter().total).toBe(10);
 
     await enterCardLimit(user, '4');
