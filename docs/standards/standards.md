@@ -151,7 +151,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - **Only check class names when there's no other way.** Some things, like colours and animations, can't be seen in the test setup. Checking a class name is acceptable for those, with a comment saying why. Everything else is tested by what the user sees.
 - **Save your work before checking a test can fail.** Commit or `git stash` your changes before breaking code to check a test goes red, so restoring the file (e.g. with `git checkout`) can't wipe unsaved work.
 - **Test validation messages** for every feature where the user can enter input, such as increasing and decreasing the card limit.
-- **Decks can never be empty.** There must always be at least 1–5 cards in a deck (see Open Questions). If the user tries to set up a deck with 0 cards, a validation message must be shown.
+- **Decks can never be empty.** There must always be at least 1 card in a deck. If the user tries to set up a deck with 0 cards, a validation message must be shown.
 - **The test command must find test files automatically,** so a new test file runs without changing any scripts.
 - **All tests must pass** before a feature branch can be merged into `main`.
 
@@ -162,6 +162,7 @@ A document in `docs/` must describe the test types used in the project and how t
 ### 5.1 Before starting
 - Read the ticket and make sure you understand the task.
 - If the ticket needs more detail or clarification, respond with questions before starting.
+- **Check the ticket against these standards.** Before starting, read the ticket against these standards. Look for anything that disagrees with them, or with another part of the ticket, and anything that isn't clear. Write each one as a question in the ticket's "Questions / Clarifications" section (see `docs/tickets/example_ticket.md`) and ask. Write the agreed answer and its date under each question, so the decision is kept in the ticket. These answers are agreed answers, so each one needs a test (see 4.2). Work only starts once every question has an answer.
 - **Mockup first for UI work.** Before any work starts on a `FEAT`, `ADJ` or `UI` ticket, or any other ticket that changes what the user sees, make a mockup that can be opened and looked at (e.g. a shared design link). This is the first step, before any code is written. The mockup shows how the screen looks today and how it will look after the ticket, with options side by side for any UI detail that isn't decided. Work only starts once the mockup is approved, and the agreed choices are recorded in the ticket. If a ticket changes nothing on screen, say so in the mockup's place.
 - **Redo the mockup if it turns out wrong.** If the work shows the approved mockup was wrong (e.g. a size or fit that doesn't hold up in the real app), stop and make a corrected mockup before going on. Screenshots of the real app count. Work only carries on once the corrected mockup is approved, and the new choices are recorded in the ticket. Base a mockup's sizes and fits on measurements of the real app, using the longest real content as the worst case.
 - **If a UI detail isn't decided** (layout, sizes, colours, wording, placement, animations), ask how it should look rather than guessing.
@@ -241,5 +242,4 @@ A follow-up to a ticket keeps its number with a suffix, e.g. `FEAT2_5` follows `
 ---
 
 ## 6. Open Questions
-- **Minimum deck size:** these standards say "at least 1–5 cards", but the card limit ticket says the minimum is 1. Agree on one number (ticket PROC3).
 - **Commit, branch and PR detail:** how much detail commit messages, branch names and pull requests should have. To be agreed with Hong. The minimum commit message rules in 5.5 are already enforced (ticket TOOL3).

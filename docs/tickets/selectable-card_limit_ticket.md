@@ -1,5 +1,5 @@
 Feature Name: 
-Card Categories
+Selectable Card Limit
 
 Feature Description:
 I would like as a user to be able to limit the amount of cards I can see at a time based on a user input card limit for example if I enter the number 5.
@@ -18,6 +18,12 @@ When I have a card limit, if I shuffle in a new card the card deck limit should 
 I should not be able to set a card limit of 0
 
 I should not be able to set a card limit higher than 150!
+
+Questions / Clarifications:
+1. The Feature Name said "Card Categories", but the ticket is about the card limit. What is the right name?
+   Answer (agreed 2026-11-04, ticket PROC3): "Selectable Card Limit".
+2. What is the minimum deck size? The standards said "at least 1–5 cards", but this ticket says at least one card.
+   Answer (agreed 2026-11-04): 1 card. This matches the app (MIN_DECK_SIZE = 1, so the card limit is 1–150), and the standards now say the same (4.2).
 
 Branch name Examples:
 feature/card-limit
