@@ -23,8 +23,21 @@ When I open example_ticket.md, it contains a Questions / Clarifications section
 
 When I read the standards and the card limit ticket, they agree on the minimum deck size
 
+Questions / Clarifications:
+1. The ticket says to update the "Other Standards" section of standards.md, but it no longer exists. Where does the step go?
+   Answer (decided 2026-11-04 while briefing, not asked of the user): standards 5.1 "Before starting", next to the bullet that already says to respond with questions. This is because the "Other Standards" section no longer exists, and 5.1 is the matching place.
+2. Is the minimum deck size 1 card or 5?
+   Answer (agreed 2026-11-04): 1 card, as in the app (MIN_DECK_SIZE = 1) and the card limit ticket.
+3. Standards 4.2 says agreed answers need tests, but only names "Answers" sections. Does it cover answers in a Questions / Clarifications section too?
+   Answer (decided 2026-11-04 while briefing, not asked of the user): yes. Change that 4.2 bullet in this ticket, and don't say it again in 5.1. This is because 4.2 already covers "Answers" sections, and saying it in 5.1 too would give the rule twice.
+4. The card limit ticket has no Ticket Code and is still in docs/tickets/, although it was built in PR #1. Fix that here?
+   Answer (agreed 2026-11-04): no. Do it in a separate small follow-up PR after PROC3.
+
 Dependencies:
 None
 
 Branch name Examples:
 docs/ticket-clarification-step
+
+Completed On:
+2026-11-04 (PR #66)
