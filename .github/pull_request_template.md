@@ -11,12 +11,33 @@ Until then, the ticket is in the "Files changed" tab. -->
 
 <!-- What changed and why, in a few short lines. List the main files or parts. -->
 
+## Standards Check
+
+<!-- Tick each box once the PR follows that part of docs/standards/standards.md.
+If you leave a box unticked, add a short reason after it,
+e.g. "not ticked: the PR changes nothing on screen". -->
+
+- [ ] §1 UI Standards – same header, footer and font; colour-coded buttons; only shows what the user needs
+- [ ] §2 Code Standards – strict TypeScript, naming, components, state and error handling
+- [ ] §3 Folder Structure Standards – code in `src/`, tests in `test/`, docs in `docs/`
+- [ ] §4 Test Standards – scenarios, agreed answers and "no X" items tested; validation messages tested; all tests pass
+- [ ] §5 Git, Branch and PR Standards – branch prefix, commit messages, one change per PR, ticket moved to `completed_tickets/`
+- [ ] Questions about the ticket were asked and answered before starting, or none were needed (standards 5.1)
+
 ## Test Scenarios
 
 <!-- One checkbox for each "Possible Test Scenario", each agreed answer and each
 "left out" / "no X" item in the ticket (standards 4.2). Tick it when a test covers it.
 Give the test file and the test name. If there is no test, say why, e.g.
 "not covered yet – follow-up ticket TEST1". -->
+
+**Requirements**
+
+<!-- Delete if the ticket lists none. One checkbox for each item in the ticket's
+"Feature Requirements / Expected Behaviours". Give the test that covers it,
+or say how it was checked. -->
+
+- [ ] Requirement – `path/to/file.test.tsx`, "test name"
 
 **Possible Test Scenarios**
 
