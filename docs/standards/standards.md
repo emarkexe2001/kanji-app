@@ -191,7 +191,7 @@ A document in `docs/` must describe the test types used in the project and how t
 
 ### 5.4 Pull requests and merging
 - **Every change goes through a pull request,** reviewed by me or someone else before any merging happens.
-- **Use the pull request template.** Every pull request uses the template in `.github/pull_request_template.md`. Fill in each section, or delete the ones marked optional.
+- **Use the pull request template.** Every pull request uses the template in `.github/pull_request_template.md`. Fill in each section, or delete the sections the template says can be deleted.
 - **Only merge once the feature is complete,** properly tested, and all tests pass.
 - **Block merging while fixes are pending.** As soon as fixes are planned for an open pull request (from a review or a browser check), post a comment on it such as "⚠️ Do not merge yet – review fixes in progress" and switch it to draft (`gh pr ready <n> --undo`), so GitHub won't let it be merged. Once the fixes and the browser check are done, mark it ready again and post a comment saying it can be merged. A merged pull request can't be reopened, so fixes that miss it need a new pull request.
 - **Layout review before merging.** A pull request that changes what the user sees gets a layout review together before it is merged: look at it in a real browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note the result in the PR. Because merging the PR marks its ticket complete, a ticket isn't complete until its layout review has passed.

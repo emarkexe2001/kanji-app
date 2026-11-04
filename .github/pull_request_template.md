@@ -1,9 +1,11 @@
 ## Ticket
 
-<!-- Ticket code and a relative link to the ticket file, e.g.
-[FEAT2](docs/tickets/completed_tickets/FEAT2_card_shuffle_ticket.md) -->
+<!-- Ticket code and a link to where the ticket ends up on main, e.g.
+[FEAT2](../blob/main/docs/tickets/completed_tickets/FEAT2_card_shuffle_ticket.md)
+The link works once the PR is merged (the ticket moves there in this PR).
+Until then, the ticket is in the "Files changed" tab. -->
 
-**Ticket:** [CODE](docs/tickets/...)
+**Ticket:** [CODE](../blob/main/docs/tickets/completed_tickets/...)
 
 ## Summary
 
