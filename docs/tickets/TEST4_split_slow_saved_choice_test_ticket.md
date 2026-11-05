@@ -10,6 +10,8 @@ Split the Slow Saved-Choice Test So It Doesn't Time Out
 Origin:
 ADJ2_5 (PR #50, 2026-10-29). The first CI run failed in `apps/web/test/ui-tests/shuffle-in-multiple.test.tsx`, in the test "unknown or repeated ticked decks in the saved choice are dropped without a notice, and an unknown mode falls back to One deck". PR #50 doesn't touch that file, and the test passed on the CI re-run and 5 times out of 5 locally. The peer review found nothing random in the test and no timers. The likely cause is the default 5-second Vitest time limit on a slow CI machine: this is the heaviest test in the file. It renders the app, reloads it twice, shuffles in and makes many clicks, with a 4 × 30-card library each time.
 
+Seen again in TEST6 (PR #67, 2026-11-05): in one of 10 full local runs, this test failed on a wrong result, not a timeout. It failed after 99ms at `expect(tickedLabels()).toEqual(['JLPT N4'])`, just after the reload that follows `saveChoice({ kind: 'multiple', decks: ['N4', 'N4'] })`, with `expected [ 'JLPT N4', 'JLPT N2' ] to deeply equal [ 'JLPT N4' ]`. The decks ticked before the reload were still ticked after it, so the cause may not be the time limit (e.g. the choice saved earlier in the test being written again after `saveChoice`). Check this while splitting the test.
+
 Description:
 As a developer I would like CI to pass or fail only because of the code, so that a slow CI machine doesn't fail a pull request at random.
 
