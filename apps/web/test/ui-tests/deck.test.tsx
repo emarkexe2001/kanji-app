@@ -6,6 +6,8 @@ import {
   deckContents,
   deckShuffleButton,
   enterCardLimit,
+  makeWords,
+  NO_PAUSE,
   renderApp,
   wordsSeenWithNext,
 } from './helpers';
@@ -42,7 +44,8 @@ describe('deck', () => {
   });
 
   test('when I press Deck Shuffle, a different card from my deck is shown and no card enters or leaves the deck', async () => {
-    const user = await renderApp();
+    // About 30 clicks, so user-event's pause after each one is left out (NO_PAUSE in helpers.tsx, TEST6).
+    const user = await renderApp(makeWords(200), NO_PAUSE);
     await enterCardLimit(user, '5');
     const deckWords = new Set(await wordsSeenWithNext(user, 4));
     expect(deckWords.size).toBe(5);

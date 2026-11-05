@@ -15,6 +15,7 @@ import {
   enterCardLimit,
   makeDecks,
   makeWords,
+  NO_PAUSE,
   renderApp,
   renderAppFromStartPage,
   serveDeck,
@@ -84,19 +85,30 @@ describe('Shuffled-out cards view', () => {
     expect(listedWords()).toEqual([second, first]);
   });
 
-  test('when I add a card back, it is shown and in my deck, it leaves the list, the card I picked to swap out moves to the list, and my deck size still matches my card limit', async () => {
-    const user = await renderApp(DECKS);
-    const shuffledOut = await shuffleOutOne(user);
-    const before = await deckContents(user);
-    await openView(user);
+  // TEST6: these two were one test, which walked the whole deck twice (before and after adding the
+  // card back) and came close to the 5-second limit. Each walks it once, without user-event's pause
+  // after each click (NO_PAUSE in helpers.tsx).
 
-    await pickToAddBack(user, shuffledOut);
+  /**
+   * Opens the view, picks `word` to add back and card 5 to take out, and presses Add Back Cards.
+   * Returns the card swapped out.
+   */
+  async function addBackForCard5(user: User, word: string | null) {
+    await openView(user);
+    await pickToAddBack(user, word);
     await pickToTakeOut(user, 5);
     const swappedOut = takeOutGroup()
       .getByRole('checkbox', { name: /^Card 5: / })
       .getAttribute('aria-label')!
       .replace(/^Card 5: /, '');
     await user.click(addBackButton());
+    return swappedOut;
+  }
+
+  test('when I add a card back, it is shown and in my deck, the card I picked to swap out leaves my deck, and my deck size still matches my card limit', async () => {
+    const user = await renderApp(DECKS, NO_PAUSE);
+    const shuffledOut = await shuffleOutOne(user);
+    const swappedOut = await addBackForCard5(user, shuffledOut);
 
     expect(currentWord()).toBe(shuffledOut);
     expect(counter()).toEqual({ position: 5, total: 10 });
@@ -104,8 +116,15 @@ describe('Shuffled-out cards view', () => {
     expect(after).toHaveLength(10);
     expect(words(after)).toContain(shuffledOut);
     expect(words(after)).not.toContain(swappedOut);
-    expect(words(before)).toContain(swappedOut);
+  });
 
+  test('when I add a card back, it leaves the list, and the card I picked to swap out, which was in my deck, moves to the list', async () => {
+    const user = await renderApp(DECKS, NO_PAUSE);
+    const shuffledOut = await shuffleOutOne(user);
+    const before = await deckContents(user);
+    const swappedOut = await addBackForCard5(user, shuffledOut);
+
+    expect(words(before)).toContain(swappedOut);
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)');
     await openView(user);
     expect(listedWords()).toEqual([swappedOut]);

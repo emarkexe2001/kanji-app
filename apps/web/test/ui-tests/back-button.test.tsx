@@ -16,6 +16,7 @@ import {
   enterCardLimit,
   makeDecks,
   makeWords,
+  NO_PAUSE,
   renderApp,
   serveDeck,
   shuffleIn,
@@ -392,15 +393,18 @@ describe('what Back remembers', () => {
     expect(counter().position).toBe(10);
   });
 
+  // These two tests press keys over 100 times, so they use user-event without its pause after each
+  // key (NO_PAUSE in helpers.tsx) and press the keys in one call (TEST6). The S and ← keys
+  // themselves are tested above with the default pause.
   test('Back remembers the last 50 cards I saw, then carries on in deck order', async () => {
-    const user = await renderApp();
+    const user = await renderApp(makeWords(200), NO_PAUSE);
     // With the random source fixed at 0, Deck Shuffle goes between cards 1 and 2.
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await user.click(document.body);
-    for (let i = 0; i < 60; i++) await user.keyboard('s');
+    await user.keyboard('s'.repeat(60));
     expect(counter().position).toBe(1);
 
-    for (let i = 0; i < 50; i++) await user.keyboard('{ArrowLeft}');
+    await user.keyboard('{ArrowLeft}'.repeat(50));
     // 50 cards back, still going between cards 2 and 1.
     expect(counter().position).toBe(1);
 
@@ -408,7 +412,32 @@ describe('what Back remembers', () => {
     // The 10 older cards have dropped off, so Back goes on in deck order: wrapping to the last card,
     // not to card 2.
     expect(counter().position).toBe(10);
-  }, 60_000);
+  });
+
+  test('Back remembers exactly 50 cards: not 49, and not 51', async () => {
+    // Going between cards 1 and 2 alone can't tell 49 cards from 50 (both end on card 1), so the
+    // oldest cards here are different: cards 1, 2 and 3, then 50 moves between cards 2 and 1.
+    const user = await renderApp(makeWords(200), NO_PAUSE);
+    await user.click(document.body);
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+    // Deck Shuffle from card 3 goes to card 2 once (0.15 picks the second of the other 9 cards),
+    // then between cards 2 and 1 (0 picks the first other card).
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0.15).mockReturnValue(0);
+    await user.keyboard('s'.repeat(51));
+    expect(counter().position).toBe(2);
+
+    // 50 cards back (1, 2, 1, 2 ...) ends on card 2, the first card I saw after card 3. With 49
+    // cards remembered, the 50th press would go on in deck order from card 1, to the last card.
+    await user.keyboard('{ArrowLeft}'.repeat(50));
+    expect(counter().position).toBe(2);
+
+    // Card 3, the 51st card back, has dropped off, so Back goes on in deck order: card 1, not card 3...
+    await user.keyboard('{ArrowLeft}');
+    expect(counter().position).toBe(1);
+    // ...then wrapping to the last card, not card 2 (seen before card 3).
+    await user.keyboard('{ArrowLeft}');
+    expect(counter().position).toBe(10);
+  });
 
   test('going Back counts as moving on from a "New" card, so its badge goes', async () => {
     const user = await renderApp(makeDecks({ N5: 30, N4: 30 }));

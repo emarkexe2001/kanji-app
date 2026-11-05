@@ -7,6 +7,7 @@ import { COLOR_MODE_KEY, DEVICE_DARK_QUERY } from '../../src/lib/color-mode';
 import { WIDE_LAYOUT_QUERY } from '../../src/features/deck/utils/wide-layout';
 
 export type User = ReturnType<typeof userEvent.setup>;
+type UserOptions = Parameters<typeof userEvent.setup>[0];
 
 /**
  * `count` made-up words, each with a unique word and reading so the card on screen can be told apart.
@@ -43,10 +44,23 @@ export function serveDeck(words: unknown) {
 
 export const COUNTER = /^Card \d+ of \d+$/;
 
-/** Renders the whole app with `words` as the dictionary and waits for the first card. */
-export async function renderApp(words: WordEntry[] = makeWords(200)) {
+/**
+ * user-event without its pause after each action (TEST6), for tests that make many clicks or key
+ * presses: `renderApp(words, NO_PAUSE)`. By default user-event waits for the next turn of the event
+ * loop after every action (`delay: 0`). That wait is most of the time a click takes (about 60ms
+ * with it, 25ms without), and it grows on a busy machine. The same events are still fired in the
+ * same order and React still updates the page after each one; only timers set by the app (none of
+ * which these tests rely on) don't get a chance to run between actions.
+ */
+export const NO_PAUSE = { delay: null } as const;
+
+/**
+ * Renders the whole app with `words` as the dictionary and waits for the first card. `userOptions`
+ * go to `userEvent.setup` (e.g. NO_PAUSE).
+ */
+export async function renderApp(words: WordEntry[] = makeWords(200), userOptions?: UserOptions) {
   serveDeck(words);
-  const user = userEvent.setup();
+  const user = userEvent.setup(userOptions);
   render(<App />);
   await screen.findByText(COUNTER);
   return user;
