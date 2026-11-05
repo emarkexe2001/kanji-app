@@ -34,6 +34,16 @@ When I run the four tests above, each still checks everything it checked before 
 
 When I break what each test checks (e.g. let Back keep 49 cards, or let Deck Shuffle add a card), the matching test still goes red
 
+Questions / Clarifications:
+1. Which tests are in scope: only the four named above, or every UI test near the limit?
+   Answer (agreed 2026-11-05): speed up only the four named tests. List every UI test over 2.5 seconds before and after in the PR. Any other test still over 3.5 seconds afterwards gets a follow-up ticket, written in the same PR (and the PR says so). Don't touch `shuffle-in-multiple.test.tsx` (TEST4 owns it) or `card-slides.test.tsx` (TEST5).
+2. What counts as "still close to 5 seconds", and how long is a test's own time limit?
+   Answer (agreed 2026-11-05): a test still over 2.5 seconds after speeding up gets its own 15-second limit (the per-test timeout argument, not one for the whole suite), with a comment saying why.
+3. How is "the whole web UI test suite 10 times in a row" shown?
+   Answer (agreed 2026-11-05): a table in the PR of 10 full runs on the final commit (each run's pass or fail and its slowest test's time), and a repeat script (`npm run test:ui:repeat` in `apps/web`) that runs the UI suite N times (10 by default) and stops with a failure at the first failing run. It works on Windows (Git Bash) and Linux (CI), has its own test (run by `npm run test:scripts`) and is described in `docs/testing.md` in the same commit.
+4. Which flow does this ticket follow?
+   Answer (agreed 2026-11-05): a lighter flow. One agent does the speed-ups, the break-and-restore checks and the 10 runs, and a separate review agent comes after. There is no in-person check, as nothing on screen changes.
+
 Dependencies:
 None. Can be done before or after TEST4 and TEST5.
 
