@@ -10,6 +10,7 @@ This document describes the types of test used in the project, where each lives 
 | `npm run test:scripts` | Only the tests for the root `scripts/` (e.g. the commit message check), in `scripts/test/` |
 | `npm run test:unit -w @kanji/web` | Only the web app's unit tests |
 | `npm run test:ui -w @kanji/web` | Only the web app's UI tests |
+| `npm run test:ui:repeat -w @kanji/web` | The web app's UI tests 10 times in a row, stopping at the first run that fails (see [Running the UI tests again and again](#running-the-ui-tests-again-and-again)) |
 | `npx vitest -w @kanji/web` (or `npx vitest` inside `apps/web`) | UI tests in watch mode, re-running as you save |
 | `npm test -w @kanji/core` | Only the `@kanji/core` unit tests |
 | `npm run typecheck` | Type-checks the code in `src/` and the tests in `test/` of every workspace |
@@ -59,6 +60,7 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `packages/core/test/unit/color-modes.test.ts` (FEAT5: the colour modes, the Dark palette and reading/pick colours from the ticket, and the 4.5:1 / 3:1 contrast pairs in Dark)
   - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
   - `scripts/test/ticket-clarification.test.ts` (PROC3: the ticket clarification step, read by fields and key phrases rather than exact wording: the Questions / Clarifications section in `docs/tickets/example_ticket.md` with a question and an "Answer (agreed <date>)" line under it; the standards 5.1 bullet that says to check the ticket against the standards and write the answers back; the standards 4.2 bullet that says those answers need tests; the minimum deck size of 1 card, the same in standards 4.2, the card limit ticket and `MIN_DECK_SIZE` in the app, and no longer an Open Question; and the card limit ticket's Feature Name "Selectable Card Limit"; runs with `npm run test:scripts`)
+  - `scripts/test/repeat-ui-tests.test.ts` (TEST6: the script that runs the UI tests again and again, see [Running the UI tests again and again](#running-the-ui-tests-again-and-again); runs with `npm run test:scripts`)
   - `scripts/test/check-commit-message.test.ts` (the commit message rules checked by the commit hook and `npm run check:commits`; runs with `npm run test:scripts`)
   - `scripts/test/pull-request-template.test.ts` (PROC1 and PROC2: the pull request template in `.github/pull_request_template.md`, read as a reader sees it, by headings, fields and key phrases rather than exact wording: the Ticket field with its link to `../blob/main/docs/tickets/completed_tickets/` and the "Files changed" note; the Standards Check section right after Summary, with a box for each of standards sections 1 to 5 named by its real heading in `standards.md`, a questions box (standards 5.1) that allows "or none were needed", the note that a box left unticked needs a short reason, and no "N/A" option; the Test Scenarios checkboxes for requirements (the first group), scenarios, agreed answers and "left out" items asking for the test file and name or a reason there's no test; the test counts, break-and-restore and in-person check fields, "Delete if" on exactly the sections that can be deleted, and no 🤖 line; and the standards 5.4 bullet that says to use it and to tick each Standards Check box or give a reason; runs with `npm run test:scripts`. GitHub only pre-fills a new PR from the template once it is on `main`, so that is checked by hand after merging)
 
@@ -87,6 +89,19 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `color-mode-script.test.ts`: the small script in `index.html` that puts the saved mode on the page before it is first drawn (no flash): it runs first, and opens in the same mode as the app for every saved value, including broken ones and blocked storage; when nothing usable is saved, both use the device's light or dark setting (FEAT5_1)
   - `color-mode-css.test.ts` (runs in Node, not jsdom): `index.css` against the colour tokens in `@kanji/core`, Light against the Tailwind colours it used before, and the stylesheet built the way the production build builds it (`index.css` compiled as `@tailwindcss/vite` does: Tailwind's compiler, its file scanner, then the minifier; the rest of the app isn't built), so a colour class that Tailwind doesn't generate is caught, and every class on the colour mode start page is generated (FEAT5_1). Helpers for it are in `mode-colors.ts`
   - `card-slides.test.tsx` also checks that changing the colour mode while cards slide lands them first, as any press does (FEAT5)
+
+### Running the UI tests again and again
+A test that is close to Vitest's 5-second time limit can pass in one run and time out in the next, when the machine is busy (TEST6). To check for that, run the whole UI suite several times in a row (from the repo root):
+
+| Command | What it runs |
+|---|---|
+| `npm run test:ui:repeat -w @kanji/web` | The UI tests 10 times |
+| `npm run test:ui:repeat -w @kanji/web -- 3` | The UI tests 3 times |
+| `npm run test:ui:repeat -w @kanji/web -- 3 --reporter=verbose` | 3 times, passing anything after the number on to `vitest run` (here, to show how long each test takes) |
+
+It stops at the first run that fails, says which run it was and exits with an error, so nothing after it hides the failure. It is `scripts/repeat-ui-tests.ts`, which runs `npm run test:ui` in `apps/web` through the shell, so it works the same in Git Bash or `cmd.exe` on Windows and on Linux. Its own tests are in `scripts/test/repeat-ui-tests.test.ts` (`npm run test:scripts`): the number of runs (10 by default, a whole number of 1 or more), the arguments passed on to Vitest, stopping at the first failing run, and the `test:ui:repeat` script and this section being there.
+
+**Keeping UI tests fast.** By default user-event waits for the next turn of the event loop after every click or key press. On Windows that wait is about 12ms (the timer's tick), and more on a busy machine, so a test with 100 key presses spends most of its time waiting. A test that makes many clicks or key presses can render the app with `renderApp(words, NO_PAUSE)` from `helpers.tsx`: user-event then fires the same events without the wait. Pressing several keys in one `user.keyboard` call (e.g. `user.keyboard('s'.repeat(60))`) saves the wait between them too. A test that is still over 2.5 seconds in a full run gets its own longer time limit (e.g. `test('…', async () => { … }, 15_000)`), with a comment saying why, rather than a longer limit for the whole suite.
 
 ### Commit message check
 Commit messages are checked against [standards.md, section 5.5](standards/standards.md#55-commit-messages) by `scripts/check-commit-message.ts`. The `commit-msg` hook runs it on every commit and CI runs it on every commit in a pull request. To run it by hand (from the repo root):
