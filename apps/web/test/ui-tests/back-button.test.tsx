@@ -169,8 +169,12 @@ describe('the Back button', () => {
     expect(onScreen()).toEqual({ word: deck[8], position: 9 });
   });
 
+  // TEST6: walks the whole deck three times (30 clicks on Next) besides the clicks it checks, so
+  // user-event's pause after each click is left out (NO_PAUSE in helpers.tsx).
+  // It still takes about 2.5-3.5 seconds in a full run on a developer machine, so it has its own
+  // 15-second limit instead of the 5-second default.
   test('when I press Back, the "Card X of Y" counter shows the card I went back to, and my deck has not changed', async () => {
-    const user = await renderApp();
+    const user = await renderApp(makeWords(200), NO_PAUSE);
     const deck = await deckContents(user);
     expect(counter().position).toBe(1);
     await next(user, 4);
@@ -186,8 +190,8 @@ describe('the Back button', () => {
     expect(await deckContents(user)).toEqual([...deck.slice(3), ...deck.slice(0, 3)]);
     // ...and the saved deck is the same after a reload.
     await reload(makeWords(200));
-    expect(await deckContents(userEvent.setup())).toEqual(deck);
-  });
+    expect(await deckContents(userEvent.setup(NO_PAUSE))).toEqual(deck);
+  }, 15_000);
 
   test('when I go Back and then press Next, Next moves on from the card on screen', async () => {
     const user = await renderApp();

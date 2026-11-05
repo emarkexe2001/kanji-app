@@ -11,6 +11,7 @@ import {
   enterCardLimit,
   makeDecks,
   makeWords,
+  NO_PAUSE,
   renderApp,
   serveDeck,
   shuffleIn,
@@ -168,8 +169,12 @@ describe('Shuffled-out button in the top right of the header', () => {
     expect(screen.queryByRole('group', { name: /^Take out of your deck/ })).not.toBeInTheDocument();
   });
 
+  // TEST6: walks the whole deck twice (20 clicks on Next) besides the clicks it checks, so
+  // user-event's pause after each click is left out (NO_PAUSE in helpers.tsx).
+  // It still takes about 2.5-3 seconds in a full run on a developer machine, so it has its own
+  // 15-second limit instead of the 5-second default.
   test('when I add cards back from the panel in its new place, they are in my deck, the same as before', async () => {
-    const user = await renderApp(DECKS);
+    const user = await renderApp(DECKS, NO_PAUSE);
     const word = await shuffleOutOne(user);
     expect(words(await deckContents(user))).not.toContain(word);
 
@@ -185,7 +190,7 @@ describe('Shuffled-out button in the top right of the header', () => {
     expect(currentWord()).toBe(word);
     expect(words(await deckContents(user))).toContain(word);
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)'); // the swapped-out card
-  });
+  }, 15_000);
 
   test('with the keyboard, Tab reaches the button straight after the colour mode button, then the panel when it is open, then the deck', async () => {
     const user = await renderApp(DECKS);
