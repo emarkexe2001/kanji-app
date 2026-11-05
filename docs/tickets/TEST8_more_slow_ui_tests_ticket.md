@@ -38,7 +38,7 @@ When I run the tests above, each still checks everything it checked before (the 
 When I break what each test checks, the matching test still goes red
 
 Dependencies:
-TEST6. The `shuffle-in-multiple.test.tsx` tests wait for TEST4, and the `card-slides.test.tsx` test waits for TEST5.
+TEST6. The `shuffle-in-multiple.test.tsx` tests wait for TEST4, and the `card-slides.test.tsx` test waits for TEST5. Do this last (order agreed 2026-11-05: TEST4, then TEST5, then TEST8).
 
 Branch name Examples:
 test/speed-up-more-slow-ui-tests

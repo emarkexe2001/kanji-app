@@ -32,7 +32,7 @@ When I press Shuffle In Cards three times quickly and let the last card land, th
 Break-and-restore check: stop the last card from being counted when it lands, and see the test go red every time
 
 Dependencies:
-None. Can be done before or after TEST4.
+None. Do this after TEST4 and before TEST8 (order agreed 2026-11-05: TEST4, then TEST5, then TEST8).
 
 Branch name Examples:
 test/fix-flaky-shuffle-in-again-test
