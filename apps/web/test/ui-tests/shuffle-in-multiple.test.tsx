@@ -199,11 +199,12 @@ describe('Shuffle In Cards from multiple decks', () => {
     expect(currentCardLevel()).toBe('JLPT N3');
   });
 
+  // It walks the whole deck three times (30 clicks on Next, each redrawing the card), so it uses
+  // NO_PAUSE and has its own 15-second limit: even so it took up to 4.1 seconds in a full run on a
+  // busy machine, too close to the 5-second default (TEST4).
   test('a card in two ticked decks (e.g. JLPT N4 and Common words) is only counted and shuffled in once', async () => {
     // Every N4 word is also common, so Common words holds the same 5 cards as N4.
     const words = [...makeWords(30, 'N5'), ...makeWords(5, 'N4').map((w) => ({ ...w, common: true })), ...makeWords(1)];
-    // It walks the whole deck three times (30 clicks on Next), so user-event's pause after each
-    // click is left out (NO_PAUSE in helpers.tsx, TEST4).
     const user = await renderApp(words, NO_PAUSE);
     await tickDecks(user, 'JLPT N4', 'Common words');
     const before = await deckContents(user);
@@ -219,7 +220,7 @@ describe('Shuffle In Cards from multiple decks', () => {
     const cards = (await deckContents(user)).map((c) => c.word);
     expect(cards).toHaveLength(10);
     expect(new Set(cards).size).toBe(10);
-  });
+  }, 15_000);
 
   test('cards shuffled out from multiple decks go into the Shuffled-out cards list', async () => {
     const user = await renderApp(FOUR_DECKS);
