@@ -8,9 +8,7 @@ Test Name:
 Speed Up the Other UI Tests Still Over 3.5 Seconds
 
 Origin:
-TEST6 (slow UI tests timing out, 2026-11-05). TEST6 sped up the four slowest UI tests. As agreed for TEST6, any other UI test still over 3.5 seconds afterwards gets a follow-up ticket. In full runs of the web UI tests on a developer machine (Windows, `npx vitest run --reporter=verbose` in `apps/web`), these were over 3.5 seconds in at least one of the 10 runs on the TEST6 branch (the TEST6 PR lists every run). The first two timed out at 5 seconds in one more run (the first run of `npm run test:ui:repeat`), so start with them:
-- `back-button.test.tsx`: "when I press Back, the "Card X of Y" counter shows the card I went back to, and my deck has not changed" (3.9–4.9 seconds; timed out once)
-- `shuffled-out-header.test.tsx`: "when I add cards back from the panel in its new place, they are in my deck, the same as before" (3.6–5.0 seconds; timed out once)
+TEST6 (slow UI tests timing out, 2026-11-05). TEST6 sped up the four slowest UI tests. As agreed for TEST6, any other UI test still over 3.5 seconds afterwards gets a follow-up ticket. In full runs of the web UI tests on a developer machine (Windows, `npx vitest run --reporter=verbose` in `apps/web`), these were over 3.5 seconds in at least one of the 10 runs on the TEST6 branch, before the TEST6 scope change (the TEST6 PR lists every run). Two more tests that timed out at 5 seconds there (back-button "Card X of Y" and shuffled-out-header "add cards back from the panel") were fixed in TEST6 instead:
 - `shuffled-out.test.tsx`: "when I add several cards back at once, they are all in my deck and my deck size still matches my card limit" (3.3–4.3 seconds)
 - `new-card-badge.test.tsx`: "when I shuffle in cards, the cards that were shuffled in show a "New" badge" (3.0–4.2 seconds)
 - `new-card-badge.test.tsx`: "when I shuffle in several cards, the ones I haven't seen yet still show "New" until I have seen each one and moved on" (2.6–3.6 seconds)

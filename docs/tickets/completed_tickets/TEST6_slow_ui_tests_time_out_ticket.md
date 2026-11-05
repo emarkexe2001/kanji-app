@@ -37,6 +37,7 @@ When I break what each test checks (e.g. let Back keep 49 cards, or let Deck Shu
 Questions / Clarifications:
 1. Which tests are in scope: only the four named above, or every UI test near the limit?
    Answer (agreed 2026-11-05): speed up only the four named tests. List every UI test over 2.5 seconds before and after in the PR. Any other test still over 3.5 seconds afterwards gets a follow-up ticket, written in the same PR (and the PR says so). Don't touch `shuffle-in-multiple.test.tsx` (TEST4 owns it) or `card-slides.test.tsx` (TEST5).
+   Note (agreed 2026-11-05, after the first 10 runs): the scope grew to two more tests, back-button "when I press Back, the "Card X of Y" counter shows the card I went back to, and my deck has not changed" and shuffled-out-header "when I add cards back from the panel in its new place, they are in my deck, the same as before". Each timed out at 5 seconds in the first run of `npm run test:ui:repeat`, so without them the scenario "10 runs in a row, no test times out" couldn't pass. The other slow tests stay in TEST8.
 2. What counts as "still close to 5 seconds", and how long is a test's own time limit?
    Answer (agreed 2026-11-05): a test still over 2.5 seconds after speeding up gets its own 15-second limit (the per-test timeout argument, not one for the whole suite), with a comment saying why.
 3. How is "the whole web UI test suite 10 times in a row" shown?
