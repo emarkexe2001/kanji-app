@@ -43,13 +43,15 @@ const count = (items: (string | null)[], value: string) => items.filter((i) => i
 describe('picking the deck to study', () => {
   // TEST6: these two were one test, which walked the whole deck twice and came close to the 5-second
   // limit. Each walks it once (10 clicks on Next), without user-event's pause after each click
-  // (NO_PAUSE in helpers.tsx).
+  // (NO_PAUSE in helpers.tsx). The N4 test is the first in this file, so it also waits for the app's
+  // code to load and warm up the first time, and still takes about 3 seconds in a full run on a
+  // developer machine: it has its own 15-second limit instead of the 5-second default.
   test('when I pick the N4 deck, every card in my deck is an N4 word', async () => {
     const user = await renderApp(makeDecks({ N4: 30, N5: 30, common: 30 }), NO_PAUSE);
 
     await chooseDeck(user, 'JLPT N4');
     expect(levels(await deckContents(user)).every((l) => l === 'JLPT N4')).toBe(true);
-  });
+  }, 15_000);
 
   test('when I pick the N5 deck, every card in my deck is an N5 word', async () => {
     const user = await renderApp(makeDecks({ N4: 30, N5: 30, common: 30 }), NO_PAUSE);

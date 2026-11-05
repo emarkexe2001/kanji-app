@@ -87,7 +87,9 @@ describe('Shuffled-out cards view', () => {
 
   // TEST6: these two were one test, which walked the whole deck twice (before and after adding the
   // card back) and came close to the 5-second limit. Each walks it once, without user-event's pause
-  // after each click (NO_PAUSE in helpers.tsx).
+  // after each click (NO_PAUSE in helpers.tsx). Shuffling in, the shuffled-out view and the walk
+  // still take about 2.5-3 seconds in a full run on a developer machine, so each has its own
+  // 15-second limit instead of the 5-second default.
 
   /**
    * Opens the view, picks `word` to add back and card 5 to take out, and presses Add Back Cards.
@@ -116,7 +118,7 @@ describe('Shuffled-out cards view', () => {
     expect(after).toHaveLength(10);
     expect(words(after)).toContain(shuffledOut);
     expect(words(after)).not.toContain(swappedOut);
-  });
+  }, 15_000);
 
   test('when I add a card back, it leaves the list, and the card I picked to swap out, which was in my deck, moves to the list', async () => {
     const user = await renderApp(DECKS, NO_PAUSE);
@@ -128,7 +130,7 @@ describe('Shuffled-out cards view', () => {
     expect(shuffledOutButton()).toHaveTextContent('Shuffled out (1)');
     await openView(user);
     expect(listedWords()).toEqual([swappedOut]);
-  });
+  }, 15_000);
 
   test('when I add several cards back at once, they are all in my deck and my deck size still matches my card limit', async () => {
     const user = await renderApp(DECKS);

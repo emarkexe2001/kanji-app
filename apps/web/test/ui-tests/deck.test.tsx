@@ -43,8 +43,11 @@ describe('deck', () => {
     expect(counter()).toEqual({ position: 1, total: 3 });
   });
 
+  // TEST6: about 30 clicks, so user-event's pause after each one is left out (NO_PAUSE in
+  // helpers.tsx). It still takes 3-4 seconds in a full run on a developer machine, as each of the 20
+  // Deck Shuffles is checked on its own and the app redraws the card each time, so it has its own
+  // 15-second limit instead of the 5-second default.
   test('when I press Deck Shuffle, a different card from my deck is shown and no card enters or leaves the deck', async () => {
-    // About 30 clicks, so user-event's pause after each one is left out (NO_PAUSE in helpers.tsx, TEST6).
     const user = await renderApp(makeWords(200), NO_PAUSE);
     await enterCardLimit(user, '5');
     const deckWords = new Set(await wordsSeenWithNext(user, 4));
@@ -62,7 +65,7 @@ describe('deck', () => {
     }
     // Walking the whole deck still finds exactly the same 5 cards.
     expect(new Set((await deckContents(user)).map((c) => c.word))).toEqual(deckWords);
-  });
+  }, 15_000);
 
   test('the S key does a Deck Shuffle', async () => {
     const user = await renderApp();
