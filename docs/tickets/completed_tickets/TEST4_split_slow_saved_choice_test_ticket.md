@@ -30,6 +30,12 @@ Requirements / Expected Behaviours:
 
 Questions / Clarifications:
 (Check this ticket against docs/standards/standards.md before starting.)
+1. Which flow does this ticket follow?
+   Answer (agreed 2026-11-05): a lighter flow. One agent finds the cause, splits the test, and does the break-and-restore checks and the repeat runs. A separate review agent comes after. There is no in-person check, as nothing on screen changes.
+2. Should any other slow test in `shuffle-in-multiple.test.tsx` be sped up here?
+   Answer (agreed 2026-11-05): yes, "a card in two ticked decks (e.g. JLPT N4 and Common words) is only counted and shuffled in once". In TEST6's runs it took 3.5–4.4 seconds and timed out once at 5 seconds. Use `NO_PAUSE`, and give it a 15-second limit with a comment if it is still over 2.5 seconds. It comes out of TEST8 (edited in this ticket's PR).
+3. What if the wrong result turns out to be an app bug?
+   Answer (agreed 2026-11-05): if the fix is small (a few lines of app code), fix it in this ticket's PR, with a test that fails without the fix and passes with it, and explain the bug in plain English in the PR. If the fix is bigger, stop and ask before changing app code.
 
 Possible Test Scenarios I would like to see:
 
@@ -50,3 +56,6 @@ None. Do this before TEST5 and TEST8 (order agreed 2026-11-05: TEST4, then TEST5
 
 Branch name Examples:
 test/split-slow-saved-choice-test
+
+Completed On:
+2026-11-05 (PR #70)

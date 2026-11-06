@@ -18,6 +18,7 @@ import {
   makeDecks,
   makeWords,
   modeRadio,
+  NO_PAUSE,
   oneDeckSelect,
   renderApp,
   renderAppFromStartPage,
@@ -198,10 +199,13 @@ describe('Shuffle In Cards from multiple decks', () => {
     expect(currentCardLevel()).toBe('JLPT N3');
   });
 
+  // It walks the whole deck three times (30 clicks on Next, each redrawing the card), so it uses
+  // NO_PAUSE and has its own 15-second limit: even so it took up to 4.1 seconds in a full run on a
+  // busy machine, too close to the 5-second default (TEST4).
   test('a card in two ticked decks (e.g. JLPT N4 and Common words) is only counted and shuffled in once', async () => {
     // Every N4 word is also common, so Common words holds the same 5 cards as N4.
     const words = [...makeWords(30, 'N5'), ...makeWords(5, 'N4').map((w) => ({ ...w, common: true })), ...makeWords(1)];
-    const user = await renderApp(words);
+    const user = await renderApp(words, NO_PAUSE);
     await tickDecks(user, 'JLPT N4', 'Common words');
     const before = await deckContents(user);
 
@@ -216,7 +220,7 @@ describe('Shuffle In Cards from multiple decks', () => {
     const cards = (await deckContents(user)).map((c) => c.word);
     expect(cards).toHaveLength(10);
     expect(new Set(cards).size).toBe(10);
-  });
+  }, 15_000);
 
   test('cards shuffled out from multiple decks go into the Shuffled-out cards list', async () => {
     const user = await renderApp(FOUR_DECKS);
@@ -549,24 +553,33 @@ describe('saved "Shuffle in from" checks (failure paths)', () => {
     expect(oneDeckSelect()).toHaveValue('N4');
   });
 
-  test('unknown or repeated ticked decks in the saved choice are dropped without a notice, and an unknown mode falls back to One deck', async () => {
+  // TEST4: each of these saves its choice before the app opens, never while it is open. The app
+  // saves the choice it loaded once it has opened (in an effect), and on a busy machine that save
+  // can still be waiting when the first card shows. Closing the app then runs it, so a choice
+  // written by the test in between was overwritten by the one loaded before.
+  test('unknown or repeated ticked decks in the saved choice are dropped without a notice', async () => {
     saveChoice({ kind: 'multiple', decks: ['N9', 42, 'N4', 'N4', 'N2'] });
     await renderApp(FOUR_DECKS);
 
     expect(modeRadio('Multiple decks')).toBeChecked();
     expect(tickedLabels()).toEqual(['JLPT N4', 'JLPT N2']);
     expect(untickedNotice()).not.toBeInTheDocument();
+  });
 
-    // A deck saved twice counts as one tick, so the message shows under the checkboxes.
+  test('a deck saved twice counts as one tick, so "Tick at least two decks" shows under the checkboxes when I shuffle in', async () => {
     saveChoice({ kind: 'multiple', decks: ['N4', 'N4'] });
-    const reloaded = await reload();
+    const user = await renderApp(FOUR_DECKS);
+
     expect(tickedLabels()).toEqual(['JLPT N4']);
-    await shuffleIn(reloaded, '1');
+    await shuffleIn(user, '1');
     expect(decksGroup()).toContainElement(screen.getByRole('alert'));
     expect(screen.getByRole('alert')).toHaveTextContent('Tick at least two decks, or choose One deck instead.');
+  });
 
+  test('an unknown saved mode falls back to One deck', async () => {
     saveChoice({ kind: 'several', decks: ['N4', 'N3'] });
-    await reload();
+    await renderApp(FOUR_DECKS);
+
     expect(modeRadio('One deck')).toBeChecked();
     expect(oneDeckSelect()).toHaveValue('N4');
   });
