@@ -6,6 +6,18 @@ on:
   push:
     branches: [main]
 
+# Docs-only pull requests (CI2): a pull request is docs-only when every file it changes is under
+# `docs/` or is a Markdown (`.md`) file anywhere in the repo (the rule is in
+# scripts/docs-only-changes.ts). A docs-only PR can't affect the app, so it skips the format
+# check, lint, typecheck and the app's tests. It still runs the commit message check and the
+# scripts tests, which are quick and read docs (the standards, the PR template,
+# docs/tickets/example_ticket.md and docs/testing.md), so a docs change can break them.
+# Every other PR, and every push to main, runs every check.
+#
+# This is done with `if:` on the steps, not `paths-ignore`, so the required check
+# "Typecheck and test" still runs and reports on every PR. With `paths-ignore` it would never
+# start on a docs-only PR, and the PR would wait for it forever and couldn't be merged.
+
 jobs:
   test:
     name: Typecheck and test
@@ -19,13 +31,31 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # Needed on docs-only PRs too: the commit message check and the scripts tests use tsx.
       - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
+      # Pull requests only, so a push to main never takes the docs-only path. `...` diffs the PR
+      # against where it left main; --no-renames lists both names of a moved file, so moving
+      # code into docs/ isn't docs-only.
+      - name: Check for a docs-only pull request
+        id: changes
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: git diff --name-only --no-renames origin/main...HEAD | npx tsx scripts/docs-only-changes.ts >> "$GITHUB_OUTPUT"
+      - if: steps.changes.outputs.docs_only != 'true'
+        run: npm run format:check
+      - if: steps.changes.outputs.docs_only != 'true'
+        run: npm run lint
       # Checks every commit in the PR against standards 5.5. On a pull request HEAD is
       # GitHub's merge of the PR into main; that commit has two parents, so it is skipped.
       - name: Check commit messages
         if: github.event_name == 'pull_request'
         run: npm run check:commits -- origin/main..HEAD
-      - run: npm run typecheck
-      - run: npm test
+      - if: steps.changes.outputs.docs_only != 'true'
+        run: npm run typecheck
+      # `npm test` runs the scripts tests at the end, so they only run on their own on a
+      # docs-only PR.
+      - if: steps.changes.outputs.docs_only != 'true'
+        run: npm test
+      - name: Scripts tests (docs-only PR)
+        if: steps.changes.outputs.docs_only == 'true'
+        run: npm run test:scripts
