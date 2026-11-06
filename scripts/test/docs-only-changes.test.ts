@@ -94,7 +94,7 @@ describe('the CI workflow', () => {
     const step = stepFor('scripts/docs-only-changes.ts');
     assert.match(step, /id: changes/);
     assert.match(step, /if: github\.event_name == 'pull_request'/);
-    assert.match(step, /git diff --name-only --no-renames origin\/main\.\.\.HEAD/);
+    assert.match(step, /git diff --name-only --no-renames origin\/ci2-proof-base\.\.\.HEAD/);
     assert.match(step, /\$GITHUB_OUTPUT/);
   });
 
