@@ -18,10 +18,5 @@ When I change the card shuffle limit, the amount of cards I should be able to sh
 
 When I add a card shuffle number higher than the limit I should recieve a validation error - say that the card shuffle number exceeds the amount that can be shuffled in at time
 
-Questions / Clarifications:
-(Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
-1. The requirements say the limit is "5 - 10 cards". Which number is the limit?
-   Answer (agreed YYYY-MM-DD): 10 cards.
-
 Branch name Examples:
 feature/card-shuffle
