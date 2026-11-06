@@ -10,6 +10,8 @@ Fix the Flaky "Shuffle In Cards Again and Again" Test
 Origin:
 TEST2 (PR #54, 2026-10-30). While checking test counts, the TEST2 agent saw `apps/web/test/ui-tests/card-slides.test.tsx` fail in the test "pressing Shuffle In Cards again and again: every card ends up in the right place, with the right count". The failure was `expected 2 to be 3` at `expect(shownCount()).toBe(3)` after `landNext()`. It failed once in 8 runs on the TEST2 branch and once in 10 runs on main (69c48e5), so TEST2 didn't cause it. Neither the test nor the code it uses changed in PR #54. This is a different test from the one in TEST4.
 
+Cause found (2026-11-06): the test, not `landNext()` or the app. Shuffle In Cards only leaves out the cards in the deck (FEAT1), so the third press could draw the card the first press had shuffled in (and the second press had shuffled out). That card goes back into the deck and leaves the shuffled-out list, so the count rightly stays at 2. When it failed, `sliding()` held only the right sliding card. Forcing that draw (`Math.random` always 0) made the old test fail 10 times out of 10. The fixed test chooses the card drawn on each press.
+
 Description:
 As a developer I would like CI to pass or fail only because of the code, so that a test that fails at random doesn't block a pull request or hide a real bug.
 
