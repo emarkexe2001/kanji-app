@@ -49,7 +49,7 @@ Questions / Clarifications:
 4. Merged PR descriptions and old daily diary entries link to the old paths (e.g. `../blob/main/docs/tickets/completed_tickets/FEAT2_...`). Leave those links as they are, or fix the diary links too? (Old PR descriptions can only be edited one by one on GitHub.)
    Answer (agreed 2026-11-06): fix the links in the daily diary entries too. Old PR descriptions stay as they are.
 5. Which flow does this ticket follow?
-   Answer (agreed 2026-11-06): a lighter flow: one agent makes the change, then the PR retro agent after merge. There is no separate review agent and no in-person check, as nothing on screen changes.
+   Answer (agreed 2026-11-06): a lighter flow: one agent makes the change, then the PR retro agent after merge. There is no separate review agent and no in-person check, as nothing on screen changes. Skipping the review agent applies only to `CHORE` tickets; every other ticket type keeps its review agent.
 6. Does it need a new test (e.g. a check that fails if a ticket is in the wrong folder)?
    Answer (agreed 2026-11-06): no. The change only moves files and updates paths, so no new test and no break-and-restore. The PR says so. The existing tests are updated to the new paths and must pass.
 7. Where does it go in the ticket order?
@@ -60,6 +60,8 @@ Possible Test Scenarios I would like to see:
 When I look in `docs/tickets/`, the only ticket file left at the top is `example_ticket.md`. Every other open ticket is in the folder for its code
 
 When I look in `docs/tickets/completed_tickets/`, every ticket is in the folder for its code, and no ticket file is left at the top
+
+When I look in `docs/tickets/completed_tickets/feat/`, `card_category_ticket.md` and `selectable-card_limit_ticket.md` are there
 
 When I run `git log --follow` on a moved ticket, its history from before the move is shown
 
