@@ -21,6 +21,15 @@ Requirements / Expected Behaviours:
 - Check the other tests in `card-slides.test.tsx` that use `landNext()` or `sliding()[0]` for the same problem, and fix any that have it.
 - The app's behaviour doesn't change, unless agreed after the point above.
 
+Questions / Clarifications:
+(Check this ticket against docs/standards/standards.md before starting.)
+1. Which flow does this ticket follow?
+   Answer (agreed 2026-11-06): a lighter flow. One agent finds the cause, fixes the test, and does the break-and-restore checks and the repeat runs. A separate review agent comes after. There is no in-person check, as nothing on screen changes.
+2. What if it turns out to be an app bug?
+   Answer (agreed 2026-11-06): if the fix is small (a few lines of app code), fix it in this ticket's PR, with a test that fails without the fix and passes with it, and explain the bug in plain English in the PR. If the fix is bigger, stop and ask before changing app code.
+3. If the cause is the shared `landNext()` helper, how far does the fix go?
+   Answer (agreed 2026-11-06): fix the shared helper so it always lands a sliding card, protecting every test in the file that uses it. Re-check each affected test, and don't weaken any of them.
+
 Possible Test Scenarios I would like to see:
 
 When I run the card-slides tests 50 times in a row (e.g. `npx vitest run test/ui-tests/card-slides.test.tsx --repeat 50` or a loop), they pass every time
