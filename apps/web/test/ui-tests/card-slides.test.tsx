@@ -548,8 +548,13 @@ describe('pressing a button while cards are sliding', () => {
 
     for (let i = 0; i < 3; i++) {
       out.unshift(currentWord());
+      // Shuffle In Cards may draw a card shuffled out earlier, as only cards in the deck are left
+      // out (FEAT1). That card then leaves the list, and the count doesn't go up (TEST5). So each
+      // press draws from a different part of the source deck: its start, middle and end.
+      vi.spyOn(Math, 'random').mockReturnValue([0, 0.5, 0.99][i]);
       // Pressing it lands the card still sliding from the last press first.
       await user.click(screen.getByRole('button', { name: 'Shuffle In Cards' }));
+      expect(out).not.toContain(currentWord()); // a card never shuffled out came in
       expect(flyers()).toHaveLength(1);
       expect(flyerWord(flyers()[0])).toBe(out[0]);
       expect(shownCount()).toBe(i);
@@ -561,6 +566,34 @@ describe('pressing a button while cards are sliding', () => {
     expect(await listedWords(user)).toEqual(out.map((w) => expect.stringContaining(w!)));
     const deck = (await deckContents(user)).map((c) => c.word);
     for (const w of out) expect(deck).not.toContain(w);
+  });
+
+  test('pressing Shuffle In Cards again and again can bring back a card shuffled out earlier: it leaves the list, so the count does not go up', async () => {
+    const user = await renderApp(DECKS);
+    const out: (string | null)[] = [];
+    fakeAnimate();
+    // Each press draws the first new card of the source deck: the card shuffled in by the first
+    // press is shuffled out by the second, and is new again for the third (TEST5).
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    for (let i = 0; i < 3; i++) {
+      out.unshift(currentWord());
+      await user.click(screen.getByRole('button', { name: 'Shuffle In Cards' }));
+    }
+    const [secondIn, firstIn, first] = out;
+    expect(currentWord()).toBe(firstIn);
+    // The second card in is still sliding, but the list didn't grow: the first card in left it.
+    expect(flyerWord(flyers()[0])).toBe(secondIn);
+    expect(shownCount()).toBe(2);
+    landNext();
+
+    expect(shownCount()).toBe(2);
+    expect(flyers()).toHaveLength(0);
+    expect(await listedWords(user)).toEqual([secondIn, first].map((w) => expect.stringContaining(w!)));
+    const deck = (await deckContents(user)).map((c) => c.word);
+    expect(deck).toContain(firstIn);
+    expect(deck).not.toContain(secondIn);
+    expect(deck).not.toContain(first);
   });
 
   test('pressing Add Back Cards again and again: every card ends up in the right place, with the right count', async () => {
