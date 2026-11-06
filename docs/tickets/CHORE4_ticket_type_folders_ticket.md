@@ -53,7 +53,7 @@ Questions / Clarifications:
 6. Does it need a new test (e.g. a check that fails if a ticket is in the wrong folder)?
    Answer (agreed 2026-11-06): no. The change only moves files and updates paths, so no new test and no break-and-restore. The PR says so. The existing tests are updated to the new paths and must pass.
 7. Where does it go in the ticket order?
-   Answer (agreed 2026-11-06): after TEST5 and before TEST8, so TEST8 onwards use the new folders.
+   Answer (agreed 2026-11-06): after TEST5 and before TEST8, so TEST8 onwards use the new folders. CI2 (no slow checks on docs-only PRs) was later put before it: TEST5, then CI2, then CHORE4, then TEST8.
 
 Possible Test Scenarios I would like to see:
 
@@ -70,7 +70,7 @@ When I search the repo (outside `.claude/` and `node_modules/`) for an old ticke
 When I run `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` and `npm run check:commits`, they all pass
 
 Dependencies:
-Start after TEST5's PR is merged, as TEST5 moves its own ticket into `completed_tickets/`. No other ticket PR should be open while this one is, because it moves every ticket file. Order agreed 2026-11-06: TEST5, then CHORE4, then TEST8.
+Start after TEST5's PR is merged, as TEST5 moves its own ticket into `completed_tickets/`, and after CI2, which edits the same standards section (5.4) and moves its own ticket. No other ticket PR should be open while this one is, because it moves every ticket file. Order agreed 2026-11-06: TEST5, then CI2, then CHORE4, then TEST8.
 
 Branch name Examples:
 chore/ticket-type-folders
