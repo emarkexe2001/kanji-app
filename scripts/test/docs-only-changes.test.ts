@@ -116,3 +116,15 @@ describe('the CI workflow', () => {
     assert.match(workflow, /# This is done with `if:` on the steps, not `paths-ignore`/);
   });
 });
+
+describe('standards 5.4', () => {
+  it('says which checks run on a docs-only pull request', () => {
+    const standards = readFileSync(new URL('../../docs/standards/standards.md', import.meta.url), 'utf8');
+    const section = standards.split('### 5.4')[1]?.split('### 5.5')[0] ?? '';
+    const bullet = section.split('\n').find((line) => /docs-only/i.test(line));
+    assert.ok(bullet, 'no docs-only bullet in standards 5.4');
+    for (const check of ['check:commits', 'test:scripts', 'format:check', 'lint', 'typecheck']) {
+      assert.ok(bullet.includes(check), `the docs-only bullet doesn't mention ${check}`);
+    }
+  });
+});
