@@ -125,3 +125,5 @@ Not set up yet. When added they will run the whole app in a real browser and liv
 - **Test what the user sees.** Find things the way a user would: by their label (`getByLabelText('Card limit')`), role (`getByRole('button', { name: /next/i })`) or text, not by class names or component internals.
 - **Class names only when nothing else works.** The test setup (jsdom) has no layout, colours or animations. For a colour or animation, checking a class name is acceptable, with a comment saying why. Layout (widths, grids, sideways scrolling) can't be tested here at all: check it in a real browser at about 360px, 640px and 1024px and note it in the PR.
 - **Test what's left out.** When a ticket says something is not shown (e.g. "no Reading Breakdown"), add a test that checks it isn't there.
+
+THROWAWAY line for the CI2 docs-only proof. Never merged.
