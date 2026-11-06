@@ -29,10 +29,7 @@ export function isDocsOnly(changedFiles: string[]): boolean {
 
 /** Reads `git diff --name-only` output: one path per line, ignoring blank lines. */
 export function parseChangedFiles(text: string): string[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line !== '');
+  return text.split(/\r?\n/).filter((line) => line !== '');
 }
 
 function main(): void {
