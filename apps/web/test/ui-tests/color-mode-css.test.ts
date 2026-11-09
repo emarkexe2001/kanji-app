@@ -239,7 +239,197 @@ describe('the built stylesheet (FEAT5)', () => {
   test('switching modes turns transitions off for a moment, so nothing fades', () => {
     expect(css).toMatch(/\[data-color-mode-switching\][^{]*\{[^}]*transition:\s*none\s*!important/);
   });
+
+  // ---- High contrast (FEAT5_5). jsdom has no forced-colours mode, screen widths, outlines or
+  // hover, so these are checked in the stylesheet as it is built. ----
+
+  test('the hc: classes only apply in High contrast and never in a forced-colours mode, so the device’s colours still win (FEAT5_5)', () => {
+    // The variant in index.css: High contrast on <html>, and not in forced colours.
+    expect(INDEX_CSS).toMatch(
+      /@custom-variant hc\s*\{\s*@media not \(forced-colors: active\)\s*\{\s*&:where\(\[data-color-mode='high-contrast'\], \[data-color-mode='high-contrast'\] \*\)\s*\{\s*@slot;/,
+    );
+    const hcRules = css.match(/\.hc\\:[^{]*\{/g) ?? [];
+    expect(hcRules.length).toBeGreaterThanOrEqual(40);
+    // Every one is inside `@media not all and (forced-colors:active)`: none is left once those
+    // blocks are taken out.
+    const forcedColorsOff = /@media not all and \(forced-colors:\s*active\)\s*\{/g;
+    expect(css).toMatch(forcedColorsOff);
+    expect(withoutBlocks(css, forcedColorsOff)).not.toMatch(/\.hc\\:/);
+    // And every one is for High contrast only, so Light and Dark are unchanged.
+    for (const rule of hcRules) expect(rule).toContain('[data-color-mode=high-contrast]');
+  });
+
+  test('every hc: class in the code is generated (FEAT5_5)', () => {
+    const classes = classesInSource(/(?<![\w-])hc:[^\s'"`]+/g);
+    // A sample, so the search above can't quietly find nothing.
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        'hc:ring-2',
+        'hc:shadow-none',
+        'hc:ring-hc-sky',
+        'hc:has-checked:ring-3',
+        'hc:disabled:outline-dashed',
+        'hc:has-disabled:outline-dashed',
+        'hc:shadow-[0_0_0_2px_#000]',
+        'hc:hover:bg-hc-hover',
+      ]),
+    );
+    const missing = classes.filter((cls) => !css.includes(escapedSelector(cls)));
+    expect(missing).toEqual([]);
+  });
+
+  test('the High contrast name on the colour mode button is hidden below 375px and shown from 375px up (FEAT5_5)', () => {
+    // jsdom has no screen widths: the built rules are checked. `hidden` comes first, so the
+    // min-width rule wins from 375px.
+    const hidden = css.indexOf('.hidden{display:none}');
+    const shown = css.search(
+      /@media \((?:min-width:\s*375px|width>=375px)\)\s*\{\s*\.min-\\\[375px\\\]\\:inline\{display:inline\}/,
+    );
+    expect(hidden).toBeGreaterThan(-1);
+    expect(shown).toBeGreaterThan(hidden);
+  });
+
+  test('the High contrast classes win over the classes they replace: they come later with the same weight (FEAT5_5)', () => {
+    // [the class used in Light and Dark, the hc: class that replaces it in High contrast]
+    const pairs: [string, string][] = [
+      ['opacity-40', 'hc:opacity-100'],
+      ['disabled:opacity-40', 'hc:disabled:opacity-100'],
+      ['has-checked:bg-emerald-700', 'hc:has-checked:bg-white'],
+      ['has-checked:text-white', 'hc:has-checked:text-black'],
+      ['has-disabled:bg-section', 'hc:has-disabled:bg-page'],
+      ['has-disabled:text-faint', 'hc:has-disabled:text-ink'],
+      ['has-checked:ring-2', 'hc:has-checked:ring-3'],
+      ['has-focus-visible:outline-offset-2', 'hc:has-focus-visible:outline-offset-[5px]'],
+      ['has-focus-visible:outline-ink-soft', 'hc:has-focus-visible:outline-hc-focus'],
+      ['has-focus-visible:outline-2', 'hc:has-focus-visible:outline-3'],
+      ['bg-sky-600', 'hc:bg-page'],
+      ['bg-emerald-600', 'hc:bg-page'],
+      ['text-white', 'hc:text-black'],
+      ['text-white', 'hc:text-ink'],
+      ['text-white', 'hc:text-hc-rose'],
+      ['hover:bg-sky-500', 'hc:hover:bg-hc-hover'],
+      ['hover:bg-rose-500', 'hc:hover:bg-hc-hover'],
+      ['bg-menu-selected', 'hc:bg-card'],
+      ['ring-1', 'hc:ring-2'],
+      ['shadow-sm', 'hc:shadow-none'],
+      ['shadow-lg', 'hc:shadow-none'],
+      ['shadow-xl', 'hc:shadow-none'],
+    ];
+    for (const [base, hc] of pairs) {
+      const [at, hcAt] = [firstRule(css, base), firstRule(css, hc)];
+      expect(at, base).toBeGreaterThan(-1);
+      expect(hcAt, `${hc} after ${base}`).toBeGreaterThan(at);
+    }
+  });
+
+  test('the High contrast colours, focus ring, blank-card outlines and white-on-black safety net are in the built CSS, outside Tailwind’s layers so they win (FEAT5_5)', () => {
+    const unlayered = withoutBlocks(css, /@layer [\w-]+\s*\{/g);
+    const tokens = /:root\[data-color-mode=(?:'high-contrast'|"high-contrast"|high-contrast)\]\{([^}]*)\}/.exec(
+      unlayered,
+    );
+    expect(tokens).not.toBeNull();
+    for (const [name, value] of Object.entries(MODE_COLORS['high-contrast'])) {
+      expect(tokens![1], `--color-${name}`).toMatch(new RegExp(`--color-${name}:\\s*${short(value)}[;}]?`));
+    }
+    expect(tokens![1]).toMatch(/color-scheme:\s*dark/);
+    // Focus: a 3px yellow outline 2px out; menu items keep theirs inside the row.
+    expect(unlayered).toContain(
+      ':root[data-color-mode=high-contrast] :focus-visible{outline:3px solid var(--color-hc-focus);outline-offset:2px}',
+    );
+    expect(unlayered).toContain(
+      ':root[data-color-mode=high-contrast] [role=menuitemradio]:focus-visible{outline-offset:-3px}',
+    );
+    // The fanned and sliding blank cards: a 2px white ring and no shadow (one box-shadow only).
+    expect(unlayered).toContain(
+      ':root[data-color-mode=high-contrast] :is(.deck-back,.card-flyer-blank){box-shadow:0 0 0 2px var(--color-card-back-line)}',
+    );
+    // White on black even if a token is left out.
+    // (The minifier may write the two in either order.)
+    const safetyNet = /:root\[data-color-mode=high-contrast\] body\{([^}]*)\}/.exec(unlayered);
+    expect(safetyNet).not.toBeNull();
+    expect(safetyNet![1].split(';').sort()).toEqual([
+      expect.stringMatching(/^background:(?:#000000|#000)$/),
+      expect.stringMatching(/^color:(?:#ffffff|#fff)$/),
+    ]);
+  });
+
+  test('the forced-colours (Windows high contrast) classes are all still there, unchanged, and generated (FEAT5_5)', () => {
+    // The ones from FEAT2_6 and FEAT5 (and FEAT5_1's tiles). High contrast adds none and changes none.
+    const forced = classesInSource(/(?<![\w-])forced-colors:[^\s'"`]+/g);
+    const missing = forced.filter((cls) => !css.includes(escapedSelector(cls)));
+    expect(missing).toEqual([]);
+    expect(forced).toEqual(
+      sorted([
+        'forced-colors:bg-[color:Canvas]',
+        'forced-colors:bg-[color:Canvas]!',
+        'forced-colors:border-[color:ButtonText]',
+        'forced-colors:border-[color:Highlight]',
+        'forced-colors:border-2',
+        'forced-colors:forced-color-adjust-none',
+        'forced-colors:has-checked:[&>div]:bg-[color:Highlight]!',
+        'forced-colors:has-checked:[&>div]:outline-[color:Highlight]',
+        'forced-colors:has-checked:[&>div]:outline-3',
+        'forced-colors:has-checked:[&>div]:outline-offset-2',
+        'forced-colors:has-checked:[&>div]:outline-solid',
+        'forced-colors:has-checked:[&>div]:text-[color:HighlightText]!',
+        'forced-colors:has-checked:[&>div_*]:bg-[color:Highlight]!',
+        'forced-colors:has-checked:[&>div_*]:text-[color:HighlightText]!',
+        'forced-colors:has-checked:bg-[color:Highlight]',
+        'forced-colors:has-checked:text-[color:HighlightText]',
+        'forced-colors:has-disabled:text-[color:GrayText]',
+        'forced-colors:has-focus-visible:outline-[color:CanvasText]',
+        'forced-colors:has-focus-visible:outline-2',
+        'forced-colors:has-focus-visible:outline-dashed',
+        'forced-colors:has-focus-visible:outline-offset-[5px]',
+        'forced-colors:text-[color:CanvasText]',
+        'forced-colors:text-[color:Highlight]',
+      ]),
+    );
+    // The blank card's border in forced colours (index.css) is still there too.
+    expect(css).toMatch(/@media \(forced-colors:\s*active\)\s*\{\s*\.card-flyer-blank\{border:1px solid canvastext\}/i);
+  });
 });
+
+const sorted = (list: string[]) => [...list].sort();
+
+/** Every class in src/ matching `pattern` (with the g flag), sorted, each once. */
+function classesInSource(pattern: RegExp): string[] {
+  const found = new Set<string>();
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.tsx?$/.test(entry.name))
+        for (const m of readFileSync(path, 'utf8').matchAll(pattern)) found.add(m[0]);
+    }
+  };
+  walk(join(WEB, 'src'));
+  return [...found].sort();
+}
+
+/** `css` with every block that `opener` (a g regex ending at the block's `{`) starts taken out, nested blocks and all. */
+function withoutBlocks(css: string, opener: RegExp): string {
+  let out = '';
+  let from = 0;
+  for (const m of css.matchAll(opener)) {
+    if (m.index < from) continue;
+    out += css.slice(from, m.index);
+    let depth = 1;
+    let i = m.index + m[0].length;
+    for (; i < css.length && depth > 0; i++) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}') depth--;
+    }
+    from = i;
+  }
+  return out + css.slice(from);
+}
+
+/** Where the first rule for `cls` is in `css` (its selector, not a longer class that starts the same), or -1. */
+function firstRule(css: string, cls: string): number {
+  const selector = escapedSelector(cls).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return css.search(new RegExp(`${selector}(?![\\w\\\\-])`));
+}
 
 /** A regular expression for `value` as a minifier might write it (#aabbcc -> #abc, spaces in rgb()). */
 function short(value: string): string {

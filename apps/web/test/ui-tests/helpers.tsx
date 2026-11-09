@@ -131,7 +131,7 @@ export function renderStartPage(words: unknown = makeWords(200)) {
 }
 
 /** Chooses a tile on the start page and waits for the first card. */
-export async function chooseOnStartPage(user: User, name: 'Light' | 'Dark' = 'Light') {
+export async function chooseOnStartPage(user: User, name: 'Light' | 'Dark' | 'High contrast' = 'Light') {
   await user.click(startPageTile(name));
   await screen.findByText(COUNTER);
 }
