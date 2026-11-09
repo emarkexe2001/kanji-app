@@ -2,6 +2,7 @@ import { useId } from 'react';
 import {
   COLOR_MODES,
   FALLBACK_HEADER,
+  FALLBACK_INK,
   JLPT_COLORS_BY_MODE,
   MODE_COLORS,
   READING_COLORS_BY_MODE,
@@ -47,12 +48,27 @@ const HIGH_CONTRAST_PREVIEW = 'h-[66px] w-[calc(50%-17px)] shrink-0 p-2';
  *
  * High contrast's preview (FEAT5_5) is as wide as the others' but only 66px tall: black with white
  * lines and no shadow, "JLPT N5" in black on its bright header, a 16px word and no grey bars.
+ *
+ * Every colour is looked up with `modeColor`, like the deck card's (FEAT5_5), so a colour missing
+ * for the mode never crashes the start page or leaves unreadable text: the page and card fall back
+ * to black with white lines, a missing reading colour to the mode's text colour (white in High
+ * contrast), and a missing header colour to a black header with white text.
  */
 function ModePreview({ mode }: { mode: ColorMode }) {
-  const colors = MODE_COLORS[mode];
-  const readings = READING_COLORS_BY_MODE[mode];
   const highContrast = mode === 'high-contrast';
-  const header = modeColor(JLPT_COLORS_BY_MODE, mode, 'N5', FALLBACK_HEADER.background);
+  const colors = {
+    page: modeColor(MODE_COLORS, mode, 'page', FALLBACK_HEADER.background),
+    card: modeColor(MODE_COLORS, mode, 'card', FALLBACK_HEADER.background),
+    'card-line': modeColor(MODE_COLORS, mode, 'card-line', FALLBACK_HEADER.ink),
+  };
+  const readings = {
+    kunyomi: modeColor(READING_COLORS_BY_MODE, mode, 'kunyomi', FALLBACK_INK[mode]),
+    okurigana: modeColor(READING_COLORS_BY_MODE, mode, 'okurigana', FALLBACK_INK[mode]),
+  };
+  const found = modeColor(JLPT_COLORS_BY_MODE, mode, 'N5', '');
+  // The header's text is set by class (white, or black in High contrast); a missing colour gives a
+  // black header, so its text is set to white inline, which beats the class.
+  const header = found ? { background: found } : { background: FALLBACK_HEADER.background, color: FALLBACK_HEADER.ink };
   return (
     <div
       aria-hidden
@@ -73,7 +89,7 @@ function ModePreview({ mode }: { mode: ColorMode }) {
       >
         <div
           className={`px-2 py-0.5 text-[8px] leading-3 font-bold tracking-wide ${highContrast ? 'text-black' : 'text-white'}`}
-          style={{ background: header }}
+          style={header}
         >
           JLPT N5
         </div>

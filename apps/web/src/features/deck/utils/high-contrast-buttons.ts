@@ -12,8 +12,11 @@ export const HC_SKY_BUTTON = `${HC_OUTLINED} hc:ring-hc-sky`;
 export const HC_INDIGO_BUTTON = `${HC_OUTLINED} hc:ring-hc-indigo`;
 /** Shuffle In Cards and Add Back Cards. */
 export const HC_EMERALD_BUTTON = `${HC_OUTLINED} hc:ring-hc-emerald`;
-/** Clear List and "Yes, Clear List". */
-export const HC_ROSE_BUTTON = `${HC_OUTLINED} hc:text-hc-rose hc:ring-hc-rose`;
+/**
+ * Clear List and "Yes, Clear List": red text and outline. Under the pointer the text turns white
+ * (15.13:1 on #262626; red there is only 6.76:1) and the red outline stays (agreed 2026-11-09).
+ */
+export const HC_ROSE_BUTTON = `${HC_OUTLINED} hc:text-hc-rose hc:ring-hc-rose hc:hover:text-ink`;
 
 /**
  * A disabled button in High contrast (FEAT5_5, agreed 2026-11-09), for Shuffle In Cards when

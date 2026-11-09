@@ -56,6 +56,7 @@ Answers (agreed 2026-11-09, mockup: https://claude.ai/artifact/WJUn5xv9boPHhaGTk
 - In the device's forced-colours (Windows high contrast) mode, the device's colours still win, as in FEAT2_6.
 - Disabled controls (agreed 2026-11-09): in High contrast they don't fade (no opacity). They get a 2px dashed white outline and white text (21:1), e.g. Shuffle In Cards with nothing to shuffle in from, a disabled "Shuffle in from" option, and the − / + buttons at the card limit's ends.
 - Filled in from the agreed rules (agreed 2026-11-09, not drawn in the mockup): "Recover cleared list (N)" gets the blue outline like "Shuffled out (N)", and warning text (e.g. ticked decks that are gone) is #ffd23f.
+- Clear List on hover (agreed 2026-11-09): red #ff8a9e on the #262626 hover fill is only 6.76:1, so in High contrast both Clear List buttons (in the panel footer and in the Clear List question) turn their text white on hover (15.13:1), and the red outline stays.
 
 Dependencies:
 FEAT5 and FEAT5_1 must be merged first, since this adds an option to the menu and the start page.
