@@ -374,6 +374,16 @@ describe('the built stylesheet (FEAT5)', () => {
     ]);
   });
 
+  test('no element has two hc: classes in the same variant that set the same CSS property (FEAT5_5, review R2)', () => {
+    // Two such classes would be decided by their order in the built CSS, not by the order they are
+    // written in (e.g. a shared hc:text-ink beating Clear List's hc:text-hc-rose). Each element's
+    // classes are read from its className (with the class constants it uses filled in), and what
+    // each hc: class sets is read from the built CSS.
+    const clashes = hcClassClashes(css);
+    expect(clashes.checked).toBeGreaterThan(20);
+    expect(clashes.found).toEqual([]);
+  });
+
   test('the forced-colours (Windows high contrast) classes are all still there, unchanged, and generated (FEAT5_5)', () => {
     // The ones from FEAT2_6 and FEAT5 (and FEAT5_1's tiles). High contrast adds none and changes none.
     const forced = classesInSource(/(?<![\w-])forced-colors:[^\s'"`]+/g);
@@ -458,4 +468,90 @@ function short(value: string): string {
   if (hex) return `(?:${value}|#${hex[1]}${hex[2]}${hex[3]})`;
   if (value.startsWith('rgb(')) return '(?:rgb|#)[^;}]*';
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Two hc: classes on one element may set the same property only when the browser combines them:
+ * a shadow and a ring both write box-shadow from their own variables, and an outline width and
+ * outline-dashed both write outline-style (the same dashed style).
+ */
+const HARMLESS_CLASHES: { property: string; classes: RegExp }[] = [
+  { property: 'box-shadow', classes: /(?:^|:)(?:shadow-|ring-\d)/ },
+  { property: 'outline-style', classes: /(?:^|:)outline-(?:\d|dashed)/ },
+];
+
+/** The CSS properties the rule for `cls` sets in the built `css` (empty if it isn't there). */
+function propertiesOf(css: string, cls: string): string[] {
+  const selector = escapedSelector(cls);
+  let at = css.indexOf(`${selector}:where(`);
+  if (at < 0) at = firstRule(css, cls);
+  if (at < 0) return [];
+  const open = css.indexOf('{', at);
+  return css
+    .slice(open + 1, css.indexOf('}', open))
+    .split(';')
+    .map((d) => d.slice(0, d.indexOf(':')).trim())
+    .filter(Boolean);
+}
+
+/**
+ * Every element's hc: classes, by className in src/ (`className="…"`, ``className={`…`}`` or
+ * `className={NAME}`), with the class constants it uses (`${NAME}`) filled in, plus each class
+ * constant on its own. Returns how many sets of classes were checked and every clash found.
+ */
+function hcClassClashes(css: string): { checked: number; found: string[] } {
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.tsx?$/.test(entry.name)) files.push(path);
+    }
+  };
+  walk(join(WEB, 'src'));
+  const sources = files.map((file) => ({ file, text: readFileSync(file, 'utf8') }));
+  const constants: Record<string, string> = {};
+  for (const { text } of sources) {
+    for (const m of text.matchAll(
+      /const ([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=\n]+)?=\s*(\[[^\]]*?\]\.join\(' '\)|'[^'\n]*'|`[^`]*`)/g,
+    )) {
+      constants[m[1]] = m[2];
+    }
+  }
+  const expand = (text: string, depth = 0): string =>
+    depth > 4
+      ? text
+      : text.replace(/\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}/g, (_, name: string) =>
+          constants[name] ? expand(constants[name], depth + 1) : ' ',
+        );
+  const groups: { where: string; text: string }[] = [];
+  for (const { file, text } of sources) {
+    const name = file.slice(file.lastIndexOf('src'));
+    for (const m of text.matchAll(/className=(\{`[\s\S]*?`\}|"[^"]*"|\{([A-Za-z_][A-Za-z0-9_]*)\})/g)) {
+      groups.push({ where: name, text: expand(m[2] ? (constants[m[2]] ?? '') : m[1]) });
+    }
+  }
+  for (const [name, value] of Object.entries(constants)) groups.push({ where: name, text: expand(value) });
+
+  let checked = 0;
+  const found = new Set<string>();
+  for (const { where, text } of groups) {
+    const classes = [...new Set(text.match(/(?<![\w-])hc:[^\s'"`${}]+/g) ?? [])];
+    if (!classes.length) continue;
+    checked++;
+    const byProperty: Record<string, string[]> = {};
+    for (const cls of classes) {
+      const variant = cls.slice(0, cls.lastIndexOf(':') + 1);
+      for (const property of propertiesOf(css, cls)) (byProperty[`${variant} ${property}`] ??= []).push(cls);
+    }
+    for (const [key, list] of Object.entries(byProperty)) {
+      if (list.length < 2) continue;
+      const property = key.slice(key.indexOf(' ') + 1);
+      const harmless = HARMLESS_CLASHES.some(
+        (h) => h.property === property && list.every((cls) => h.classes.test(cls.slice(cls.lastIndexOf(':') + 1))),
+      );
+      if (!harmless) found.add(`${where}: ${list.join(' and ')} both set ${key}`);
+    }
+  }
+  return { checked, found: [...found].sort() };
 }
