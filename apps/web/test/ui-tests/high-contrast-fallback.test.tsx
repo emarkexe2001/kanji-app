@@ -8,9 +8,9 @@
 // a white-on-black safety net in index.css.
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { READING_COLORS_BY_MODE, type ColorMode, type WordEntry } from '@kanji/core';
+import { JLPT_COLORS, READING_COLORS_BY_MODE, type ColorMode, type WordEntry } from '@kanji/core';
 import { COLOR_MODE_KEY } from '../../src/lib/color-mode';
-import { makeDecks, renderApp, shuffleIn, type User } from './helpers';
+import { firstVisit, makeDecks, renderApp, renderStartPage, shuffleIn, startPageTile, type User } from './helpers';
 
 vi.mock('@kanji/core', async (importOriginal) => {
   const core = await importOriginal<typeof import('@kanji/core')>();
@@ -115,5 +115,33 @@ describe('A missing High contrast colour falls back to white on black (FEAT5_5 f
       expect(tick).toHaveStyle({ backgroundColor: WHITE });
       expect(tick).toHaveClass('hc:text-black');
     }
+  });
+});
+
+describe('The start page with High contrast colours missing (FEAT5_5 failure path)', () => {
+  /** The mini card preview inside a tile (the part hidden from screen readers). */
+  const preview = (name: 'Light' | 'Dark' | 'High contrast') =>
+    startPageTile(name).querySelector<HTMLElement>('[aria-hidden="true"]')!;
+
+  test('a missing JLPT colour: the High contrast preview’s header is black with white text, not black on black', () => {
+    firstVisit();
+    renderStartPage(COLOURFUL);
+    const header = within(preview('High contrast')).getByText('JLPT N5');
+    // The inline white beats the header's text-black class.
+    expect(header).toHaveStyle({ backgroundColor: BLACK, color: WHITE });
+    // Light and Dark still have their own colours, with no inline text colour.
+    const light = within(preview('Light')).getByText('JLPT N5');
+    expect(light).toHaveStyle({ backgroundColor: JLPT_COLORS.N5 });
+    expect(light.style.color).toBe('');
+  });
+
+  test('a missing reading colour: 静 is white in the High contrast preview, and か keeps its colour', () => {
+    firstVisit();
+    renderStartPage(COLOURFUL);
+    expect(within(preview('High contrast')).getByText('静')).toHaveStyle({
+      color: WHITE,
+      borderBottom: `2px solid ${WHITE}`,
+    });
+    expect(within(preview('High contrast')).getByText('か')).toHaveStyle({ color: '#5ce67c' });
   });
 });

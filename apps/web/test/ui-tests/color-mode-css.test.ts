@@ -169,10 +169,17 @@ describe('the built stylesheet (FEAT5)', () => {
   // Builds index.css the way the production build does (@tailwindcss/vite): Tailwind compiles it,
   // scans the app's files for the classes they use, generates them, and the result is minified.
   // Only the stylesheet is built, not the whole app, so it is quick and doesn't slow other tests.
+  // Only src/ is scanned (FEAT5_5): the production scan also reads test/, so a class removed from
+  // the app but still named in a test would otherwise stay generated and a check here couldn't
+  // catch it. index.html has no classes.
   beforeAll(async () => {
     const compiler = await compile(INDEX_CSS, { base: join(WEB, 'src/app'), onDependency: () => {} });
     const root =
-      compiler.root === 'none' ? [] : compiler.root === null ? [{ base: WEB, pattern: '**/*' }] : [compiler.root];
+      compiler.root === 'none'
+        ? []
+        : compiler.root === null
+          ? [{ base: join(WEB, 'src'), pattern: '**/*' }]
+          : [compiler.root];
     const scanner = new Scanner({ sources: [...root.map((s) => ({ ...s, negated: false })), ...compiler.sources] });
     css = optimize(compiler.build(scanner.scan()), { minify: true }).code;
   }, 60_000);
@@ -320,6 +327,22 @@ describe('the built stylesheet (FEAT5)', () => {
       expect(at, base).toBeGreaterThan(-1);
       expect(hcAt, `${hc} after ${base}`).toBeGreaterThan(at);
     }
+  });
+
+  test('Clear List’s text turns white under the pointer in High contrast, inside the forced-colours guard (FEAT5_5, agreed 2026-11-09)', () => {
+    // Red #ff8a9e on the #262626 hover fill is only 6.76:1, so the text turns white on hover. The
+    // hover class must come after the red text class (same weight), and only outside forced colours.
+    const red = firstRule(css, 'hc:text-hc-rose');
+    const hoverWhite = firstRule(css, 'hc:hover:text-ink');
+    expect(red).toBeGreaterThan(-1);
+    expect(hoverWhite).toBeGreaterThan(red);
+    const guard = /@media not all and \(forced-colors:\s*active\)\s*\{/g;
+    const outside = withoutBlocks(css, guard);
+    expect(firstRule(outside, 'hc:text-hc-rose')).toBe(-1);
+    expect(firstRule(outside, 'hc:hover:text-ink')).toBe(-1);
+    expect(css).toMatch(
+      /\.hc\\:hover\\:text-ink:where\(\[data-color-mode=high-contrast\][^{]*:hover[^{]*\{color:var\(--color-ink\)\}/,
+    );
   });
 
   test('the High contrast colours, focus ring, blank-card outlines and white-on-black safety net are in the built CSS, outside Tailwind’s layers so they win (FEAT5_5)', () => {

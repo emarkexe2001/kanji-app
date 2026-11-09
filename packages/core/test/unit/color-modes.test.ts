@@ -336,6 +336,9 @@ const HIGH_CONTRAST_PAIRS: Pair[] = [
     HIGH_CONTRAST_COLORS[name],
     BLACK,
   ]),
+  // Under the pointer Clear List's text turns white on the #262626 fill (agreed 2026-11-09: its red
+  // on #262626 would only be 6.76:1, so that pair is never drawn).
+  ['Clear List text under the pointer (white on hc-hover)', WHITE, HIGH_CONTRAST_COLORS['hc-hover']],
   ['danger-line on the card', hc['danger-line'], hc.card],
   ['the yellow focus ring on black', HIGH_CONTRAST_COLORS['hc-focus'], BLACK],
   ['the yellow focus ring on a hover fill', HIGH_CONTRAST_COLORS['hc-focus'], HIGH_CONTRAST_COLORS['hc-hover']],

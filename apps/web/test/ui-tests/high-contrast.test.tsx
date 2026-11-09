@@ -474,11 +474,12 @@ describe('Picked cards in the Shuffled-out panel in High contrast (FEAT5_5)', ()
     await pickACardEachWay(user);
     expect(panel()).toHaveClass('hc:shadow-none', 'hc:ring-1', 'hc:ring-inset', 'hc:ring-panel-line', 'border');
     expect(button('Add Back Cards')).toHaveClass(...outlined('hc-emerald'));
-    // Clear List: a red outline and red text.
-    expect(button('Clear List')).toHaveClass(...outlined('hc-rose'), 'hc:text-hc-rose');
+    // Clear List: a red outline and red text, which turns white under the pointer (red on the
+    // #262626 hover fill would be 6.76:1, agreed 2026-11-09).
+    expect(button('Clear List')).toHaveClass(...outlined('hc-rose'), 'hc:text-hc-rose', 'hc:hover:text-ink');
 
     await user.click(button('Clear List'));
-    expect(button('Yes, Clear List')).toHaveClass(...outlined('hc-rose'), 'hc:text-hc-rose');
+    expect(button('Yes, Clear List')).toHaveClass(...outlined('hc-rose'), 'hc:text-hc-rose', 'hc:hover:text-ink');
     expect(button('Cancel')).toHaveClass('hc:ring-1', 'hc:ring-inset', 'hc:ring-field-line', 'hc:shadow-none');
     expect(screen.getByText(/^Clear 1 card\?/).parentElement).toHaveClass(
       'hc:ring-1',
