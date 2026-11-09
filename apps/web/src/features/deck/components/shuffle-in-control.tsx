@@ -10,8 +10,11 @@ import {
   type ShuffleChoice,
   type ShuffleMode,
 } from '../utils/study-deck';
+import { HC_DISABLED_BUTTON, HC_EMERALD_BUTTON } from '../utils/high-contrast-buttons';
 
-const fieldClass = 'rounded-lg border border-field-line bg-field px-2 py-1.5 text-sm font-semibold';
+/** A dropdown or number field. In High contrast (FEAT5_5) its white line is 2px (border plus a 1px inset ring). */
+const fieldClass =
+  'rounded-lg border border-field-line bg-field px-2 py-1.5 text-sm font-semibold hc:ring-1 hc:ring-field-line hc:ring-inset';
 const errorClass = 'text-xs font-semibold text-danger-ink';
 
 const MODE_LABELS: Record<ShuffleMode, string> = {
@@ -27,6 +30,10 @@ const MODE_LABELS: Record<ShuffleMode, string> = {
  * In a high-contrast (forced colours) mode only system colours survive, so the segments use them
  * directly: the chosen one is Highlight with HighlightText, the others Canvas with CanvasText, a
  * disabled one GrayText.
+ * In High contrast (FEAT5_5) the chosen segment is white with black text and the others black with
+ * white text; keyboard focus is a 3px yellow outline, still inside the segment. A disabled one is
+ * black with white text and a 2px dashed white outline inside it (agreed 2026-11-09), so it can
+ * be told apart without fading to grey.
  */
 const SEGMENT_CLASS = [
   'flex min-h-9 cursor-pointer items-center justify-center px-1 py-1 text-center text-[13px] leading-tight font-semibold',
@@ -37,6 +44,10 @@ const SEGMENT_CLASS = [
   'forced-colors:forced-color-adjust-none forced-colors:bg-[color:Canvas] forced-colors:text-[color:CanvasText]',
   'forced-colors:has-checked:bg-[color:Highlight] forced-colors:has-checked:text-[color:HighlightText]',
   'forced-colors:has-disabled:text-[color:GrayText]',
+  'hc:has-checked:bg-white hc:has-checked:text-black',
+  'hc:has-focus-visible:outline-3 hc:has-focus-visible:outline-hc-focus',
+  'hc:has-disabled:bg-page hc:has-disabled:text-ink',
+  'hc:has-disabled:outline-2 hc:has-disabled:-outline-offset-2 hc:has-disabled:outline-ink hc:has-disabled:outline-dashed',
 ].join(' ');
 
 interface ModeSwitchProps {
@@ -51,7 +62,9 @@ function ModeSwitch({ mode, multipleAllowed, onChange }: ModeSwitchProps) {
   return (
     <fieldset>
       <legend className="mb-1.5 text-sm font-semibold text-ink-soft">Shuffle in from</legend>
-      <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-seg-line bg-field">
+      {/* In High contrast (FEAT5_5) the switch's outer line is 2px: its border plus a 1px ring just
+        outside it (an inset ring would be hidden under the segments). */}
+      <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-seg-line bg-field hc:ring-1 hc:ring-seg-line">
         {SHUFFLE_MODES.map((m) => {
           const disabled = m === 'multiple' && !multipleAllowed;
           return (
@@ -147,7 +160,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
           type="button"
           disabled
           aria-describedby="shuffle-in-unavailable"
-          className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white opacity-40"
+          className={`w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white opacity-40 ${HC_DISABLED_BUTTON}`}
         >
           Shuffle In Cards
         </button>
@@ -250,7 +263,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
       )}
       <button
         type="submit"
-        className="w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-500 active:scale-95"
+        className={`w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-500 active:scale-95 ${HC_EMERALD_BUTTON}`}
       >
         Shuffle In Cards
       </button>

@@ -13,8 +13,12 @@ import {
   READING_COLORS,
   READING_COLORS_BY_MODE,
   isColorMode,
+  modeColor,
+  FALLBACK_INK,
+  type ColorMode,
   type ModeColorName,
 } from '../../src/tokens';
+import type { ReadingKind } from '../../src/types';
 
 /** sRGB (0-255) from a #rrggbb colour. The Dark values are all written this way. */
 function rgb(hex: string): [number, number, number] {
@@ -43,8 +47,8 @@ const over = (fg: string, alpha: number, bg: string) =>
 
 const dark = MODE_COLORS.dark;
 
-test('there are two modes, Light and Dark, and Light is the default', () => {
-  assert.deepEqual([...COLOR_MODES], ['light', 'dark']);
+test('there are three modes, Light, Dark and High contrast (FEAT5_5), in that order, and Light is the default', () => {
+  assert.deepEqual([...COLOR_MODES], ['light', 'dark', 'high-contrast']);
   assert.equal(DEFAULT_COLOR_MODE, 'light');
 });
 
@@ -170,4 +174,25 @@ test('in Dark the reading colours, the pick outlines, the JLPT headers, the NEW 
   assert.ok(contrast(NEW_COLOR, dark.card) >= 3);
   // Error messages (danger) aren't drawn in the same red as Kunyomi.
   assert.notEqual(dark['danger-ink'], READING_COLORS_BY_MODE.dark.kunyomi);
+});
+
+test('modeColor gives the colour for the mode, or the fallback when it is missing, and never throws (FEAT5_5)', () => {
+  assert.equal(modeColor(READING_COLORS_BY_MODE, 'high-contrast', 'kunyomi', '#ffffff'), '#ff8a8a');
+  // A key missing from the mode's entry.
+  const noKunyomi: Record<ColorMode, Partial<Record<ReadingKind, string>>> = {
+    ...READING_COLORS_BY_MODE,
+    'high-contrast': { onyomi: '#6cb8ff', okurigana: '#5ce67c' },
+  };
+  assert.equal(modeColor(noKunyomi, 'high-contrast', 'kunyomi', FALLBACK_INK['high-contrast']), '#ffffff');
+  // A whole mode missing, or no table at all.
+  const noHighContrast: Partial<typeof READING_COLORS_BY_MODE> = { light: READING_COLORS };
+  assert.equal(modeColor(noHighContrast, 'high-contrast', 'onyomi', '#ffffff'), '#ffffff');
+  assert.equal(modeColor(undefined, 'high-contrast', 'onyomi', '#ffffff'), '#ffffff');
+  // A mode that isn't in the table even by name (e.g. a table written before High contrast).
+  assert.equal(modeColor({ light: { a: '#111111' } }, 'nope' as ColorMode, 'a', '#ffffff'), '#ffffff');
+});
+
+test('the fallback text colour is the main text colour of each mode, white in High contrast (FEAT5_5)', () => {
+  for (const mode of COLOR_MODES) assert.equal(FALLBACK_INK[mode], MODE_COLORS[mode].ink, mode);
+  assert.equal(FALLBACK_INK['high-contrast'], '#ffffff');
 });

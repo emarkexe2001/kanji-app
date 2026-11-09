@@ -1,11 +1,20 @@
 import { useEffect, useEffectEvent, useId, useRef, useState, type CSSProperties } from 'react';
-import { PICK_COLORS, PICK_OUTLINE_COLORS, type PickKind, type WordEntry } from '@kanji/core';
+import {
+  FALLBACK_INK,
+  PICK_COLORS,
+  PICK_OUTLINE_COLORS,
+  PICK_TICK_COLORS,
+  modeColor,
+  type PickKind,
+  type WordEntry,
+} from '@kanji/core';
 import { useColorMode } from '../../../hooks/use-color-mode';
 import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { DECK_LABELS, type DeckId } from '../utils/decks';
+import { HC_EMERALD_BUTTON, HC_ROSE_BUTTON, HC_SKY_BUTTON } from '../utils/high-contrast-buttons';
 import { CardErrorBoundary } from './card-error-boundary';
 import { WordCard } from './word-card';
 
@@ -90,15 +99,22 @@ function PickCard({ number, ...props }: PickCardProps & { number: number }) {
  */
 function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId, gone }: PickCardProps) {
   const id = useId();
-  const color = PICK_COLORS[kind];
-  // The outline is brighter in Dark mode, so it shows on the dark panel (FEAT5); the tick keeps its colour.
-  const outline = PICK_OUTLINE_COLORS[useColorMode()][kind];
+  const mode = useColorMode();
+  const highContrast = mode === 'high-contrast';
+  // The tick keeps PICK_COLORS in Light and Dark; in High contrast it is the bright pick colour
+  // with a black tick (FEAT5_5). A missing colour falls back to white, which the black tick reads on.
+  const color = modeColor(PICK_TICK_COLORS, mode, kind, highContrast ? FALLBACK_INK[mode] : PICK_COLORS[kind]);
+  // The outline is brighter in Dark mode, so it shows on the dark panel (FEAT5), and again in High
+  // contrast (FEAT5_5); a missing one falls back to the mode's text colour (white in High contrast).
+  const outline = modeColor(PICK_OUTLINE_COLORS, mode, kind, FALLBACK_INK[mode]);
   const describedBy = [`${id}-meaning`, `${id}-from`, ...(card.isNew ? [`${id}-new`] : [])].join(' ');
   return (
+    // In High contrast (FEAT5_5) a picked card's ring is 3px (the 8px gap leaves 2px between two
+    // picked cards) and keyboard focus is a 2px yellow outline 5px out, clear of that ring.
     <label
       style={{ '--pick': outline } as CSSProperties}
       data-flight-source={sourceId}
-      className={`${gone ? 'invisible' : ''} relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink-soft ${FORCED_COLORS_PICK_CARD}`}
+      className={`${gone ? 'invisible' : ''} relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink-soft hc:has-checked:ring-3 hc:has-focus-visible:outline-offset-[5px] hc:has-focus-visible:outline-hc-focus ${FORCED_COLORS_PICK_CARD}`}
     >
       <input
         type="checkbox"
@@ -123,7 +139,7 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId
         <span
           aria-hidden
           style={{ backgroundColor: color }}
-          className="absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full text-sm font-bold text-white shadow forced-colors:border-2 forced-colors:border-[color:Highlight] forced-colors:bg-[color:Canvas]! forced-colors:text-[color:Highlight]"
+          className="absolute -top-2 -right-2 z-10 flex size-6 items-center justify-center rounded-full text-sm font-bold text-white shadow forced-colors:border-2 forced-colors:border-[color:Highlight] forced-colors:bg-[color:Canvas]! forced-colors:text-[color:Highlight] hc:text-black hc:shadow-[0_0_0_2px_#000]"
         >
           ✓
         </span>
@@ -181,7 +197,8 @@ const PANEL_PLACE = [
  * Its look (ADJ2): a sky-50 panel with a sky-200 border (in Dark mode a dark blue panel with a
  * darker blue border, FEAT5), rounded corners and a large shadow.
  */
-const PANEL_LOOK = 'rounded-xl border border-panel-line bg-panel text-sm shadow-xl';
+const PANEL_LOOK =
+  'rounded-xl border border-panel-line bg-panel text-sm shadow-xl hc:shadow-none hc:ring-1 hc:ring-inset hc:ring-panel-line';
 
 /**
  * The panel's body, between the title row and the buttons: the card lists scroll here. A card
@@ -189,8 +206,12 @@ const PANEL_LOOK = 'rounded-xl border border-panel-line bg-panel text-sm shadow-
  */
 const PANEL_BODY = 'min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2';
 
-/** The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages. */
-const PANEL_FOOTER = 'shrink-0 space-y-2 border-t border-panel-line px-3 py-3';
+/**
+ * The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages.
+ * In High contrast (FEAT5_5) the line above it is 2px: its 1px border plus a 1px inset shadow.
+ */
+const PANEL_FOOTER =
+  'shrink-0 space-y-2 border-t border-panel-line px-3 py-3 hc:shadow-[inset_0_1px_0_0_var(--color-panel-line)]';
 
 /** Add Back Cards and Clear List, side by side (ADJ2). */
 const FOOTER_ROW = 'grid grid-cols-2 gap-2';
@@ -198,13 +219,13 @@ const FOOTER_ROW = 'grid grid-cols-2 gap-2';
 /** The panel's buttons have less padding than the header's, so two fit side by side in 300px. */
 const panelButton = 'rounded-xl px-2 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
 
-/** "Recover cleared list (N)" (FEAT2_7): sky blue and filled, like "Shuffled out (N)". */
+/** "Recover cleared list (N)" (FEAT2_7): sky blue and filled, like "Shuffled out (N)", and outlined like it in High contrast. */
 function RecoverButton({ study }: { study: StudyDeck }) {
   return (
     <button
       type="button"
       onClick={study.recoverCleared}
-      className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton}`}
+      className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton} ${HC_SKY_BUTTON}`}
     >
       Recover cleared list ({study.clearedCount})
     </button>
@@ -240,7 +261,7 @@ export function ShuffledOutButton({
       aria-expanded={open}
       aria-controls={SHUFFLED_OUT_PANEL_ID}
       onClick={onToggle}
-      className={`${bumpClass(bump)} shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-sky-500 active:scale-95`}
+      className={`${bumpClass(bump)} shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-sky-500 active:scale-95 ${HC_SKY_BUTTON}`}
     >
       Shuffled out ({count})<span aria-hidden> {open ? '▴' : '▾'}</span>
     </button>
@@ -495,19 +516,22 @@ export function ShuffledOutPanel({
               </p>
             )}
             <div className={FOOTER_ROW}>
-              <button type="submit" className={`bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton}`}>
+              <button
+                type="submit"
+                className={`bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton} ${HC_EMERALD_BUTTON}`}
+              >
                 Add Back Cards
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmingClear(true)}
-                className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+                className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton} ${HC_ROSE_BUTTON}`}
               >
                 Clear List
               </button>
             </div>
             {confirmingClear ? (
-              <div className="space-y-2 rounded-lg border border-danger-line bg-card p-2">
+              <div className="space-y-2 rounded-lg border border-danger-line bg-card p-2 hc:ring-1 hc:ring-danger-line hc:ring-inset">
                 <p className="font-semibold text-danger-ink-strong">{confirmClearText(shuffledOut.length)}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -519,14 +543,14 @@ export function ShuffledOutPanel({
                       setError(null);
                       setConfirmingClear(false);
                     }}
-                    className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton}`}
+                    className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton} ${HC_ROSE_BUTTON}`}
                   >
                     Yes, Clear List
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmingClear(false)}
-                    className={`border border-field-line bg-field text-ink-soft hover:bg-field-hover ${panelButton}`}
+                    className={`border border-field-line bg-field text-ink-soft hover:bg-field-hover ${panelButton} hc:shadow-none hc:ring-1 hc:ring-field-line hc:ring-inset`}
                   >
                     Cancel
                   </button>

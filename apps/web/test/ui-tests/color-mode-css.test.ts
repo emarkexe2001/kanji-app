@@ -9,13 +9,21 @@ import { join, resolve } from 'node:path';
 import { compile, optimize } from '@tailwindcss/node';
 import { Scanner } from '@tailwindcss/oxide';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { MODE_COLORS, READING_COLORS, READING_COLORS_BY_MODE, type ModeColorName } from '@kanji/core';
+import {
+  HIGH_CONTRAST_COLORS,
+  MODE_COLORS,
+  READING_COLORS,
+  READING_COLORS_BY_MODE,
+  type ModeColorName,
+} from '@kanji/core';
 import { INDEX_CSS, blockAfter, colorVariables, tailwindColor } from './mode-colors';
 
 const WEB = resolve(__dirname, '../..');
 const DARK_SELECTOR = ":root[data-color-mode='dark']";
+const HIGH_CONTRAST_SELECTOR = ":root[data-color-mode='high-contrast'] {";
 const lightBlock = () => colorVariables(blockAfter(INDEX_CSS, '@theme'));
 const darkBlock = () => colorVariables(blockAfter(INDEX_CSS, DARK_SELECTOR));
+const highContrastBlock = () => colorVariables(blockAfter(INDEX_CSS, HIGH_CONTRAST_SELECTOR));
 
 /**
  * What each colour token replaced (FEAT5): the Tailwind colour (or the colour written in
@@ -85,6 +93,25 @@ describe('index.css and the colour tokens in @kanji/core (FEAT5)', () => {
     expect(blockAfter(INDEX_CSS, DARK_SELECTOR)).toMatch(/color-scheme:\s*dark;/);
   });
 
+  test('the High contrast colours in index.css are the ones in MODE_COLORS and READING_COLORS_BY_MODE, and none is missing (FEAT5_5)', () => {
+    const css = highContrastBlock();
+    const expected: Record<string, string> = {
+      ...MODE_COLORS['high-contrast'],
+      onyomi: READING_COLORS_BY_MODE['high-contrast'].onyomi,
+      kunyomi: READING_COLORS_BY_MODE['high-contrast'].kunyomi,
+      okurigana: READING_COLORS_BY_MODE['high-contrast'].okurigana,
+    };
+    // Every colour token (ModeColorName) must be in the block: one left out would show its Light
+    // colour in High contrast.
+    expect(css).toEqual(expected);
+    expect(blockAfter(INDEX_CSS, HIGH_CONTRAST_SELECTOR)).toMatch(/color-scheme:\s*dark;/);
+  });
+
+  test('the fixed High contrast colours in the @theme are the ones in HIGH_CONTRAST_COLORS (FEAT5_5)', () => {
+    const css = lightBlock();
+    for (const [name, value] of Object.entries(HIGH_CONTRAST_COLORS)) expect(css[name], name).toBe(value);
+  });
+
   test('the reading colours in Light are still the ones in READING_COLORS', () => {
     const css = lightBlock();
     expect(css.onyomi).toBe(READING_COLORS.onyomi);
@@ -101,11 +128,12 @@ describe('index.css and the colour tokens in @kanji/core (FEAT5)', () => {
 
   test('no colours are written straight into index.css rules any more, apart from the tokens themselves', () => {
     // Every colour outside the token blocks comes from a token (var(--color-...)) or is a system
-    // colour for forced-colours mode, so Dark covers it.
-    const rules = INDEX_CSS.replace(/@theme\s*\{[^}]*\}/, '').replace(
-      /:root\[data-color-mode='dark'\]\s*\{[^}]*\}/,
-      '',
-    );
+    // colour for forced-colours mode, so Dark covers it. High contrast's safety net (white on black
+    // even if a token is left out, FEAT5_5) has to write its colours out, so it is left out too.
+    const rules = INDEX_CSS.replace(/@theme\s*\{[^}]*\}/, '')
+      .replace(/:root\[data-color-mode='dark'\]\s*\{[^}]*\}/, '')
+      .replace(/:root\[data-color-mode='high-contrast'\]\s*\{[^}]*\}/, '')
+      .replace(/:root\[data-color-mode='high-contrast'\] body\s*\{\s*background: #000000;\s*color: #ffffff;\s*\}/, '');
     expect(rules).not.toMatch(/#[0-9a-f]{3,8}\b/i);
     expect(rules).not.toMatch(/\b(rgb|oklch|hsl)\(/i);
   });
@@ -173,9 +201,16 @@ describe('the built stylesheet (FEAT5)', () => {
     // active:scale-[0.98]); a class Tailwind doesn't generate would quietly do nothing.
     const source = readFileSync(join(WEB, 'src/features/color-mode/components/color-mode-start-page.tsx'), 'utf8');
     const tile = /const TILE = \[([\s\S]*?)\]\.join/.exec(source)![1];
+    // The tiles' layouts (FEAT5_5: High contrast's wide tile) and the classes chosen in code.
+    const layouts = /const TILE_LAYOUT[^=]*= \{([\s\S]*?)\};/.exec(source)![1];
+    const templates = [...source.matchAll(/className=\{`([^`]+)`\}/g)].map((m) => m[1]);
     const strings = [
       ...[...source.matchAll(/className="([^"]+)"/g)].map((m) => m[1]),
       ...[...tile.matchAll(/'([^']+)'/g)].map((m) => m[1]),
+      ...[...layouts.matchAll(/: '([^']+)'/g)].map((m) => m[1]),
+      ...[...source.matchAll(/const [A-Z_]+ = '([^']+)'/g)].map((m) => m[1]),
+      ...templates.map((t) => t.replace(/\$\{[\s\S]*?\}/g, ' ')),
+      ...templates.flatMap((t) => [...t.matchAll(/'([^']+)'/g)].map((m) => m[1])),
     ];
     const classes = [...new Set(strings.flatMap((s) => s.split(/\s+/)).filter(Boolean))].sort();
     // A sample, so the search above can't quietly find nothing.
@@ -189,6 +224,12 @@ describe('the built stylesheet (FEAT5)', () => {
         'hover:bg-menu-selected',
         'forced-colors:border-[color:ButtonText]',
         'justify-center',
+        // FEAT5_5: High contrast's wide tile and its preview.
+        'col-span-2',
+        'h-[88px]',
+        'h-[66px]',
+        'w-[calc(50%-17px)]',
+        'text-black',
       ]),
     );
     const missing = classes.filter((cls) => !css.includes(escapedSelector(cls)));

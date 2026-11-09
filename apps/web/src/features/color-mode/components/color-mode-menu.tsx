@@ -7,24 +7,38 @@ import { MODE_ICONS, TickIcon } from './color-mode-icons';
 export const COLOR_MODE_NAMES: Record<ColorMode, string> = {
   light: 'Light',
   dark: 'Dark',
+  'high-contrast': 'High contrast',
 };
 
 /**
  * The colour mode button (FEAT5), 36px tall like "Shuffled out (N)", with a border so it reads as
  * a quieter control. Its focus ring is drawn on purpose, and in a forced-colours (high-contrast)
- * mode its border uses the system ButtonText colour so it can still be seen.
+ * mode its border uses the system ButtonText colour so it can still be seen. In High contrast
+ * (FEAT5_5) a 1px inset ring makes its white line 2px, without changing its size.
  */
 const BUTTON = [
   'flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-field-line bg-card px-3 text-sm font-bold text-ink transition',
   'hover:bg-menu-selected active:scale-95',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink',
   'forced-colors:border-[color:ButtonText]',
+  'hc:ring-1 hc:ring-inset hc:ring-field-line',
 ].join(' ');
 
-/** The menu (FEAT5): 200px wide, just under the button, drawn over the page and the Shuffled-out panel. */
+/**
+ * The button's mode name. In High contrast (FEAT5_5) it shows from 375px up only: below that,
+ * "High contrast" doesn't fit beside "Shuffled out (N)", so the button shows just its icon. Screen
+ * readers always hear the name (the button's aria-label).
+ */
+const NAME_CLASS: Partial<Record<ColorMode, string>> = { 'high-contrast': 'hidden min-[375px]:inline' };
+
+/**
+ * The menu (FEAT5): 200px wide, just under the button, drawn over the page and the Shuffled-out
+ * panel. In High contrast (FEAT5_5) its white line is 2px and it has no shadow.
+ */
 const MENU = [
   'absolute top-full left-0 z-50 mt-2 w-[200px] rounded-xl border border-card-line bg-card p-1.5',
   'shadow-[0_12px_28px_-8px_rgb(15_23_42/0.45)]',
+  'hc:shadow-none hc:ring-1 hc:ring-inset hc:ring-card-line',
 ].join(' ');
 
 /** A mode in the menu: 40px tall; the mode that is on has a grey row and a tick. */
@@ -35,8 +49,15 @@ const ITEM = [
 ].join(' ');
 
 /**
+ * The row of the mode that is on. In High contrast (FEAT5_5) it is black with a 2px white outline
+ * (and the tick), instead of a grey row, and still fills under the pointer.
+ */
+const ITEM_ON = 'bg-menu-selected hc:bg-card hc:ring-2 hc:ring-inset hc:ring-ink hc:hover:bg-menu-selected';
+
+/**
  * The colour mode menu in the top left of the header (FEAT5). The button shows the mode that is
- * on ("Light ▾" with a sun, or "Dark ▾" with a moon); screen readers hear "Colour mode: Light" and
+ * on ("Light ▾" with a sun, "Dark ▾" with a moon, or "High contrast ▾" with a half-filled circle,
+ * FEAT5_5, just "◐ ▾" below 375px); screen readers hear "Colour mode: Light" and
  * that it opens a menu. The menu, headed "Colour mode", lists the modes as menu radio items, so
  * screen readers hear which one is on; it has a tick too.
  *
@@ -140,7 +161,7 @@ export function ColorModeMenu({
         className={BUTTON}
       >
         <Icon />
-        <span>{name}</span>
+        <span className={NAME_CLASS[mode]}>{name}</span>
         <span aria-hidden className="text-[10px]">
           {open ? '▴' : '▾'}
         </span>
@@ -169,7 +190,7 @@ export function ColorModeMenu({
                   onChoose(m);
                   closeToButton();
                 }}
-                className={`${ITEM} ${on ? 'bg-menu-selected' : ''}`}
+                className={`${ITEM} ${on ? ITEM_ON : ''}`}
               >
                 <ItemIcon />
                 <span className="flex-1">{COLOR_MODE_NAMES[m]}</span>

@@ -77,8 +77,8 @@ export function firstVisit() {
 /** The heading of the colour mode start page (FEAT5_1). */
 export const startPageHeading = () => screen.queryByRole('heading', { level: 2, name: 'Choose how the app looks' });
 
-/** A tile on the start page: the button named exactly "Light" or "Dark". */
-export const startPageTile = (name: 'Light' | 'Dark') =>
+/** A tile on the start page: the button named exactly "Light", "Dark" or "High contrast" (FEAT5_5). */
+export const startPageTile = (name: 'Light' | 'Dark' | 'High contrast') =>
   within(screen.getByRole('group', { name: 'Choose how the app looks' })).getByRole('button', { name });
 
 /**

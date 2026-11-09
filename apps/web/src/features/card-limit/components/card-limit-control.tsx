@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { MIN_DECK_SIZE, MAX_DECK_SIZE, clampDeckSize, parseDeckSizeInput } from '../utils/deck-size';
 
-const stepBtn =
-  'grid h-9 w-9 place-items-center rounded-lg border border-field-line bg-field text-lg font-semibold text-ink-soft shadow-sm transition hover:bg-field-hover active:scale-95 disabled:opacity-40 disabled:hover:bg-field disabled:active:scale-100';
+/**
+ * The − / + buttons. In High contrast (FEAT5_5) their white line is 2px (the border plus a 1px
+ * inset ring) with no shadow. Disabled (at 1 or 150), they don't fade there, as faded white turns
+ * grey (agreed 2026-11-09): their solid line gives way to a 2px dashed white outline inside them,
+ * with white text. Neither changes the size.
+ */
+const stepBtn = [
+  'grid h-9 w-9 place-items-center rounded-lg border border-field-line bg-field text-lg font-semibold text-ink-soft shadow-sm transition hover:bg-field-hover active:scale-95 disabled:opacity-40 disabled:hover:bg-field disabled:active:scale-100',
+  'hc:shadow-none hc:ring-1 hc:ring-field-line hc:ring-inset',
+  'hc:disabled:border-transparent hc:disabled:text-ink hc:disabled:opacity-100 hc:disabled:ring-0',
+  'hc:disabled:outline-2 hc:disabled:-outline-offset-2 hc:disabled:outline-ink hc:disabled:outline-dashed',
+].join(' ');
 
 /**
  * Lets the user type a card limit (1–150) directly, or nudge it with the − / + buttons.
@@ -44,7 +54,8 @@ export function CardLimitControl({ size, onChange }: { size: number; onChange: (
   };
 
   return (
-    <div className="mt-4 rounded-xl bg-section px-3 py-2">
+    // In High contrast (FEAT5_5) the row has a 1px white line, drawn inside it.
+    <div className="mt-4 rounded-xl bg-section px-3 py-2 hc:ring-1 hc:ring-box-line hc:ring-inset">
       <div className="flex items-center justify-between">
         <label htmlFor="card-limit" className="text-sm font-semibold text-ink-soft">
           Card limit
@@ -77,7 +88,7 @@ export function CardLimitControl({ size, onChange }: { size: number; onChange: (
             onBlur={() => commit(true)}
             aria-invalid={invalid ? true : undefined}
             aria-describedby={invalid ? 'card-limit-error' : undefined}
-            className="w-14 rounded-lg border border-field-line bg-field py-1.5 text-center font-bold tabular-nums"
+            className="w-14 rounded-lg border border-field-line bg-field py-1.5 text-center font-bold tabular-nums hc:ring-1 hc:ring-field-line hc:ring-inset"
           />
           <button
             type="button"

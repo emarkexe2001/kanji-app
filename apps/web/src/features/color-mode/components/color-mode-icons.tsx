@@ -43,8 +43,19 @@ export function TickIcon({ size = 16 }: IconProps) {
   );
 }
 
-/** Each mode's icon: a sun for Light, a moon for Dark. */
+/** High contrast (FEAT5_5): a circle, half filled. */
+export function ContrastIcon({ size = 16 }: IconProps) {
+  return (
+    <svg {...iconProps(size)} data-icon="contrast">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Each mode's icon: a sun for Light, a moon for Dark, a half-filled circle for High contrast. */
 export const MODE_ICONS: Record<ColorMode, (props: IconProps) => JSX.Element> = {
   light: SunIcon,
   dark: MoonIcon,
+  'high-contrast': ContrastIcon,
 };
