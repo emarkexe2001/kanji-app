@@ -37,6 +37,7 @@ Requirements / Expected Behaviours:
   - links in the daily diary entries in `docs/daily_work_diary/` (question 4)
 - The standards say where new tickets go from now on: a new ticket goes in `docs/tickets/<type>/`, and when it is finished it moves to `docs/tickets/completed_tickets/<type>/` in its own PR, as today.
 - No new test is added (question 6). The existing scripts tests that read ticket paths are updated to the new paths, so every check still passes.
+- Added 2026-11-09 (user request): the daily work diary is split by month. Every entry moves from `docs/daily_work_diary/YYYY-MM-DD.md` into a folder for its month, `docs/daily_work_diary/YYYY-MM/YYYY-MM-DD.md` (so far `2026-10/` and `2026-11/`), with `git mv`. File names don't change. Everything that points at a diary path is updated, and any doc that says where diary entries go says new entries go in `docs/daily_work_diary/YYYY-MM/`.
 
 Questions / Clarifications:
 (Check this ticket against docs/standards/standards.md before starting.)
@@ -66,6 +67,12 @@ When I look in `docs/tickets/completed_tickets/feat/`, `card_category_ticket.md`
 When I run `git log --follow` on a moved ticket, its history from before the move is shown
 
 When I search the repo (outside `.claude/` and `node_modules/`) for an old ticket path, nothing is found
+
+When I look in `docs/daily_work_diary/`, every diary entry is in the folder for its month (added 2026-11-09)
+
+When I look in `docs/daily_work_diary/`, no diary entry is left at the top (added 2026-11-09)
+
+When I search the repo (outside `.claude/` and `node_modules/`) for an old flat diary path (`docs/daily_work_diary/YYYY-MM-DD.md`), nothing is found (added 2026-11-09)
 
 When I run `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` and `npm run check:commits`, they all pass
 
