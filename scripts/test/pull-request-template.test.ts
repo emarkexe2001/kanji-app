@@ -188,8 +188,8 @@ describe('pull request template', () => {
       const field = section(template(), 'Ticket').match(/^\*\*Ticket:\*\*\s*\[([^\]]+)\]\(([^)]+)\)/m);
       assert.ok(field, 'no "**Ticket:** [CODE](link)" field');
       assert.ok(
-        field[2]!.startsWith('../blob/main/docs/tickets/completed_tickets/'),
-        `the link is "${field[2]}", not ../blob/main/docs/tickets/completed_tickets/...`,
+        /^\.\.\/blob\/main\/docs\/tickets\/completed_tickets\/[^/]+\//.test(field[2]!),
+        `the link is "${field[2]}", not ../blob/main/docs/tickets/completed_tickets/<type>/...`,
       );
     });
 
