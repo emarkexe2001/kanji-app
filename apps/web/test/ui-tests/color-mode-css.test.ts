@@ -355,12 +355,10 @@ describe('the built stylesheet (FEAT5)', () => {
       expect(tokens![1], `--color-${name}`).toMatch(new RegExp(`--color-${name}:\\s*${short(value)}[;}]?`));
     }
     expect(tokens![1]).toMatch(/color-scheme:\s*dark/);
-    // Focus: a 3px yellow outline 2px out; menu items keep theirs inside the row.
+    // Focus: a 3px yellow outline 2px out; menu items keep theirs inside the row. Both only outside
+    // a forced-colours mode, so the device's focus wins there (review R3).
     expect(unlayered).toContain(
-      ':root[data-color-mode=high-contrast] :focus-visible{outline:3px solid var(--color-hc-focus);outline-offset:2px}',
-    );
-    expect(unlayered).toContain(
-      ':root[data-color-mode=high-contrast] [role=menuitemradio]:focus-visible{outline-offset:-3px}',
+      '@media not all and (forced-colors:active){:root[data-color-mode=high-contrast] :focus-visible{outline:3px solid var(--color-hc-focus);outline-offset:2px}:root[data-color-mode=high-contrast] [role=menuitemradio]:focus-visible{outline-offset:-3px}}',
     );
     // The fanned and sliding blank cards: a 2px white ring and no shadow (one box-shadow only).
     expect(unlayered).toContain(

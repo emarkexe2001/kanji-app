@@ -209,13 +209,17 @@ body {
 /* High contrast focus (FEAT5_5): a 3px yellow outline, 2px out, on everything that can be focused.
    It is outside Tailwind's layers, so it beats each element's own focus-visible: classes. Menu
    items keep their outline inside the row. The "Shuffle in from" options and the pick cards draw
-   their focus on their label, with hc: classes (see SEGMENT_CLASS and PickCardBody). */
-:root[data-color-mode='high-contrast'] :focus-visible {
-  outline: 3px solid var(--color-hc-focus);
-  outline-offset: 2px;
-}
-:root[data-color-mode='high-contrast'] [role='menuitemradio']:focus-visible {
-  outline-offset: -3px;
+   their focus on their label, with hc: classes (see SEGMENT_CLASS and PickCardBody). Like the hc:
+   variant, it is off in a forced-colours (Windows high contrast) mode, so focus there stays as the
+   device and FEAT2_6 draw it. */
+@media not (forced-colors: active) {
+  :root[data-color-mode='high-contrast'] :focus-visible {
+    outline: 3px solid var(--color-hc-focus);
+    outline-offset: 2px;
+  }
+  :root[data-color-mode='high-contrast'] [role='menuitemradio']:focus-visible {
+    outline-offset: -3px;
+  }
 }
 
 /* Switching modes is instant (FEAT5): nothing fades from one mode's colours to the other's while
