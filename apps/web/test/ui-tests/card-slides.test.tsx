@@ -1053,10 +1053,29 @@ describe('changing the colour mode while cards are sliding (FEAT5)', () => {
   const modeButton = () => screen.getByRole('button', { name: /^Colour mode: / });
   const modeOnPage = () => document.documentElement.getAttribute('data-color-mode');
 
-  async function chooseMode(user: User, name: 'Light' | 'Dark') {
+  async function chooseMode(user: User, name: 'Light' | 'Dark' | 'High contrast') {
     await user.click(modeButton());
     await user.click(screen.getByRole('menuitemradio', { name }));
   }
+
+  test('choosing High contrast while cards slide into "Shuffled out (N)" lands them at once, and the next Shuffle In slides as usual in it (FEAT5_5)', async () => {
+    const user = await renderApp(DECKS);
+    fakeAnimate();
+    await shuffleIn(user, '2');
+    expect(flyers()).toHaveLength(2);
+
+    await chooseMode(user, 'High contrast');
+    expect(modeOnPage()).toBe('high-contrast');
+    expect(flyers()).toHaveLength(0);
+    expect(shownCount()).toBe(2);
+    // Nothing is left fading: the switch's transition hold is released once the mode is on.
+    await waitFor(() => expect(document.documentElement).not.toHaveAttribute('data-color-mode-switching'));
+
+    await shuffleIn(user, '1');
+    expect(flyers()).toHaveLength(1);
+    landNext();
+    expect(shownCount()).toBe(3);
+  });
 
   test('pressing the mode button while cards slide into "Shuffled out (N)" lands them at once with the right count, and Dark then comes on', async () => {
     const user = await renderApp(DECKS);
