@@ -5,7 +5,10 @@ import { isDocsOnly, parseChangedFiles } from '../docs-only-changes.ts';
 
 describe('isDocsOnly', () => {
   it('is docs-only when every file is under docs/', () => {
-    assert.equal(isDocsOnly(['docs/testing.md', 'docs/tickets/CI2_skip_slow_checks_on_docs_prs_ticket.md']), true);
+    assert.equal(
+      isDocsOnly(['docs/testing.md', 'docs/tickets/completed_tickets/ci/CI2_skip_slow_checks_on_docs_prs_ticket.md']),
+      true,
+    );
   });
 
   it('is docs-only for a file under docs/ that is not Markdown', () => {

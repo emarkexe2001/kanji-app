@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const STANDARDS_PATH = resolve(ROOT, 'docs/standards/standards.md');
 const EXAMPLE_TICKET_PATH = resolve(ROOT, 'docs/tickets/example_ticket.md');
-const CARD_LIMIT_TICKET_PATH = resolve(ROOT, 'docs/tickets/selectable-card_limit_ticket.md');
+const CARD_LIMIT_TICKET_PATH = resolve(ROOT, 'docs/tickets/completed_tickets/feat/selectable-card_limit_ticket.md');
 const DECK_SIZE_PATH = resolve(ROOT, 'apps/web/src/features/card-limit/utils/deck-size.ts');
 
 const SECTION = 'Questions / Clarifications';

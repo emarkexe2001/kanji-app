@@ -200,7 +200,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - **In-person check for UI work.** Every pull request for a UI feature (a `FEAT`, `ADJ` or `UI` ticket, or any other change to what the user sees) gets an in-person check before it is merged. A person, preferably me or another developer, uses the app in a real browser and checks that it matches the ticket's spec, the agreed answers and the approved mockup. An agent's browser check (e.g. headless Chrome) is still done, but doesn't replace this. Note in the PR who checked it, on which commit, and the result. The PR stays a draft until the check has passed, and anything that doesn't match the spec is fixed first, with the PR blocked as above.
 - **One change per pull request.** A pull request only contains the change it is about, so it is quick to review. A feature PR only contains commits for that feature.
 - **Docs and ticket changes get their own pull request** from a `docs/` branch (e.g. `docs/add-tickets`), rather than being added to a feature PR.
-- **Move finished tickets.** When a ticket is finished, move its file into `docs/tickets/completed_tickets/` and add a `Completed On:` note with the date. Do this in the ticket's own pull request, so merging the PR is what marks the ticket as complete.
+- **Move finished tickets.** When a ticket is finished, move its file from `docs/tickets/<type>/` into the same type folder under `docs/tickets/completed_tickets/` (e.g. `docs/tickets/feat/` → `docs/tickets/completed_tickets/feat/`, see 5.6) with `git mv`, and add a `Completed On:` note with the date. Do this in the ticket's own pull request, so merging the PR is what marks the ticket as complete.
 
 ### 5.5 Commit messages
 Use this format:
@@ -231,14 +231,16 @@ The exact detail expected in commits, branches and pull requests is still being 
 ### 5.6 Ticket types
 Each ticket starts with a code made of a type and a number (e.g. `FEAT2`, `ADJ1`). The type says what kind of work it is:
 
-| Code | Type | Used for |
-|---|---|---|
-| `FEAT` | Feature | new things the user can do |
-| `ADJ` | Adjustment | changing where or how existing UI is shown, without changing what it does (e.g. moving a button). An adjustment ticket shows the current and wanted layout. Its branch uses the `feature/` prefix |
-| `UI` | UI fixes | fixing UI that doesn't behave as it should |
-| `TEST`, `TOOL`, `CI`, `CHORE`, `PROC`, `ARCH` | Other | tests, tooling, CI, housekeeping, process and architecture |
+| Code | Type | Used for | Folder |
+|---|---|---|---|
+| `FEAT` | Feature | new things the user can do | `feat/` |
+| `ADJ` | Adjustment | changing where or how existing UI is shown, without changing what it does (e.g. moving a button). An adjustment ticket shows the current and wanted layout. Its branch uses the `feature/` prefix | `adj/` |
+| `UI` | UI fixes | fixing UI that doesn't behave as it should | `ui/` |
+| `TEST`, `TOOL`, `CI`, `CHORE`, `PROC`, `ARCH` | Other | tests, tooling, CI, housekeeping, process and architecture | `test/`, `tool/`, `ci/`, `chore/`, `proc/`, `arch/` |
 
 A follow-up to a ticket keeps its number with a suffix, e.g. `FEAT2_5` follows `FEAT2`.
+
+**Where tickets go.** Each ticket sits in the folder for its type, named after the lower-case code (the Folder column above). A new ticket goes in `docs/tickets/<type>/`, e.g. `docs/tickets/feat/FEAT7_..._ticket.md`. When it is finished it moves to `docs/tickets/completed_tickets/<type>/` in its own pull request (see 5.4). A follow-up goes in its parent's folder (e.g. `FEAT2_5` in `feat/`). Only make a type folder when a ticket goes in it. The ticket template, `docs/tickets/example_ticket.md`, stays at the top of `docs/tickets/`.
 
 ---
 

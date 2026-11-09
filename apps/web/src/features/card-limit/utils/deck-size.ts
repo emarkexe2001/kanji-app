@@ -1,6 +1,9 @@
 import { readStorage, writeStorage } from '../../../lib/storage';
 
-/** Card-limit rules from docs/tickets/selectable-card_limit_ticket.md: 1–150, no 0, nothing non-numeric. */
+/**
+ * Card-limit rules from docs/tickets/completed_tickets/feat/selectable-card_limit_ticket.md:
+ * 1–150, no 0, nothing non-numeric.
+ */
 export const MIN_DECK_SIZE = 1;
 export const MAX_DECK_SIZE = 150;
 export const DEFAULT_DECK_SIZE = 10;
