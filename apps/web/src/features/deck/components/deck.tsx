@@ -3,6 +3,7 @@ import type { CardFlights } from '../hooks/use-card-flights';
 import { usePanelClearance } from '../hooks/use-panel-clearance';
 import { useWideLayout } from '../hooks/use-wide-layout';
 import type { StudyDeck } from '../hooks/use-study-deck';
+import { HC_INDIGO_BUTTON } from '../utils/high-contrast-buttons';
 import { CardStack } from './card-stack';
 import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-view';
 
@@ -20,12 +21,15 @@ const isTyping = (target: EventTarget | null) =>
  * reads as the quieter partner of Next. Its focus ring is drawn on purpose, and in a forced-colours
  * (high-contrast) mode its border uses the system ButtonText colour so it can still be told apart.
  * Its padding is 1px less than the other buttons' so that, with the border, it is 48px tall too.
+ * In High contrast (FEAT5_5) it is black with a 2px white line (its border plus a 1px inset ring)
+ * and no shadow.
  */
 const BACK_BUTTON = [
   'min-h-12 rounded-xl border border-back-line bg-back px-4 py-2.75 font-semibold text-ink-strong shadow-sm transition',
   'hover:bg-back-hover active:scale-95',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-strong',
   'forced-colors:border-[color:ButtonText]',
+  'hc:shadow-none hc:ring-1 hc:ring-back-line hc:ring-inset',
 ].join(' ');
 
 /**
@@ -109,14 +113,14 @@ export function Deck({
         <button
           type="button"
           onClick={next}
-          className="min-h-12 rounded-xl bg-next px-4 py-3 font-semibold text-next-ink shadow-sm transition hover:bg-next-hover active:scale-95"
+          className="min-h-12 rounded-xl bg-next px-4 py-3 font-semibold text-next-ink shadow-sm transition hover:bg-next-hover active:scale-95 hc:shadow-none"
         >
           Next →
         </button>
         <button
           type="button"
           onClick={deckShuffle}
-          className="col-span-2 min-h-12 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-500 active:scale-95"
+          className={`col-span-2 min-h-12 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-500 active:scale-95 ${HC_INDIGO_BUTTON}`}
         >
           <span aria-hidden>🔀 </span>Deck Shuffle
         </button>

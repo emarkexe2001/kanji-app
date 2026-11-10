@@ -132,6 +132,22 @@ describe('the colour mode script in index.html and the device setting (FEAT5_1)'
     expect(both()).toEqual(['dark', 'dark']);
   });
 
+  test.each([false, true])(
+    'when nothing is saved and the device asks for more contrast, it still opens in Light or Dark, never High contrast, the same as the app (FEAT5_5, device dark: %s)',
+    (dark) => {
+      vi.stubGlobal(
+        'matchMedia',
+        vi.fn((query: string) => ({
+          matches: /prefers-contrast/.test(query) || (dark && query === DEVICE_DARK_QUERY),
+          media: query,
+        })),
+      );
+      const mode = dark ? 'dark' : 'light';
+      expect(both()).toEqual([mode, mode]);
+      expect(script().textContent).not.toContain('prefers-contrast');
+    },
+  );
+
   test('when nothing is saved and the device prefers light, it opens in Light, the same as the app', () => {
     deviceDark(false);
     expect(both()).toEqual(['light', 'light']);

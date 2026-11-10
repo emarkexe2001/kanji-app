@@ -13,8 +13,17 @@ import {
   READING_COLORS,
   READING_COLORS_BY_MODE,
   isColorMode,
+  modeColor,
+  CARD_COLORS_BY_MODE,
+  FALLBACK_HEADER,
+  FALLBACK_INK,
+  HIGH_CONTRAST_COLORS,
+  JLPT_COLORS_BY_MODE,
+  PICK_TICK_COLORS,
+  type ColorMode,
   type ModeColorName,
 } from '../../src/tokens';
+import type { ReadingKind } from '../../src/types';
 
 /** sRGB (0-255) from a #rrggbb colour. The Dark values are all written this way. */
 function rgb(hex: string): [number, number, number] {
@@ -43,8 +52,8 @@ const over = (fg: string, alpha: number, bg: string) =>
 
 const dark = MODE_COLORS.dark;
 
-test('there are two modes, Light and Dark, and Light is the default', () => {
-  assert.deepEqual([...COLOR_MODES], ['light', 'dark']);
+test('there are three modes, Light, Dark and High contrast (FEAT5_5), in that order, and Light is the default', () => {
+  assert.deepEqual([...COLOR_MODES], ['light', 'dark', 'high-contrast']);
   assert.equal(DEFAULT_COLOR_MODE, 'light');
 });
 
@@ -170,4 +179,248 @@ test('in Dark the reading colours, the pick outlines, the JLPT headers, the NEW 
   assert.ok(contrast(NEW_COLOR, dark.card) >= 3);
   // Error messages (danger) aren't drawn in the same red as Kunyomi.
   assert.notEqual(dark['danger-ink'], READING_COLORS_BY_MODE.dark.kunyomi);
+});
+
+test('modeColor gives the colour for the mode, or the fallback when it is missing, and never throws (FEAT5_5)', () => {
+  assert.equal(modeColor(READING_COLORS_BY_MODE, 'high-contrast', 'kunyomi', '#ffffff'), '#ff8a8a');
+  // A key missing from the mode's entry.
+  const noKunyomi: Record<ColorMode, Partial<Record<ReadingKind, string>>> = {
+    ...READING_COLORS_BY_MODE,
+    'high-contrast': { onyomi: '#6cb8ff', okurigana: '#5ce67c' },
+  };
+  assert.equal(modeColor(noKunyomi, 'high-contrast', 'kunyomi', FALLBACK_INK['high-contrast']), '#ffffff');
+  // A whole mode missing, or no table at all.
+  const noHighContrast: Partial<typeof READING_COLORS_BY_MODE> = { light: READING_COLORS };
+  assert.equal(modeColor(noHighContrast, 'high-contrast', 'onyomi', '#ffffff'), '#ffffff');
+  assert.equal(modeColor(undefined, 'high-contrast', 'onyomi', '#ffffff'), '#ffffff');
+  // A mode that isn't in the table even by name (e.g. a table written before High contrast).
+  assert.equal(modeColor({ light: { a: '#111111' } }, 'nope' as ColorMode, 'a', '#ffffff'), '#ffffff');
+});
+
+test('the fallback text colour is the main text colour of each mode, white in High contrast (FEAT5_5)', () => {
+  for (const mode of COLOR_MODES) assert.equal(FALLBACK_INK[mode], MODE_COLORS[mode].ink, mode);
+  assert.equal(FALLBACK_INK['high-contrast'], '#ffffff');
+});
+
+// ---- High contrast (FEAT5_5): the agreed palette, 7:1 contrast, no greys, colours that stay apart,
+// and Light and Dark left as they were. ----
+
+const hc = MODE_COLORS['high-contrast'];
+const BLACK = '#000000';
+const WHITE = '#ffffff';
+
+test('High contrast uses the agreed palette A (agreed 2026-11-09)', () => {
+  assert.deepEqual(READING_COLORS_BY_MODE['high-contrast'], {
+    onyomi: '#6cb8ff',
+    kunyomi: '#ff8a8a',
+    okurigana: '#5ce67c',
+  });
+  assert.deepEqual(JLPT_COLORS_BY_MODE['high-contrast'], {
+    N5: '#3ee8a5',
+    N4: '#3dd9f5',
+    N3: '#a8b4ff',
+    N2: '#d4a8ff',
+    N1: '#ff9eb1',
+  });
+  assert.deepEqual(PICK_OUTLINE_COLORS['high-contrast'], { addBack: '#5ce67c', takeOut: '#ff8a9e' });
+  // The tick is the pick colour (with a black ✓, set in the web app).
+  assert.deepEqual(PICK_TICK_COLORS['high-contrast'], { addBack: '#5ce67c', takeOut: '#ff8a9e' });
+  assert.deepEqual(CARD_COLORS_BY_MODE['high-contrast'], {
+    noLevel: '#d0d7e0',
+    newRibbon: '#ffd23f',
+    common: '#ffc94d',
+  });
+  for (const name of ['danger-ink', 'danger-ink-strong', 'danger-line'] as const) {
+    assert.equal(hc[name], '#ff8a9e', name);
+  }
+  // Filled in from the agreed rules (agreed 2026-11-09): warning text is the NEW ribbon's yellow.
+  assert.equal(hc['warn-ink'], '#ffd23f');
+  assert.equal(hc['success-ink'], '#5ce67c');
+  // The coloured buttons' outlines, the hover fill of black controls and the yellow focus ring.
+  assert.deepEqual(HIGH_CONTRAST_COLORS, {
+    'hc-sky': '#6cb8ff',
+    'hc-indigo': '#a8b4ff',
+    'hc-emerald': '#5ce67c',
+    'hc-rose': '#ff8a9e',
+    'hc-hover': '#262626',
+    'hc-focus': '#ffff00',
+  });
+});
+
+test('High contrast is black with white text and white lines, with no greys (agreed 2026-11-09)', () => {
+  // All text is white: "Card 1 of 10", the 【reading】, READING BREAKDOWN, "From JLPT", the card
+  // numbers and the footer use these tokens.
+  const text = ['ink', 'ink-strong', 'ink-soft', 'ink-firm', 'muted', 'muted-strong', 'faint', 'from-ink'] as const;
+  for (const name of text) assert.equal(hc[name], WHITE, name);
+  const fills = [
+    'page',
+    'card',
+    'card-back-near',
+    'card-back-far',
+    'box',
+    'section',
+    'field',
+    'back',
+    'shuffle-box',
+    'panel',
+  ] as const;
+  for (const name of fills) assert.equal(hc[name], BLACK, name);
+  const lines = [
+    'card-line',
+    'card-back-line',
+    'box-line',
+    'field-line',
+    'seg-line',
+    'back-line',
+    'shuffle-line',
+    'ticks-line',
+    'panel-line',
+  ] as const;
+  for (const name of lines) assert.equal(hc[name], WHITE, name);
+  // Next is white with black text; there are no shadows.
+  assert.equal(hc.next, WHITE);
+  assert.equal(hc['next-ink'], BLACK);
+  assert.equal(hc['card-shadow'], 'transparent');
+});
+
+test('in High contrast black controls fill with #262626 under the pointer, and Next turns #d4d4d4 (agreed 2026-11-09)', () => {
+  for (const name of ['field-hover', 'back-hover', 'panel-hover', 'menu-selected'] as const) {
+    assert.equal(hc[name], '#262626', name);
+  }
+  assert.equal(HIGH_CONTRAST_COLORS['hc-hover'], '#262626');
+  assert.equal(hc['next-hover'], '#d4d4d4');
+});
+
+type Pair = [what: string, colour: string, background: string];
+
+/**
+ * Every text (or line) colour and what it sits on in High contrast, as the app uses them
+ * (FEAT5_5). The ticket asks for at least 7:1.
+ */
+const HIGH_CONTRAST_PAIRS: Pair[] = [
+  // The Dark text pairs, now in High contrast.
+  ...TEXT_PAIRS.map(([fg, bg]): Pair => [`${fg} on ${bg}`, hc[fg], hc[bg]]),
+  // White text on the hover fills, and Next's black text on its hover.
+  ...(['field-hover', 'back-hover', 'panel-hover', 'menu-selected'] as const).map((bg): Pair => [
+    `ink on ${bg}`,
+    hc.ink,
+    hc[bg],
+  ]),
+  ['white text on a coloured button under the pointer (hc-hover)', WHITE, HIGH_CONTRAST_COLORS['hc-hover']],
+  ['next-ink on next-hover', hc['next-ink'], hc['next-hover']],
+  // Palette A on black, and black text on palette A (the JLPT headers, the tick, the NEW ribbon).
+  ...Object.entries(READING_COLORS_BY_MODE['high-contrast']).flatMap(([kind, c]): Pair[] => [
+    [`${kind} on the card`, c, hc.card],
+    [`${kind} on the Reading Breakdown box (no tint)`, c, hc.box],
+  ]),
+  ...Object.entries(JLPT_COLORS_BY_MODE['high-contrast']).flatMap(([level, c]): Pair[] => [
+    [`JLPT ${level} on black`, c, BLACK],
+    [`black text on the JLPT ${level} header`, BLACK, c],
+  ]),
+  ['no-level header on black', CARD_COLORS_BY_MODE['high-contrast'].noLevel, BLACK],
+  ['black text on the no-level header', BLACK, CARD_COLORS_BY_MODE['high-contrast'].noLevel],
+  ['black text on the NEW ribbon', BLACK, CARD_COLORS_BY_MODE['high-contrast'].newRibbon],
+  ['★ Common Word on the card', CARD_COLORS_BY_MODE['high-contrast'].common, hc.card],
+  ...Object.entries(PICK_OUTLINE_COLORS['high-contrast']).flatMap(([kind, c]): Pair[] => [
+    [`${kind} outline on the panel`, c, hc.panel],
+    [`${kind} outline on the card`, c, hc.card],
+  ]),
+  ...Object.entries(PICK_TICK_COLORS['high-contrast']).map(([kind, c]): Pair => [
+    `black ✓ on the ${kind} tick`,
+    BLACK,
+    c,
+  ]),
+  // The coloured buttons' outlines and Clear List's red text, on the black button.
+  ...(['hc-sky', 'hc-indigo', 'hc-emerald', 'hc-rose'] as const).map((name): Pair => [
+    `${name} on black`,
+    HIGH_CONTRAST_COLORS[name],
+    BLACK,
+  ]),
+  // Under the pointer Clear List's text turns white on the #262626 fill (agreed 2026-11-09: its red
+  // on #262626 would only be 6.76:1, so that pair is never drawn).
+  ['Clear List text under the pointer (white on hc-hover)', WHITE, HIGH_CONTRAST_COLORS['hc-hover']],
+  ['danger-line on the card', hc['danger-line'], hc.card],
+  ['the yellow focus ring on black', HIGH_CONTRAST_COLORS['hc-focus'], BLACK],
+  ['the yellow focus ring on a hover fill', HIGH_CONTRAST_COLORS['hc-focus'], HIGH_CONTRAST_COLORS['hc-hover']],
+  // The fallback when a colour is missing (white on black).
+  ['the fallback header', FALLBACK_HEADER.ink, FALLBACK_HEADER.background],
+  ['the fallback text on the card', FALLBACK_INK['high-contrast'], hc.card],
+];
+
+test('in High contrast every agreed colour pair is at least 7:1 (FEAT5_5)', () => {
+  assert.ok(HIGH_CONTRAST_PAIRS.length >= 80, 'the list of pairs is filled in');
+  for (const [what, fg, bg] of HIGH_CONTRAST_PAIRS) {
+    const ratio = contrast(fg, bg);
+    assert.ok(ratio >= 7, `${what}: ${fg} on ${bg} is ${ratio.toFixed(2)}:1`);
+  }
+});
+
+test('in High contrast the colour coding can still be told apart (FEAT5_5)', () => {
+  const readings = READING_COLORS_BY_MODE['high-contrast'];
+  assert.equal(new Set(Object.values(readings)).size, 3, 'the three reading colours');
+  assert.notEqual(PICK_OUTLINE_COLORS['high-contrast'].addBack, PICK_OUTLINE_COLORS['high-contrast'].takeOut);
+  assert.notEqual(PICK_TICK_COLORS['high-contrast'].addBack, PICK_TICK_COLORS['high-contrast'].takeOut);
+  const jlpt = Object.values(JLPT_COLORS_BY_MODE['high-contrast']);
+  assert.equal(new Set(jlpt).size, 5, 'the five JLPT colours');
+  assert.ok(!jlpt.includes(CARD_COLORS_BY_MODE['high-contrast'].noLevel), 'no level is not a JLPT colour');
+  // Error messages aren't the Kunyomi red, and the NEW ribbon isn't the Common badge's yellow.
+  assert.notEqual(hc['danger-ink'], readings.kunyomi);
+  assert.notEqual(CARD_COLORS_BY_MODE['high-contrast'].newRibbon, CARD_COLORS_BY_MODE['high-contrast'].common);
+});
+
+test('Light and Dark are unchanged by High contrast (FEAT5_5)', () => {
+  // Dark as it was agreed in FEAT5 (Light is checked against the colours it always had in
+  // color-mode-css.test.ts).
+  assert.deepEqual(MODE_COLORS.dark, {
+    page: '#0f172a',
+    ink: '#f1f5f9',
+    'ink-strong': '#f1f5f9',
+    'ink-soft': '#e2e8f0',
+    'ink-firm': '#e2e8f0',
+    muted: '#94a3b8',
+    'muted-strong': '#94a3b8',
+    faint: '#94a3b8',
+    card: '#1e293b',
+    'card-line': '#334155',
+    'card-back-near': '#1a2436',
+    'card-back-far': '#162032',
+    'card-back-line': '#334155',
+    'card-shadow': 'rgb(0 0 0 / 0.6)',
+    box: '#162032',
+    'box-line': '#334155',
+    section: '#1e293b',
+    field: '#0f172a',
+    'field-line': '#475569',
+    'field-hover': '#1e293b',
+    'seg-line': '#334155',
+    back: 'transparent',
+    'back-line': '#64748b',
+    'back-hover': '#1e293b',
+    next: '#f1f5f9',
+    'next-ink': '#0f172a',
+    'next-hover': '#cbd5e1',
+    'shuffle-box': '#06261f',
+    'shuffle-line': '#065f46',
+    'ticks-line': '#065f46',
+    panel: '#132136',
+    'panel-line': '#1e3a5f',
+    'panel-hover': '#1e3a5f',
+    'from-ink': '#7dd3fc',
+    'success-ink': '#34d399',
+    'warn-ink': '#fcd34d',
+    'danger-ink': '#fb7185',
+    'danger-ink-strong': '#fda4af',
+    'danger-line': '#9f1239',
+    'menu-selected': '#334155',
+  });
+  // The new tables keep the colours Light and Dark always had.
+  for (const mode of ['light', 'dark'] as const) {
+    assert.deepEqual(PICK_TICK_COLORS[mode], PICK_COLORS, mode);
+    assert.deepEqual(JLPT_COLORS_BY_MODE[mode], JLPT_COLORS, mode);
+    assert.deepEqual(
+      CARD_COLORS_BY_MODE[mode],
+      { noLevel: '#64748b', newRibbon: NEW_COLOR, common: COMMON_COLOR },
+      mode,
+    );
+  }
 });

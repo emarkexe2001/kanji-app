@@ -10,11 +10,12 @@
       app's code: it does the same as loadColorMode and applyColorMode in src/lib/color-mode.ts
       (the same storage key and modes). FEAT5_1: when nothing usable is saved (nothing, a broken or
       unknown value, or blocked storage) it uses the device's setting: Dark if the device prefers
-      dark, otherwise Light. test/ui-tests/color-mode-script.test.ts checks the two agree.
+      dark, otherwise Light. FEAT5_5: a saved High contrast is applied too; the device's setting never
+      picks it. test/ui-tests/color-mode-script.test.ts checks the two agree.
     -->
     <script>
       (function () {
-        var modes = ['light', 'dark'];
+        var modes = ['light', 'dark', 'high-contrast'];
         var mode = null;
         try {
           var saved = window.localStorage.getItem('kanji.colorMode');

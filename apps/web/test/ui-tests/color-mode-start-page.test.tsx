@@ -35,7 +35,8 @@ const shuffledOutButton = () => screen.queryByRole('button', { name: /^Shuffled 
 const header = () => screen.getByRole('heading', { level: 1, name: 'Kanji Reading Highlighter' }).closest('header')!;
 const switching = () => html().hasAttribute('data-color-mode-switching');
 /** The mini card preview inside a tile (the part hidden from screen readers). */
-const preview = (name: 'Light' | 'Dark') => startPageTile(name).querySelector<HTMLElement>('[aria-hidden="true"]')!;
+const preview = (name: 'Light' | 'Dark' | 'High contrast') =>
+  startPageTile(name).querySelector<HTMLElement>('[aria-hidden="true"]')!;
 
 /** Holds back the frames the app asks for, so a test can see the page between two frames. */
 function holdFrames() {
@@ -293,31 +294,33 @@ describe('The start page and the device setting (FEAT5_1)', () => {
 });
 
 describe('The tiles (FEAT5_1)', () => {
-  test('there are two tiles, Light then Dark, each a real button named exactly "Light" or "Dark"', () => {
+  test('there are three tiles, Light, Dark then High contrast, each a real button named exactly after its mode', () => {
     renderStartPage(DECKS);
     expect(tiles().map((t) => t.textContent)).toEqual([
       expect.stringMatching(/Light$/),
       expect.stringMatching(/Dark$/),
+      expect.stringMatching(/High contrast$/),
     ]);
-    expect(tiles()).toEqual([startPageTile('Light'), startPageTile('Dark')]);
+    expect(tiles()).toEqual([startPageTile('Light'), startPageTile('Dark'), startPageTile('High contrast')]);
     for (const tile of tiles()) {
       expect(tile.tagName).toBe('BUTTON');
       expect(tile).toHaveAttribute('type', 'button');
     }
   });
 
-  test('screen readers hear the title, the heading "Choose how the app looks" and a group of two buttons, Light and Dark', () => {
+  test('screen readers hear the title, the heading "Choose how the app looks" and a group of three buttons, Light, Dark and High contrast', () => {
     renderStartPage(DECKS);
     expect(screen.getByRole('heading', { level: 1 })).toHaveAccessibleName('Kanji Reading Highlighter');
     expect(screen.getByRole('heading', { level: 2 })).toHaveAccessibleName(HEADING);
     const group = screen.getByRole('group', { name: HEADING });
-    // Exactly two buttons, named exactly "Light" and "Dark": the previews and icons are hidden from
-    // screen readers, so they don't hear "JLPT N5 静か Light".
+    // Exactly three buttons, named exactly "Light", "Dark" and "High contrast" (FEAT5_5): the
+    // previews and icons are hidden from screen readers, so they don't hear "JLPT N5 静か Light".
     const buttons = within(group).getAllByRole('button');
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(3);
     expect(buttons[0]).toHaveAccessibleName('Light');
     expect(buttons[1]).toHaveAccessibleName('Dark');
-    for (const name of ['Light', 'Dark'] as const) {
+    expect(buttons[2]).toHaveAccessibleName('High contrast');
+    for (const name of ['Light', 'Dark', 'High contrast'] as const) {
       expect(startPageTile(name)).toHaveAccessibleName(name);
       expect(preview(name)).toHaveAttribute('aria-hidden', 'true');
       expect(startPageTile(name).querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
@@ -398,13 +401,15 @@ describe('The tiles (FEAT5_1)', () => {
 });
 
 describe('The start page with the keyboard (FEAT5_1)', () => {
-  test('nothing is focused when the page opens; Tab goes Light, then Dark, then the footer links', async () => {
+  test('nothing is focused when the page opens; Tab goes Light, then Dark, then High contrast, then the footer links', async () => {
     const user = renderStartPage(DECKS);
     expect(document.activeElement).toBe(document.body);
     await user.tab();
     expect(startPageTile('Light')).toHaveFocus();
     await user.tab();
     expect(startPageTile('Dark')).toHaveFocus();
+    await user.tab();
+    expect(startPageTile('High contrast')).toHaveFocus();
     await user.tab();
     expect(screen.getByRole('link', { name: 'JMdict & KANJIDIC2' })).toHaveFocus();
   });

@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/* High contrast (FEAT5_5): `hc:` classes apply only while High contrast is on. They draw the thicker
+   lines (as rings and inset shadows, so no size changes), turn shadows off and outline the coloured
+   buttons. They never apply in a forced-colours (Windows high contrast) mode, so the device's own
+   look wins there exactly as before (FEAT2_6). */
+@custom-variant hc {
+  @media not (forced-colors: active) {
+    &:where([data-color-mode='high-contrast'], [data-color-mode='high-contrast'] *) {
+      @slot;
+    }
+  }
+}
+
 /* Design tokens from the spec (section 3). The same values live in @kanji/core
    for the mobile app; keep the two in sync. */
 @theme {
@@ -56,6 +68,15 @@
   --color-jlpt-n3: #6366f1;
   --color-jlpt-n2: #8b5cf6;
   --color-jlpt-n1: #f43f5e;
+
+  /* The fixed colours only High contrast uses (FEAT5_5), as HIGH_CONTRAST_COLORS in @kanji/core: the
+     outlines of the coloured buttons, the hover fill of black buttons and the yellow focus ring. */
+  --color-hc-sky: #6cb8ff;
+  --color-hc-indigo: #a8b4ff;
+  --color-hc-emerald: #5ce67c;
+  --color-hc-rose: #ff8a9e;
+  --color-hc-hover: #262626;
+  --color-hc-focus: #ffff00;
 
   --font-jp: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
 
@@ -125,6 +146,82 @@ body {
   --color-okurigana: #4ade80;
 }
 
+/* ---- High contrast (FEAT5_5): black with white text and white lines, no greys, as in MODE_COLORS
+   and READING_COLORS_BY_MODE in @kanji/core. The thicker lines, the outlined coloured buttons and
+   the brighter colours set in the code come from the `hc:` classes and the code. In a forced-colours
+   (Windows high contrast) mode the device's colours win, as before. ---- */
+:root[data-color-mode='high-contrast'] {
+  color-scheme: dark;
+
+  --color-page: #000000;
+  --color-ink: #ffffff;
+  --color-ink-strong: #ffffff;
+  --color-ink-soft: #ffffff;
+  --color-ink-firm: #ffffff;
+  --color-muted: #ffffff;
+  --color-muted-strong: #ffffff;
+  --color-faint: #ffffff;
+  --color-card: #000000;
+  --color-card-line: #ffffff;
+  --color-card-back-near: #000000;
+  --color-card-back-far: #000000;
+  --color-card-back-line: #ffffff;
+  --color-card-shadow: transparent;
+  --color-box: #000000;
+  --color-box-line: #ffffff;
+  --color-section: #000000;
+  --color-field: #000000;
+  --color-field-line: #ffffff;
+  --color-field-hover: #262626;
+  --color-seg-line: #ffffff;
+  --color-back: #000000;
+  --color-back-line: #ffffff;
+  --color-back-hover: #262626;
+  --color-next: #ffffff;
+  --color-next-ink: #000000;
+  --color-next-hover: #d4d4d4;
+  --color-shuffle-box: #000000;
+  --color-shuffle-line: #ffffff;
+  --color-ticks-line: #ffffff;
+  --color-panel: #000000;
+  --color-panel-line: #ffffff;
+  --color-panel-hover: #262626;
+  --color-from-ink: #ffffff;
+  --color-success-ink: #5ce67c;
+  --color-warn-ink: #ffd23f;
+  --color-danger-ink: #ff8a9e;
+  --color-danger-ink-strong: #ff8a9e;
+  --color-danger-line: #ff8a9e;
+  --color-menu-selected: #262626;
+
+  --color-onyomi: #6cb8ff;
+  --color-kunyomi: #ff8a8a;
+  --color-okurigana: #5ce67c;
+}
+
+/* High contrast's safety net (FEAT5_5): the page is white on black even if a token above is left
+   out, so it can never end up unreadable. */
+:root[data-color-mode='high-contrast'] body {
+  background: #000000;
+  color: #ffffff;
+}
+
+/* High contrast focus (FEAT5_5): a 3px yellow outline, 2px out, on everything that can be focused.
+   It is outside Tailwind's layers, so it beats each element's own focus-visible: classes. Menu
+   items keep their outline inside the row. The "Shuffle in from" options and the pick cards draw
+   their focus on their label, with hc: classes (see SEGMENT_CLASS and PickCardBody). Like the hc:
+   variant, it is off in a forced-colours (Windows high contrast) mode, so focus there stays as the
+   device and FEAT2_6 draw it. */
+@media not (forced-colors: active) {
+  :root[data-color-mode='high-contrast'] :focus-visible {
+    outline: 3px solid var(--color-hc-focus);
+    outline-offset: 2px;
+  }
+  :root[data-color-mode='high-contrast'] [role='menuitemradio']:focus-visible {
+    outline-offset: -3px;
+  }
+}
+
 /* Switching modes is instant (FEAT5): nothing fades from one mode's colours to the other's while
    the switch is made (see holdTransitions in src/lib/color-mode.ts). */
 :root[data-color-mode-switching],
@@ -149,6 +246,11 @@ body {
 .deck-back-far {
   transform: translateY(26px) rotate(2.8deg) scale(0.94);
   background: var(--color-card-back-far);
+}
+/* High contrast (FEAT5_5): the blank cards, fanned out and sliding, get a 2px white outline and no
+   shadow. A ring, so their size doesn't change. */
+:root[data-color-mode='high-contrast'] :is(.deck-back, .card-flyer-blank) {
+  box-shadow: 0 0 0 2px var(--color-card-back-line);
 }
 
 /* ---- Dealing animations for the front card ---- */

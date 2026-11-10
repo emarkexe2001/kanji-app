@@ -50,11 +50,11 @@ const saved = () => localStorage.getItem(COLOR_MODE_KEY);
 const title = () => screen.getByRole('heading', { level: 1, name: 'Kanji Reading Highlighter' });
 const modeButton = () => screen.getByRole('button', { name: /^Colour mode: / });
 const menu = () => screen.queryByRole('menu', { name: 'Colour mode' });
-const item = (name: 'Light' | 'Dark') => screen.getByRole('menuitemradio', { name });
+const item = (name: 'Light' | 'Dark' | 'High contrast') => screen.getByRole('menuitemradio', { name });
 const shuffledOutButton = () => screen.getByRole('button', { name: /^Shuffled out \(\d+\)$/ });
 const panel = () => screen.queryByRole('region', { name: 'Shuffled-out cards' });
 const icon = (el: HTMLElement) =>
-  el.querySelector('svg[data-icon="sun"], svg[data-icon="moon"]')?.getAttribute('data-icon');
+  el.querySelector('svg[data-icon="sun"], svg[data-icon="moon"], svg[data-icon="contrast"]')?.getAttribute('data-icon');
 
 async function openMenu(user: User) {
   await user.click(modeButton());
@@ -138,7 +138,7 @@ describe('The colour mode button (FEAT5)', () => {
 });
 
 describe('The colour mode menu (FEAT5)', () => {
-  test('when I open the menu, it is headed "Colour mode", lists Light and Dark, and the current mode has a tick', async () => {
+  test('when I open the menu, it is headed "Colour mode", lists Light, Dark and High contrast, and the current mode has a tick', async () => {
     const user = await renderApp(DECKS);
     const open = await openMenu(user);
 
@@ -147,16 +147,20 @@ describe('The colour mode menu (FEAT5)', () => {
       within(open)
         .getAllByRole('menuitemradio')
         .map((i) => i.textContent),
-    ).toEqual(['Light', 'Dark']);
+    ).toEqual(['Light', 'Dark', 'High contrast']);
     expect(item('Light')).toHaveAttribute('aria-checked', 'true');
     expect(item('Dark')).toHaveAttribute('aria-checked', 'false');
+    expect(item('High contrast')).toHaveAttribute('aria-checked', 'false');
     expect(item('Light').querySelector('[data-icon="tick"]')).not.toBeNull();
     expect(item('Dark').querySelector('[data-icon="tick"]')).toBeNull();
+    expect(item('High contrast').querySelector('[data-icon="tick"]')).toBeNull();
     expect(icon(item('Light'))).toBe('sun');
     expect(icon(item('Dark'))).toBe('moon');
+    expect(icon(item('High contrast'))).toBe('contrast');
     // The current mode's row is shaded too (checked by class, as jsdom has no colours).
     expect(item('Light')).toHaveClass('bg-menu-selected');
     expect(item('Dark')).not.toHaveClass('bg-menu-selected');
+    expect(item('High contrast')).not.toHaveClass('bg-menu-selected');
   });
 
   test('the menu is 200px wide, just under the button, and drawn over the page and the Shuffled-out panel', async () => {
@@ -282,13 +286,15 @@ describe('The colour mode menu with the keyboard (FEAT5)', () => {
     await user.keyboard('{ArrowDown}');
     expect(item('Dark')).toHaveFocus();
     await user.keyboard('{ArrowDown}');
+    expect(item('High contrast')).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
     expect(item('Light')).toHaveFocus();
     await user.keyboard('{ArrowUp}');
-    expect(item('Dark')).toHaveFocus();
+    expect(item('High contrast')).toHaveFocus();
     await user.keyboard('{Home}');
     expect(item('Light')).toHaveFocus();
     await user.keyboard('{End}');
-    expect(item('Dark')).toHaveFocus();
+    expect(item('High contrast')).toHaveFocus();
     // Moving doesn't choose.
     expect(modeOnPage()).toBe('light');
   });
