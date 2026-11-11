@@ -129,6 +129,7 @@ Its rules are unit tested in `scripts/test/check-commit-message.test.ts` (`npm r
 - **Where they live:** `apps/web/test/e2e/*.test.ts`. Playwright finds every `*.test.ts` file there (and in its subfolders) automatically (`testDir` and `testMatch` in `apps/web/playwright.config.ts`), so a new file runs without changing any script.
 - **Current files:**
   - `smoke.test.ts`: a quick check of the main flow: the app opens in the saved colour mode (Dark, on a light device) with a card and no start page, and Next, Deck Shuffle and Shuffle In Cards each change the card on screen, with no page errors
+  - `helpers.test.ts`: the shared setup's `saveColorMode` writes the mode before the first load only, so a mode chosen from the menu afterwards is kept after a reload
   - `helpers.ts`: the shared setup (see below)
 
 **Running them.** First install Chromium for Playwright, once per machine (and again when `@playwright/test` is updated). From the repo root:
