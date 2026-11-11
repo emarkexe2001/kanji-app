@@ -3,7 +3,10 @@ import { currentCard, openApp } from './helpers';
 
 /** Presses `button` and checks the card on screen changes (its word, reading and meaning). */
 async function pressAndExpectNewCard(card: Locator, button: Locator) {
-  const before = await card.innerText();
+  // textContent, which toHaveText compares against (innerText reads the text differently, so it
+  // would never match and the check below would always pass).
+  const before = (await card.textContent()) ?? '';
+  expect(before).not.toBe('');
   await button.click();
   await expect(card).not.toHaveText(before);
 }
