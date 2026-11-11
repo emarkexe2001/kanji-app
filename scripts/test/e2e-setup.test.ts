@@ -144,7 +144,19 @@ describe('the e2e docs', () => {
 
   it('no longer say e2e tests are "when added" in standards 3.2 and 4.1, and 4.2 says layout gets e2e tests', () => {
     const standards = read('docs/standards/standards.md');
-    assert.doesNotMatch(standards, /when added/);
+    // Only the e2e lines of the 3.2 folder tree and the 4.1 table, so "when added" elsewhere in
+    // the standards doesn't fail this test (TEST7 review, R4).
+    const section = (from: string, to: string) => standards.split(from)[1]?.split(to)[0] ?? '';
+    const treeLine = section('### 3.2', '### 3.3')
+      .split('\n')
+      .find((line) => /^\s*e2e\//.test(line));
+    const tableRow = section('### 4.1', '### 4.2')
+      .split('\n')
+      .find((line) => line.startsWith('| End-to-end (e2e)'));
+    assert.ok(treeLine, 'no e2e/ line in the standards 3.2 folder tree');
+    assert.ok(tableRow, 'no End-to-end (e2e) row in the standards 4.1 table');
+    assert.doesNotMatch(treeLine, /when added/);
+    assert.doesNotMatch(tableRow, /when added/);
     const rules = standards.split('### 4.2')[1]?.split('\n## ')[0] ?? '';
     const bullet = rules.split('\n').find((line) => /e2e tests/i.test(line) && /layout/i.test(line));
     assert.ok(bullet, 'no standards 4.2 bullet saying layout requirements get e2e tests');
