@@ -57,6 +57,8 @@ describe('the Playwright config', () => {
     assert.equal(config.use?.baseURL, `http://localhost:${port}`);
     // Never a server that is already running, which could be serving an old build.
     assert.equal(server.reuseExistingServer, false);
+    // The build's output is shown, so a type error is visible when the build fails (review R3).
+    assert.equal(server.stdout, 'pipe');
   });
 
   it('keeps a screenshot and a trace of each failed test in test-results/', () => {

@@ -36,5 +36,8 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 120_000,
+    // Shows the build's output, so a type error from `tsc` (which writes to stdout) is shown
+    // when the build fails, not only "not able to start" (TEST7 review, R3).
+    stdout: 'pipe',
   },
 });
