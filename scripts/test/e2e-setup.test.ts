@@ -20,7 +20,9 @@ describe('the e2e npm scripts', () => {
   const web = scriptsOf('apps/web/package.json');
 
   it('runs Playwright in apps/web with "npm run test:e2e"', () => {
-    assert.equal(root['test:e2e'], 'npm run test:e2e -w @kanji/web');
+    // Ends with `--`, so options after `npm run test:e2e --` (e.g. --headed) reach Playwright
+    // instead of being read by npm (TEST7 review, R1).
+    assert.equal(root['test:e2e'], 'npm run test:e2e -w @kanji/web --');
     assert.equal(web['test:e2e'], 'playwright test');
   });
 
