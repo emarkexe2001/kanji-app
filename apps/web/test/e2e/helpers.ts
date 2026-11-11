@@ -1,4 +1,4 @@
-import type { Page, ViewportSize } from '@playwright/test';
+import { expect, type Page, type ViewportSize } from '@playwright/test';
 
 /**
  * Shared setup for the e2e tests (TEST7). Each test sets up its own state with these, so the tests
@@ -69,3 +69,15 @@ export async function openApp(page: Page, { colorMode, device = 'light', viewpor
 
 /** The card on screen. Only it is an article; the cards in the Shuffled-out lists aren't. */
 export const currentCard = (page: Page) => page.getByRole('article');
+
+/**
+ * How long to wait for the dictionary to load and the first card to show. The dictionary is
+ * 5.4 MB, and when several browsers load it at once it can take longer than `expect`'s usual 5
+ * seconds (TEST7 review, R2).
+ */
+export const DECK_LOAD_TIMEOUT = 20_000;
+
+/** Waits for the dictionary to load and the first card to show (after `page.goto` or `page.reload`). */
+export async function waitForDeck(page: Page) {
+  await expect(currentCard(page)).toBeVisible({ timeout: DECK_LOAD_TIMEOUT });
+}

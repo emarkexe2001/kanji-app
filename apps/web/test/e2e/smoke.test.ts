@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { currentCard, openApp } from './helpers';
+import { currentCard, openApp, waitForDeck } from './helpers';
 
 /** Presses `button` and checks the card on screen changes (its word, reading and meaning). */
 async function pressAndExpectNewCard(card: Locator, button: Locator) {
@@ -18,8 +18,8 @@ test('opens in the saved colour mode with a card, and Next, Deck Shuffle and Shu
   // Dark is saved on a light device, so the page can only be dark if the saved mode was used.
   const errors = await openApp(page, { colorMode: 'dark', device: 'light' });
 
+  await waitForDeck(page);
   const card = currentCard(page);
-  await expect(card).toBeVisible();
   await expect(card.getByRole('heading', { level: 2 })).not.toBeEmpty();
   await expect(page.locator('html')).toHaveAttribute('data-color-mode', 'dark');
   // A mode is saved, so the colour mode start page isn't shown.
