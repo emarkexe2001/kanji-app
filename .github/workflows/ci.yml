@@ -43,7 +43,7 @@ jobs:
         id: changes
         if: github.event_name == 'pull_request'
         shell: bash
-        run: git diff --name-only --no-renames origin/main...HEAD | npx tsx scripts/docs-only-changes.ts >> "$GITHUB_OUTPUT"
+        run: git diff --name-only --no-renames origin/test7-proof-base...HEAD | npx tsx scripts/docs-only-changes.ts >> "$GITHUB_OUTPUT"
       - if: steps.changes.outputs.docs_only != 'true'
         run: npm run format:check
       - if: steps.changes.outputs.docs_only != 'true'
@@ -85,7 +85,7 @@ jobs:
         id: changes
         if: github.event_name == 'pull_request'
         shell: bash
-        run: git diff --name-only --no-renames origin/main...HEAD | npx tsx scripts/docs-only-changes.ts >> "$GITHUB_OUTPUT"
+        run: git diff --name-only --no-renames origin/test7-proof-base...HEAD | npx tsx scripts/docs-only-changes.ts >> "$GITHUB_OUTPUT"
       # Only Chromium's headless shell (the tests run headless), with the system libraries it needs.
       - name: Install Chromium
         if: steps.changes.outputs.docs_only != 'true'
