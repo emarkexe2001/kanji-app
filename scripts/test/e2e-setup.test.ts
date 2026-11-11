@@ -164,6 +164,20 @@ describe('the e2e docs', () => {
     // The manual browser check stays until the start page's checks are e2e tests (TEST7_5).
     assert.match(rules, /real browser.*360px, 640px and 1024px.*TEST7_5/);
   });
+
+  // TEST7 review R7 (agreed 2026-11-11).
+  it('say in standards 2.1 and 5.3 to run "npm run test:e2e" before a pull request, for any change outside docs/', () => {
+    const standards = read('docs/standards/standards.md');
+    const section = (from: string, to: string) => standards.split(from)[1]?.split(to)[0] ?? '';
+    for (const [name, text] of [
+      ['2.1', section('### 2.1', '### 2.2')],
+      ['5.3', section('### 5.3', '### 5.4')],
+    ] as const) {
+      const checks = text.split('\n').find((line) => line.includes('`npm run format:check`'));
+      assert.ok(checks, `no checks line in standards ${name}`);
+      assert.match(checks, /`npm run test:e2e`.* for any change outside `docs\/`/, `standards ${name}`);
+    }
+  });
 });
 
 /** `text` with the characters that mean something in a regular expression escaped. */
