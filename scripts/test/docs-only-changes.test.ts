@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { isDocsOnly, parseChangedFiles } from '../docs-only-changes.ts';
+import {
+  job,
+  SKIPPED_ON_DOCS_ONLY,
+  stepFor as ciStepFor,
+  stepRunning as ciStepRunning,
+  workflow,
+  workflowCode,
+} from './ci-workflow.ts';
 
 describe('isDocsOnly', () => {
   it('is docs-only when every file is under docs/', () => {
@@ -63,34 +71,16 @@ describe('parseChangedFiles', () => {
 });
 
 describe('the CI workflow', () => {
-  const workflow = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-  /** The workflow's steps (each `- ...` item and its lines), without comments. */
-  const steps = workflow
-    .split('\n')
-    .filter((line) => !line.trim().startsWith('#'))
-    .join('\n')
-    .split(/\n(?= *- )/);
-  /** The one step whose `run:` line contains `command`. */
-  const stepFor = (command: string): string => {
-    const found = steps.filter((step) => /run: .*/.exec(step)?.[0].includes(command));
-    assert.equal(found.length, 1, `expected one step that runs ${command}, found ${found.length}`);
-    return found[0]!;
-  };
-  /** The one step whose `run:` line is exactly `run: <command>`. */
-  const stepRunning = (command: string): string => {
-    const found = steps.filter((step) =>
-      step.split('\n').some((line) => line.trim().replace(/^- /, '') === `run: ${command}`),
-    );
-    assert.equal(found.length, 1, `expected one step that runs ${command}, found ${found.length}`);
-    return found[0]!;
-  };
-  const skippedOnDocsOnly = "if: steps.changes.outputs.docs_only != 'true'";
+  // The "Typecheck and test" job. The "End-to-end tests" job's docs-only steps are checked in
+  // e2e-setup.test.ts (TEST7).
+  const stepFor = (command: string) => ciStepFor('test', command);
+  const stepRunning = (command: string) => ciStepRunning('test', command);
+  const skippedOnDocsOnly = SKIPPED_ON_DOCS_ONLY;
 
-  it('keeps the one required job, "Typecheck and test", and does not use paths-ignore', () => {
-    const jobs = workflow.split('\njobs:\n')[1] ?? '';
-    assert.equal(jobs.match(/^ {2}\S+:$/gm)?.length, 1, 'expected exactly one job');
-    assert.match(workflow, /name: Typecheck and test/);
-    assert.doesNotMatch(steps.join('\n'), /paths-ignore/);
+  // TEST7 added a second job, "End-to-end tests", so this no longer checks there is only one.
+  it('keeps the required job, "Typecheck and test", and does not use paths-ignore', () => {
+    assert.match(job('test'), /^ {4}name: Typecheck and test$/m);
+    assert.doesNotMatch(workflowCode, /paths-ignore/);
   });
 
   it('runs the docs-only rule on pull requests only, from the changed files', () => {

@@ -100,7 +100,7 @@ src/
 test/
   unit/           # unit tests
   ui-tests/       # UI / component tests
-  e2e/            # end-to-end tests (when added)
+  e2e/            # end-to-end tests (Playwright)
 ```
 
 ### 3.3 Feature folders
@@ -131,7 +131,7 @@ src/features/card-limit/
 |---|---|---|
 | Unit | One function or small piece of logic on its own (e.g. card-limit validation) | `test/unit/` |
 | UI / integration | Components working together the way a user sees them (e.g. setting a card limit changes the number of cards shown) | `test/ui-tests/` |
-| End-to-end (e2e) | The whole app running in a real browser | `test/e2e/` (when added) |
+| End-to-end (e2e) | The whole app running in a real browser (the production build in Chromium, with Playwright), for what UI tests can't see: layout, sizes, focus and the device's settings | `test/e2e/` |
 
 A document in `docs/` must describe the test types used in the project and how to run them.
 
@@ -146,7 +146,8 @@ A document in `docs/` must describe the test types used in the project and how t
 - **Every ticket's "Possible Test Scenarios" must be covered** by a test, or the PR must explain why not.
 - **Every agreed answer needs a test too.** Answers agreed in a ticket's "Answers" or "Questions / Clarifications" sections (e.g. "one cleared list for all decks") are requirements, so each one is covered by a test, the same as the test scenarios.
 - **Test what a ticket says is left out.** For every "no X" or "doesn't show X" in a ticket (e.g. "no Reading Breakdown"), add a test that checks X is not shown.
-- **Check layout in a real browser.** Tests can't see layout, so for layout or screen-size requirements (widths, grids, no sideways scrolling), look at the app in a browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note what you checked in the PR. This applies until e2e tests are set up.
+- **Layout and screen-size requirements get e2e tests.** UI tests can't see layout, so layout and screen-size requirements (widths, sizes, grids, no sideways scrolling) are tested with e2e tests in `test/e2e/`, which run in a real browser (see [testing.md](../testing.md#end-to-end-e2e-tests)).
+- **Check layout in a real browser as well.** Also look at the app in a real browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note what you checked in the PR. This applies until the start page's browser checks are e2e tests (TEST7_5).
 - **Test structural UI moves where they can break.** When UI is moved in a way that changes how the page is built (e.g. rendering a button into the header with a React portal), test it under the error boundary (a crash must not leave stray UI behind) and in React's StrictMode (it must not appear twice).
 - **Only check class names when there's no other way.** Some things, like colours and animations, can't be seen in the test setup. Checking a class name is acceptable for those, with a comment saying why. Everything else is tested by what the user sees.
 - **Save your work before checking a test can fail.** Commit or `git stash` your changes before breaking code to check a test goes red, so restoring the file (e.g. with `git checkout`) can't wipe unsaved work.
@@ -194,7 +195,7 @@ A document in `docs/` must describe the test types used in the project and how t
 - **Every change goes through a pull request,** reviewed by me or someone else before any merging happens.
 - **Use the pull request template.** Every pull request uses the template in `.github/pull_request_template.md`. Fill in each section, or delete the sections the template says can be deleted. Tick each Standards Check box, or give a short reason for leaving it unticked.
 - **Only merge once the feature is complete,** properly tested, and all tests pass.
-- **Docs-only pull requests run only the quick checks.** A pull request is docs-only when every file it changes is under `docs/` or is a Markdown (`.md`) file anywhere in the repo. CI then runs only the commit message check (`npm run check:commits`) and the scripts tests (`npm run test:scripts`), and skips `npm run format:check`, `npm run lint`, `npm run typecheck` and the app's tests. Any other pull request, and every push to `main`, runs every check. The required check "Typecheck and test" still reports on every pull request.
+- **Docs-only pull requests run only the quick checks.** A pull request is docs-only when every file it changes is under `docs/` or is a Markdown (`.md`) file anywhere in the repo. CI then runs only the commit message check (`npm run check:commits`) and the scripts tests (`npm run test:scripts`), and skips `npm run format:check`, `npm run lint`, `npm run typecheck`, the app's tests and the e2e tests (`npm run test:e2e`). Any other pull request, and every push to `main`, runs every check. The required checks "Typecheck and test" and "End-to-end tests" still report on every pull request.
 - **Block merging while fixes are pending.** As soon as fixes are planned for an open pull request (from a review or a browser check), post a comment on it such as "⚠️ Do not merge yet – review fixes in progress" and switch it to draft (`gh pr ready <n> --undo`), so GitHub won't let it be merged. Once the fixes and the browser check are done, mark it ready again and post a comment saying it can be merged. A merged pull request can't be reopened, so fixes that miss it need a new pull request.
 - **Layout review before merging.** A pull request that changes what the user sees gets a layout review together before it is merged: look at it in a real browser at phone, tablet and desktop widths (about 360px, 640px and 1024px) and note the result in the PR. Because merging the PR marks its ticket complete, a ticket isn't complete until its layout review has passed.
 - **In-person check for UI work.** Every pull request for a UI feature (a `FEAT`, `ADJ` or `UI` ticket, or any other change to what the user sees) gets an in-person check before it is merged. A person, preferably me or another developer, uses the app in a real browser and checks that it matches the ticket's spec, the agreed answers and the approved mockup. An agent's browser check (e.g. headless Chrome) is still done, but doesn't replace this. Note in the PR who checked it, on which commit, and the result. The PR stays a draft until the check has passed, and anything that doesn't match the spec is fixed first, with the PR blocked as above.

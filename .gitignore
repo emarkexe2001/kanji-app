@@ -5,3 +5,7 @@ dist
 # unzipped dictionary JSON (regenerate from the .zip files in data/raw)
 data/raw/*.json
 install.cmd
+# Playwright's e2e output: failure screenshots and traces, and the HTML report (TEST7)
+test-results/
+playwright-report/
+blob-report/
