@@ -40,6 +40,8 @@ Questions / Clarifications:
    Answer (agreed 2026-11-05): A production build served with `vite preview`, the closest to what users get.
 4. Is this too big for one PR?
    Answer (agreed 2026-11-05): Yes, split it. TEST7 sets up Playwright, CI, the failure artifacts, the docs and the smoke test. TEST7_5 ports the FEAT5_1 start-page checks once TEST7 is merged.
+5. What does the e2e CI job do on docs-only pull requests (CI2)?
+   Answer (agreed 2026-11-11): It skips, but still reports. Like "Typecheck and test", the job always starts and passes, but it skips the build, the browser install and the Playwright run on a docs-only PR (using the same `scripts/docs-only-changes.ts` rule with step `if:`s, not `paths-ignore`). It becomes a required check after merging, so it must report on every PR. Pushes to main always run it.
 
 Possible Test Scenarios I would like to see:
 
