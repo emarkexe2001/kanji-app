@@ -1,11 +1,12 @@
 ## Ticket
 
-<!-- Ticket code and a link to where the ticket ends up on main, e.g.
-[FEAT2](../blob/main/docs/tickets/completed_tickets/feat/FEAT2_card_shuffle_ticket.md)
-The link works once the PR is merged (the ticket moves there in this PR).
-Until then, the ticket is in the "Files changed" tab. -->
+<!-- Ticket code and a link to the ticket in the open folder on main, e.g.
+[FEAT2](../blob/main/docs/tickets/feat/FEAT2_card_shuffle_ticket.md)
+Don't move the ticket in this PR. It moves to completed_tickets/<type>/ after this PR
+is merged, in a follow-up PR that also edits this link to point there (standards 5.4).
+If the ticket is new in this PR, it is in the "Files changed" tab until merged. -->
 
-**Ticket:** [CODE](../blob/main/docs/tickets/completed_tickets/<type>/...)
+**Ticket:** [CODE](../blob/main/docs/tickets/<type>/...)
 
 ## Summary
 
@@ -21,7 +22,7 @@ e.g. "not ticked: the PR changes nothing on screen". -->
 - [ ] §2 Code Standards – strict TypeScript, naming, components, state and error handling
 - [ ] §3 Folder Structure Standards – code in `src/`, tests in `test/`, docs in `docs/`
 - [ ] §4 Test Standards – scenarios, agreed answers and "no X" items tested; validation messages tested; all tests pass
-- [ ] §5 Git, Branch and Pull Request Standards – branch prefix, commit messages, one change per PR, ticket moved to `completed_tickets/<type>/`
+- [ ] §5 Git, Branch and Pull Request Standards – branch prefix, commit messages, one change per PR, ticket not moved in this PR (it moves after merging, standards 5.4)
 - [ ] Questions about the ticket were asked and answered before starting, or none were needed (standards 5.1)
 
 ## Test Scenarios
