@@ -19,7 +19,19 @@ const features = readdirSync(new URL(`${WEB_SRC}/features`, import.meta.url), { 
   .map((entry) => entry.name);
 
 export default tseslint.config(
-  { ignores: ['**/dist/', '**/node_modules/', 'data/', 'apps/web/public/', '.claude/'] },
+  {
+    ignores: [
+      '**/dist/',
+      '**/node_modules/',
+      'data/',
+      'apps/web/public/',
+      '.claude/',
+      // Playwright's e2e output (TEST7): failure screenshots and traces, and the HTML report.
+      '**/test-results/',
+      '**/playwright-report/',
+      '**/blob-report/',
+    ],
+  },
 
   js.configs.recommended,
   tseslint.configs.recommended,

@@ -12,7 +12,8 @@
     "test": "npm run test:unit && npm run test:ui",
     "test:unit": "tsx --test \"test/unit/**/*.test.ts\"",
     "test:ui": "vitest run",
-    "test:ui:repeat": "tsx ../../scripts/repeat-ui-tests.ts"
+    "test:ui:repeat": "tsx ../../scripts/repeat-ui-tests.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@kanji/core": "*",
@@ -20,6 +21,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/node": "^4.3.3",
     "@tailwindcss/oxide": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",

@@ -272,6 +272,8 @@ describe('pull request template', () => {
     for (const command of ['format:check', 'lint', 'typecheck', 'npm test', 'check:commits']) {
       assert.ok(counts.includes(command), `no "${command}"`);
     }
+    // TEST7 review R7 (agreed 2026-11-11): the e2e tests too, for any change outside docs/.
+    assert.match(counts, /npm run test:e2e` for any change outside `docs\/`/);
   });
 
   it('asks for break-and-restore with the code quoted, not a line number', () => {

@@ -12,11 +12,14 @@ on:
 # check, lint, typecheck and the app's tests. It still runs the commit message check and the
 # scripts tests, which are quick and read docs (the standards, the PR template,
 # docs/tickets/example_ticket.md and docs/testing.md), so a docs change can break them.
-# Every other PR, and every push to main, runs every check.
+# The "End-to-end tests" job (TEST7) skips the build, the browser install and the Playwright
+# run on a docs-only PR, so it only installs the dependencies, finds the PR is docs-only and
+# passes. Every other PR, and every push to main, runs every check in both jobs.
 #
-# This is done with `if:` on the steps, not `paths-ignore`, so the required check
-# "Typecheck and test" still runs and reports on every PR. With `paths-ignore` it would never
-# start on a docs-only PR, and the PR would wait for it forever and couldn't be merged.
+# This is done with `if:` on the steps, not `paths-ignore`, so the required checks
+# "Typecheck and test" and "End-to-end tests" still run and report on every PR. With
+# `paths-ignore` they would never start on a docs-only PR, and the PR would wait for them
+# forever and couldn't be merged.
 
 jobs:
   test:
@@ -59,3 +62,46 @@ jobs:
       - name: Scripts tests (docs-only PR)
         if: steps.changes.outputs.docs_only == 'true'
         run: npm run test:scripts
+
+  # End-to-end tests (TEST7): the production build in a real browser (Chromium), with Playwright.
+  # Their own job, so they run alongside "Typecheck and test" and fail on their own.
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history, so the docs-only check can diff the PR against main.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Needed on docs-only PRs too: the docs-only check uses tsx.
+      - run: npm ci
+      # The same docs-only check as "Typecheck and test" (see the comment at the top).
+      - name: Check for a docs-only pull request
+        id: changes
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: git diff --name-only --no-renames origin/main...HEAD | npx tsx scripts/docs-only-changes.ts >> "$GITHUB_OUTPUT"
+      # Only Chromium's headless shell (the tests run headless), with the system libraries it needs.
+      - name: Install Chromium
+        if: steps.changes.outputs.docs_only != 'true'
+        working-directory: apps/web
+        run: npx playwright install --with-deps --only-shell chromium
+      # Builds the app, serves it with `vite preview` and runs the tests (apps/web/playwright.config.ts).
+      - if: steps.changes.outputs.docs_only != 'true'
+        run: npm run test:e2e
+      # A failed test's screenshot and trace (test-results/) and the HTML report, to download from
+      # the run's Summary page. See docs/testing.md for opening a trace.
+      - name: Upload the e2e screenshots and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            apps/web/test-results/
+            apps/web/playwright-report/
+          retention-days: 14

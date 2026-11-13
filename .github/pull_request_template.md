@@ -66,7 +66,7 @@ or say how it was checked. -->
 | web UI | | |
 | scripts | | |
 
-- [ ] `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` and `npm run check:commits` all pass
+- [ ] `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` and `npm run check:commits` all pass, and `npm run test:e2e` for any change outside `docs/`
 
 ## Break-and-restore
 

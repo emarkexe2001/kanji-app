@@ -2,6 +2,11 @@
 dist/
 node_modules/
 
+# Playwright's e2e output: failure screenshots and traces, and the HTML report (TEST7)
+test-results/
+playwright-report/
+blob-report/
+
 # Dictionary data and the generated deck (large, not hand-written)
 data/
 apps/web/public/data/deck.json

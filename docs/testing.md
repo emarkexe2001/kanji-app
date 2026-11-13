@@ -7,6 +7,7 @@ This document describes the types of test used in the project, where each lives 
 | Command (from the repo root) | What it runs |
 |---|---|
 | `npm test` | Every test in every workspace (unit tests and UI tests), then the `scripts/` tests. CI runs this on every pull request except a docs-only one, which runs only `npm run test:scripts` (see [standards 5.4](standards/standards.md#54-pull-requests-and-merging)). |
+| `npm run test:e2e` | The end-to-end tests: builds the web app, serves it and runs `apps/web/test/e2e/` in Chromium (see [End-to-end (e2e) tests](#end-to-end-e2e-tests)). Not part of `npm test`. CI runs them in their own job, "End-to-end tests". |
 | `npm run test:scripts` | Only the tests for the root `scripts/` (e.g. the commit message check), in `scripts/test/` |
 | `npm run test:unit -w @kanji/web` | Only the web app's unit tests |
 | `npm run test:ui -w @kanji/web` | Only the web app's UI tests |
@@ -23,20 +24,22 @@ Tests are kept apart from the code (standards 3), in a `test/` folder in each wo
 apps/web/test/
   unit/           # unit tests, grouped by feature (card-limit/, deck/)
   ui-tests/       # UI / component tests, plus helpers.tsx
+  e2e/            # end-to-end tests (Playwright), plus helpers.ts
   setup.ts        # Vitest setup for the UI tests
-  tsconfig.json   # type-checks everything in test/, plus vitest.config.ts
+  tsconfig.json   # type-checks everything in test/, plus vitest.config.ts and playwright.config.ts
 packages/core/test/
   unit/
   tsconfig.json
 scripts/test/     # tests for the root scripts/
 ```
 
-**Test files are found by pattern, so a new test file runs without changing any script.** Name it `*.test.ts` (unit) or `*.test.tsx` (UI) and put it in the right folder, in a subfolder if you like:
+**Test files are found by pattern, so a new test file runs without changing any script.** Name it `*.test.ts` (unit and e2e) or `*.test.tsx` (UI) and put it in the right folder, in a subfolder if you like:
 
 | Tests | Pattern | Set in |
 |---|---|---|
 | Web unit tests | `test/unit/**/*.test.ts` | `test:unit` in `apps/web/package.json` |
 | Web UI tests | `test/ui-tests/**/*.test.{ts,tsx}` | `include` in `apps/web/vitest.config.ts` |
+| Web e2e tests | `test/e2e/**/*.test.ts` | `testDir` and `testMatch` in `apps/web/playwright.config.ts` |
 | `@kanji/core` tests | `test/**/*.test.ts` | `test` in `packages/core/package.json` |
 | `scripts/` tests | `scripts/test/**/*.test.ts` | `test:scripts` in the root `package.json` |
 
@@ -44,7 +47,7 @@ The patterns in the `package.json` scripts are in double quotes, so the shell le
 
 Test files and folders follow the same kebab-case naming rule as the code (e.g. `card-history.test.ts`), and ESLint checks it.
 
-**Tests are type-checked but never bundled.** Each `test/` folder has its own `tsconfig.json`, which extends the workspace's `tsconfig.json` and adds Node's types (for `node:test` and `node:assert`), so only the tests get them and the app code stays browser-only. The web one also covers `vitest.config.ts`. `npm run typecheck` checks both. Vite only bundles what `src/` imports, and nothing in `src/` imports from `test/`.
+**Tests are type-checked but never bundled.** Each `test/` folder has its own `tsconfig.json`, which extends the workspace's `tsconfig.json` and adds Node's types (for `node:test` and `node:assert`), so only the tests get them and the app code stays browser-only. The web one also covers `vitest.config.ts` and `playwright.config.ts`. `npm run typecheck` checks both. Vite only bundles what `src/` imports, and nothing in `src/` imports from `test/`.
 
 ## Types of test
 
@@ -61,9 +64,10 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
   - `scripts/test/ticket-clarification.test.ts` (PROC3: the ticket clarification step, read by fields and key phrases rather than exact wording: the Questions / Clarifications section in `docs/tickets/example_ticket.md` with a question and an "Answer (agreed <date>)" line under it; the standards 5.1 bullet that says to check the ticket against the standards and write the answers back; the standards 4.2 bullet that says those answers need tests; the minimum deck size of 1 card, the same in standards 4.2, the card limit ticket and `MIN_DECK_SIZE` in the app, and no longer an Open Question; and the card limit ticket's Feature Name "Selectable Card Limit"; runs with `npm run test:scripts`)
   - `scripts/test/repeat-ui-tests.test.ts` (TEST6: the script that runs the UI tests again and again, see [Running the UI tests again and again](#running-the-ui-tests-again-and-again); runs with `npm run test:scripts`)
-  - `scripts/test/docs-only-changes.test.ts` (CI2: the docs-only rule in `scripts/docs-only-changes.ts`, which CI uses to skip the slow checks on a pull request that only changes files under `docs/` or `.md` files: only `docs/` files, only `.md` files outside `docs/`, a mix with a code file, the CI workflow file alone, `package.json`, and no files at all (not docs-only, so everything runs if the diff comes back empty); that `.github/workflows/ci.yml` keeps the one "Typecheck and test" job without `paths-ignore`, skips the format check, lint, typecheck and `npm test` on a docs-only PR and still runs the commit message check and the scripts tests; and that standards 5.4 says which checks run on a docs-only PR; runs with `npm run test:scripts`)
+  - `scripts/test/docs-only-changes.test.ts` (CI2: the docs-only rule in `scripts/docs-only-changes.ts`, which CI uses to skip the slow checks on a pull request that only changes files under `docs/` or `.md` files: only `docs/` files, only `.md` files outside `docs/`, a mix with a code file, the CI workflow file alone, `package.json`, and no files at all (not docs-only, so everything runs if the diff comes back empty); that `.github/workflows/ci.yml` keeps the "Typecheck and test" job and has no `paths-ignore`, and that job skips the format check, lint, typecheck and `npm test` on a docs-only PR and still runs the commit message check and the scripts tests; and that standards 5.4 says which checks run on a docs-only PR; runs with `npm run test:scripts`. It reads the workflow with `scripts/test/ci-workflow.ts`, which `e2e-setup.test.ts` uses too)
+  - `scripts/test/e2e-setup.test.ts` (TEST7: the e2e setup, see [End-to-end (e2e) tests](#end-to-end-e2e-tests): `npm run test:e2e` runs Playwright (ending with `--`, so options after `npm run test:e2e --` reach it) and `npm test` doesn't; the Playwright config (test files found by pattern in `test/e2e/`, Chromium only, the app built and served with `vite preview` by Playwright, never a server already running, the build's output shown, a screenshot and trace kept for each failed test); the "End-to-end tests" CI job (its own job, installs Chromium, runs `npm run test:e2e`, uploads the screenshots and traces when it fails, skips the browser install and the Playwright run on a docs-only PR with the same docs-only check as "Typecheck and test" but always starts and reports, and runs everything on a push to main); Playwright's output folders ignored by git, ESLint and Prettier (asked of git, ESLint and Prettier themselves); and this doc and standards 3.2, 4.1 and 4.2 describing e2e tests (3.2 and 4.1 read only on their e2e lines); and standards 2.1 and 5.3 saying to run `npm run test:e2e` before a pull request for any change outside `docs/`; runs with `npm run test:scripts`)
   - `scripts/test/check-commit-message.test.ts` (the commit message rules checked by the commit hook and `npm run check:commits`; runs with `npm run test:scripts`)
-  - `scripts/test/pull-request-template.test.ts` (PROC1 and PROC2: the pull request template in `.github/pull_request_template.md`, read as a reader sees it, by headings, fields and key phrases rather than exact wording: the Ticket field with its link to `../blob/main/docs/tickets/completed_tickets/<type>/` and the "Files changed" note; the Standards Check section right after Summary, with a box for each of standards sections 1 to 5 named by its real heading in `standards.md`, a questions box (standards 5.1) that allows "or none were needed", the note that a box left unticked needs a short reason, and no "N/A" option; the Test Scenarios checkboxes for requirements (the first group), scenarios, agreed answers and "left out" items asking for the test file and name or a reason there's no test; the test counts, break-and-restore and in-person check fields, "Delete if" on exactly the sections that can be deleted, and no 🤖 line; and the standards 5.4 bullet that says to use it and to tick each Standards Check box or give a reason; runs with `npm run test:scripts`. GitHub only pre-fills a new PR from the template once it is on `main`, so that is checked by hand after merging)
+  - `scripts/test/pull-request-template.test.ts` (PROC1 and PROC2: the pull request template in `.github/pull_request_template.md`, read as a reader sees it, by headings, fields and key phrases rather than exact wording: the Ticket field with its link to `../blob/main/docs/tickets/completed_tickets/<type>/` and the "Files changed" note; the Standards Check section right after Summary, with a box for each of standards sections 1 to 5 named by its real heading in `standards.md`, a questions box (standards 5.1) that allows "or none were needed", the note that a box left unticked needs a short reason, and no "N/A" option; the Test Scenarios checkboxes for requirements (the first group), scenarios, agreed answers and "left out" items asking for the test file and name or a reason there's no test; the test counts (with the checks that must pass, including `npm run test:e2e` for any change outside `docs/`, TEST7), break-and-restore and in-person check fields, "Delete if" on exactly the sections that can be deleted, and no 🤖 line; and the standards 5.4 bullet that says to use it and to tick each Standards Check box or give a reason; runs with `npm run test:scripts`. GitHub only pre-fills a new PR from the template once it is on `main`, so that is checked by hand after merging)
 
 ### UI / component tests
 - **What they check:** the app the way a user sees it. They render the real `App`, click buttons and type into fields with [Testing Library](https://testing-library.com/), and check what is on screen: the card shown, the "Card 3 of 10" counter, validation messages. They don't look at component state, so they keep passing if the code is refactored without changing behaviour.
@@ -120,11 +124,40 @@ Commit messages are checked against [standards.md, section 5.5](standards/standa
 Its rules are unit tested in `scripts/test/check-commit-message.test.ts` (`npm run test:scripts`). If the hook doesn't run when you commit, run `npm install` once to set it up.
 
 ### End-to-end (e2e) tests
-Not set up yet. When added they will run the whole app in a real browser and live in `apps/web/test/e2e/`.
+- **What they check:** the whole app in a real browser, for what the UI tests can't see in jsdom: layout, sizes, focus rings, hover and press, forced colours and the device's light or dark setting. Layout and screen-size requirements get e2e tests ([standards 4.2](standards/standards.md#42-rules)).
+- **Tools:** [Playwright](https://playwright.dev/) (`@playwright/test`, the Node version) in Chromium only (TEST7). The tests run against the production build, served with `vite preview`, the closest to what users get.
+- **Where they live:** `apps/web/test/e2e/*.test.ts`. Playwright finds every `*.test.ts` file there (and in its subfolders) automatically (`testDir` and `testMatch` in `apps/web/playwright.config.ts`), so a new file runs without changing any script.
+- **Current files:**
+  - `smoke.test.ts`: a quick check of the main flow: the app opens in the saved colour mode (Dark, on a light device) with a card and no start page, and Next, Deck Shuffle and Shuffle In Cards each change the card on screen, with no page errors
+  - `helpers.test.ts`: the shared setup's `saveColorMode` writes the mode before the first load only, so a mode chosen from the menu afterwards is kept after a reload
+  - `helpers.ts`: the shared setup (see below)
+
+**Running them.** First install Chromium for Playwright, once per machine (and again when `@playwright/test` is updated). From the repo root:
+
+| Command | What it does |
+|---|---|
+| `npx playwright install chromium` | Downloads the Chromium that Playwright uses (CI installs only its headless shell, with `--only-shell`, which is enough there; locally the full one is needed for `--headed` and `--ui`) |
+| `npm run test:e2e` | Builds the app, serves the build on port 4174, runs every e2e test in Chromium and stops the server |
+| `npm run test:e2e -- smoke` | Only the test files whose name contains `smoke` |
+| `npm run test:e2e -- --headed` | Shows the browser while the tests run |
+| `npm run test:e2e -- --ui` | Playwright's UI mode: pick tests, watch them run step by step and see the page at each step |
+
+Playwright starts the server itself (`webServer` in `playwright.config.ts`) and never reuses one that is already running, so the tests always run against a fresh build of your code. If port 4174 is in use, the run stops with an error; close whatever is using it. If the build fails (e.g. a type error), its output is shown, marked `[WebServer]`. `npm test` doesn't run the e2e tests, as they need the browser download and take longer: run `npm run test:e2e` as well before opening a pull request with any change outside `docs/` (standards 2.1 and 5.3, and the checks line in the pull request template). CI runs them on every pull request in their own job, "End-to-end tests", next to "Typecheck and test". On a docs-only pull request (CI2) that job still starts and passes, but skips the build, the browser install and the Playwright run, using the same docs-only check (`scripts/docs-only-changes.ts`); a push to `main` always runs it.
+
+**Writing one.**
+- **Find things the way a user would**: by role and accessible name, e.g. `page.getByRole('button', { name: 'Next →' })`, not by text that includes hidden decoration (e.g. the mini cards' text on the start page tiles). The card on screen is `currentCard(page)` (the only `article`).
+- **Each test sets up its own state** with the helpers in `test/e2e/helpers.ts`, and doesn't depend on another test or the order they run in. Every test gets a new, empty browser (nothing saved). `openApp(page, { colorMode, device, viewport })` sets the device's light or dark setting and the window size, saves a colour mode before the page loads (leave it out for a first visit) and opens the app; it returns the page's errors (uncaught errors and `console.error`), which the test checks are empty at the end. `saveColorMode(page, value)` saves any value, a broken one too, before the first load only, so a reload keeps what the app saved since. `watchPageErrors(page)` collects the errors on its own. `waitForDeck(page)` waits for the dictionary to load and the first card to show, after `page.goto` (or `openApp`) or `page.reload`: use it rather than a plain `toBeVisible()`, as the 5.4 MB dictionary can take longer than `expect`'s usual 5 seconds when several browsers load it at once (it waits up to 20 seconds, `DECK_LOAD_TIMEOUT`). For other settings use Playwright's own, e.g. `page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' })`.
+- **Check it can fail** (standards 4.2): break the code it covers and see it go red, as for any test.
+
+**When one fails.** Playwright keeps a screenshot and a trace of each failed test in `apps/web/test-results/` (one folder per test). The trace records every step with the page before and after, the console and the network.
+- **Locally:** open the trace with `npx playwright show-trace apps/web/test-results/<test folder>/trace.zip`, or re-run with `--ui` or `--headed`.
+- **In CI:** a failed "End-to-end tests" job uploads `apps/web/test-results/` and the HTML report as the artifact `e2e-test-results` (kept 14 days). Download it from the bottom of the run's Summary page, or with `gh run download <run id> -n e2e-test-results`. Then open the trace with `npx playwright show-trace <folder>/test-results/<test folder>/trace.zip`, or drop the `trace.zip` onto [trace.playwright.dev](https://trace.playwright.dev) (it opens in your browser and isn't uploaded). The screenshot is `test-failed-1.png` in the same folder. The log of the job's "Run npm run test:e2e" step shows the error too.
+
+`test-results/`, `playwright-report/` and `blob-report/` are ignored by git, ESLint and Prettier.
 
 ## Writing a good test
 - **Test failure paths as well as the happy path.** For every feature, include tests for what happens when things go wrong: invalid input, a failed download, broken data, blocked storage. The user should always see a clear message, never a blank page.
 - **Check the test can fail.** Before relying on a new test, break the code it covers for a moment (e.g. remove a validation check) and make sure the test goes red. A test that can't fail doesn't protect anything. Commit or `git stash` your work first, so restoring the file can't wipe unsaved changes.
 - **Test what the user sees.** Find things the way a user would: by their label (`getByLabelText('Card limit')`), role (`getByRole('button', { name: /next/i })`) or text, not by class names or component internals.
-- **Class names only when nothing else works.** The test setup (jsdom) has no layout, colours or animations. For a colour or animation, checking a class name is acceptable, with a comment saying why. Layout (widths, grids, sideways scrolling) can't be tested here at all: check it in a real browser at about 360px, 640px and 1024px and note it in the PR.
+- **Class names only when nothing else works.** The UI test setup (jsdom) has no layout, colours or animations. For a colour or animation, checking a class name is acceptable, with a comment saying why. Layout (widths, grids, sideways scrolling) can't be tested in jsdom at all: test it with an e2e test (see [End-to-end (e2e) tests](#end-to-end-e2e-tests)), and, until TEST7_5 is merged, also check it in a real browser at about 360px, 640px and 1024px and note it in the PR (standards 4.2).
 - **Test what's left out.** When a ticket says something is not shown (e.g. "no Reading Breakdown"), add a test that checks it isn't there.
