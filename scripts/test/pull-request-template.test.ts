@@ -449,7 +449,7 @@ describe('standards 5.4 and 5.6: moving finished tickets (PROC5)', () => {
     const both = () => flat(`${pullRequests()}\n${ticketTypes()}`);
 
     it("nothing in 5.4 or 5.6 says the ticket's own pull request moves it", () => {
-      assert.doesNotMatch(both(), /in (the ticket's|its) own pull request/i);
+      assert.doesNotMatch(both(), /in (the ticket's|its|their) own pull request/i);
       assert.doesNotMatch(both(), /Do this in the ticket's own pull request/i);
     });
 
