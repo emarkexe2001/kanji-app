@@ -1,5 +1,6 @@
 // Checks the pull request template (PROC1, with the Standards Check section and the
-// Requirements group from PROC2) and the standards bullet that points to it.
+// Requirements group from PROC2) and the standards bullet that points to it, and the
+// standards 5.4 and 5.6 rule that tickets move only after their PR is merged (PROC5).
 // GitHub only pre-fills a new PR from the template once it is on `main`, so that part is
 // checked by hand after merging. These tests check what a reader of the template sees:
 // its headings, fields and key phrases, not its exact wording or whitespace.
@@ -133,9 +134,16 @@ describe('pull request template', () => {
       assert.match(covers.get('3')!, /docs\//);
       assert.match(covers.get('4')!, /validation messages/i);
       assert.match(covers.get('4')!, /all tests pass/i);
-      for (const point of [/branch prefix/i, /commit messages/i, /one change per PR/i, /ticket moved/i]) {
+      for (const point of [/branch prefix/i, /commit messages/i, /one change per PR/i]) {
         assert.match(covers.get('5')!, point);
       }
+    });
+
+    it('asks in the §5 box that the ticket is not moved in this PR (PROC5)', () => {
+      const covers = new Map(sectionBoxes().map(([n, , c]) => [n, c]));
+      assert.match(covers.get('5')!, /ticket not moved in this PR/i);
+      assert.doesNotMatch(covers.get('5')!, /ticket moved to/i);
+      assert.doesNotMatch(covers.get('5')!, /completed_tickets/);
     });
 
     it('has a questions box that works with or without questions (standards 5.1)', () => {
@@ -184,13 +192,36 @@ describe('pull request template', () => {
   });
 
   describe('Ticket', () => {
-    it('has a Ticket field linking to where the ticket ends up on main', () => {
+    const ticketLink = () => {
       const field = section(template(), 'Ticket').match(/^\*\*Ticket:\*\*\s*\[([^\]]+)\]\(([^)]+)\)/m);
       assert.ok(field, 'no "**Ticket:** [CODE](link)" field');
+      return field[2]!;
+    };
+
+    it('has a Ticket field linking to the ticket in the open folder on main (PROC5, question 1)', () => {
+      const link = ticketLink();
       assert.ok(
-        /^\.\.\/blob\/main\/docs\/tickets\/completed_tickets\/[^/]+\//.test(field[2]!),
-        `the link is "${field[2]}", not ../blob/main/docs/tickets/completed_tickets/<type>/...`,
+        /^\.\.\/blob\/main\/docs\/tickets\/<type>\//.test(link),
+        `the link is "${link}", not ../blob/main/docs/tickets/<type>/...`,
       );
+    });
+
+    it('does not link the Ticket field or its example to completed_tickets/ (PROC5)', () => {
+      assert.doesNotMatch(ticketLink(), /completed_tickets/);
+      const example = comments(section(template(), 'Ticket')).match(/\]\(([^)]+)\)/);
+      assert.ok(example, 'no example link in the comment');
+      assert.match(example[1]!, /^\.\.\/blob\/main\/docs\/tickets\/[a-z]+\/[^/]+\.md$/);
+    });
+
+    it('says in its comment not to move the ticket in this PR, and that a follow-up PR edits the link (PROC5)', () => {
+      const guidance = comments(section(template(), 'Ticket'));
+      assert.match(guidance, /Don't move the ticket in this PR/i);
+      assert.match(guidance, /after this PR is merged/i);
+      assert.match(guidance, /follow-up PR/i);
+      assert.match(guidance, /edits this link/i);
+      assert.match(guidance, /completed_tickets\/<type>\//);
+      assert.match(guidance, /standards 5\.4/);
+      assert.doesNotMatch(guidance, /moves there in this PR/i);
     });
 
     it('says in its comment that the ticket is in "Files changed" until merged', () => {
@@ -318,5 +349,118 @@ describe('standards 5.4', () => {
     assert.match(flat(bullet), /Tick each Standards Check box/);
     assert.match(flat(bullet), /short reason/);
     assert.match(flat(bullet), /unticked/);
+  });
+});
+
+describe('standards 5.4 and 5.6: moving finished tickets (PROC5)', () => {
+  const standards = () => read(STANDARDS_PATH).replace(/^###\s+/gm, '## ');
+  const pullRequests = () => section(standards(), '5.4 Pull requests and merging');
+  const ticketTypes = () => section(standards(), '5.6 Ticket types');
+
+  /** The 5.4 bullet whose bold title matches, flattened. */
+  function bullet(title: RegExp): string {
+    const found = pullRequests()
+      .split('\n')
+      .find((line) => {
+        const bold = line.match(/^- \*\*([^*]+)\*\*/);
+        return bold !== null && title.test(bold[1]!);
+      });
+    assert.ok(found, `no bullet in 5.4 titled ${title}`);
+    return flat(found);
+  }
+  const moveBullet = () => bullet(/^Move finished tickets/);
+  const checkBullet = () => bullet(/^Check for finished tickets before starting a new task/);
+
+  describe('the "Move finished tickets" bullet', () => {
+    it('says a ticket moves with git mv to completed_tickets/<type>/ only after its pull request is merged', () => {
+      const text = moveBullet();
+      assert.match(text, /Only after its pull request is merged/i);
+      assert.match(text, /`docs\/tickets\/<type>\/`/);
+      assert.match(text, /`docs\/tickets\/completed_tickets\/<type>\/`/);
+      assert.match(text, /`git mv`/);
+    });
+
+    it('says the move is in a separate follow-up pull request from a docs/ branch', () => {
+      assert.match(moveBullet(), /separate follow-up pull request from a `docs\/` branch/i);
+    });
+
+    it("says the ticket's own pull request never moves it", () => {
+      assert.match(moveBullet(), /The ticket's own pull request never moves it/i);
+    });
+
+    it('says a ticket is not complete until its pull request is merged', () => {
+      assert.match(moveBullet(), /A ticket isn't complete until its pull request is merged/i);
+    });
+
+    it('says Completed On: gives the merge date and PR number, with the example', () => {
+      const text = moveBullet();
+      assert.match(text, /`Completed On:` line with the date the ticket's pull request was merged and its number/i);
+      assert.ok(text.includes('`Completed On: 2026-10-30 (PR #58)`'), 'no "Completed On: 2026-10-30 (PR #58)" example');
+    });
+  });
+
+  describe('the check before starting a new task', () => {
+    it('compares every ticket still in docs/tickets/<type>/ with the merged pull requests', () => {
+      assert.match(
+        checkBullet(),
+        /Compare every ticket still in `docs\/tickets\/<type>\/` with the merged pull requests/i,
+      );
+    });
+
+    it('opens a follow-up pull request moving each ticket whose work is merged', () => {
+      assert.match(checkBullet(), /open a follow-up pull request moving each ticket whose work is merged/i);
+    });
+
+    it('does not count pull requests that only add or edit the ticket', () => {
+      assert.match(checkBullet(), /Pull requests that only add or edit the ticket don't count/i);
+    });
+
+    it('moves every finished ticket in one follow-up pull request, one commit per ticket (question 2)', () => {
+      assert.match(
+        checkBullet(),
+        /One follow-up pull request moves every finished ticket the check finds, with one commit per ticket/i,
+      );
+    });
+
+    it("edits each merged pull request's Ticket link with gh pr edit to point to completed_tickets/<type>/ (question 1)", () => {
+      const text = checkBullet();
+      assert.match(
+        text,
+        /edits each merged pull request's Ticket link \(`gh pr edit`\) to point to `completed_tickets\/<type>\/`/i,
+      );
+      assert.match(text, /open folder `docs\/tickets\/<type>\/`/);
+    });
+  });
+
+  describe('5.6 "Where tickets go"', () => {
+    it('says finished tickets move after merging, in a follow-up pull request (see 5.4)', () => {
+      const where = ticketTypes()
+        .split('\n')
+        .find((line) => line.startsWith('**Where tickets go.**'));
+      assert.ok(where, 'no "Where tickets go." paragraph in 5.6');
+      assert.match(
+        flat(where),
+        /Finished tickets move to `docs\/tickets\/completed_tickets\/<type>\/` after their pull request is merged, in a follow-up pull request \(see 5\.4\)/,
+      );
+    });
+  });
+
+  describe('left out (the old rule)', () => {
+    const both = () => flat(`${pullRequests()}\n${ticketTypes()}`);
+
+    it("nothing in 5.4 or 5.6 says the ticket's own pull request moves it", () => {
+      assert.doesNotMatch(both(), /in (the ticket's|its|their) own pull request/i);
+      assert.doesNotMatch(both(), /Do this in the ticket's own pull request/i);
+    });
+
+    it('nothing in 5.4 or 5.6 says merging the PR marks its ticket complete', () => {
+      assert.doesNotMatch(both(), /marks (its|the) ticket( as)? complete/i);
+    });
+
+    it('the "Layout review before merging" bullet no longer says when the ticket is complete', () => {
+      const text = bullet(/^Layout review before merging/);
+      assert.doesNotMatch(text, /merging the PR marks its ticket complete/i);
+      assert.doesNotMatch(text, /ticket isn't complete/i);
+    });
   });
 });
