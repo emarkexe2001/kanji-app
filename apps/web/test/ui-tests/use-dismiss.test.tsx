@@ -204,8 +204,12 @@ describe('useDismiss: switched off (CHORE6)', () => {
     expect(onDismiss).toHaveBeenCalledWith('outside');
   });
 
-  test.each([CLICK, POINTERDOWN])(
-    'once the pop-up is gone (unmounted), it no longer listens (closeOn: $closeOn)',
+  test.each([
+    { ...CLICK, escapeFirst: false },
+    { ...POINTERDOWN, escapeFirst: false },
+    { ...POINTERDOWN, escapeFirst: true },
+  ])(
+    'once the pop-up is gone (unmounted), it no longer listens (closeOn: $closeOn, escapeFirst: $escapeFirst)',
     async (options) => {
       const { onDismiss, view, user } = setUp(options);
       view.unmount();
