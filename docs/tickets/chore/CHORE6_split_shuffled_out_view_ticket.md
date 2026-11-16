@@ -48,6 +48,8 @@ Questions / Clarifications:
    Answer (agreed 2026-11-16): Yes, it gets a PR review agent.
 4. The agreed three-file split leaves `shuffled-out-panel.tsx` at 349 lines, over the "under about 250" rule. Which gives way? (raised by the feature agent)
    Answer (agreed 2026-11-16): Add a fourth file, `shuffled-out-panel-footer.tsx`, with the Recover button, the Clear List confirmation and their class constants. That brings the panel to about 250 lines. Nothing changes on screen.
+5. With the footer file, `shuffled-out-panel.tsx` is still 306 lines (the estimate of about 250 was wrong). Is that acceptable? (raised by the feature agent, PR #93)
+   Answer (agreed 2026-11-16): Yes. Accept 306 lines and note it in the PR. What is left is the panel component and its own styles, and splitting further would scatter its layout.
 
 Mockup:
 Changes nothing on screen.
