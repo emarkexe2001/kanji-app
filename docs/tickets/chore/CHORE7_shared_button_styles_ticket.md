@@ -31,8 +31,11 @@ Screenshots of every button in Light, Dark and High contrast, before and after, 
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. A `<Button variant="…">` component, or a `buttonClass(variant)` helper that keeps plain `<button>` elements?
+   Answer (agreed 2026-11-16): A `buttonClass(variant, size)` helper in `src/lib/`, used on plain `<button>` elements.
 2. Should Next, Back, the panel's Cancel and the stepper buttons (− +) use it too, or only the filled colour buttons?
+   Answer (agreed 2026-11-16): Only the filled colour buttons: Shuffled out, Deck Shuffle, Shuffle In Cards, Add Back Cards, Clear List, Yes, Clear List and Recover cleared list. Next, Back, Cancel and the stepper buttons keep their own styles.
 3. CHORE tickets may skip the PR review agent (decided 2026-11-06), but this one changes app code. Should it still get a review agent?
+   Answer (agreed 2026-11-16): Yes, it gets a PR review agent.
 
 Mockup:
 Changes nothing on screen.
