@@ -46,6 +46,8 @@ Questions / Clarifications:
    Answer (agreed 2026-11-16): Keep each as it is. The shared hook has an option for each behaviour (the menu closes on `pointerdown`; the panel closes on `click`, with the "press started inside" rule), so nothing the user does changes.
 3. CHORE tickets may skip the PR review agent (decided 2026-11-06), but this one changes app code. Should it still get a review agent?
    Answer (agreed 2026-11-16): Yes, it gets a PR review agent.
+4. The agreed three-file split leaves `shuffled-out-panel.tsx` at 349 lines, over the "under about 250" rule. Which gives way? (raised by the feature agent)
+   Answer (agreed 2026-11-16): Add a fourth file, `shuffled-out-panel-footer.tsx`, with the Recover button, the Clear List confirmation and their class constants. That brings the panel to about 250 lines. Nothing changes on screen.
 
 Mockup:
 Changes nothing on screen.

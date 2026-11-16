@@ -13,6 +13,8 @@ Refactor retro (2026-11-16). Parts of the deck find each other on the page by at
 - `use-card-flights.ts` (a hook) imports `SHUFFLED_OUT_PANEL_ID` from `components/shuffled-out-view.tsx` (a component), and `shuffled-out-view.tsx` imports types from the hook, so the two files depend on each other. `deck.tsx` and `use-panel-clearance.ts` use the id too.
 - The card flights also look up `data-card-stack`, `data-slim`, `data-flight-source` and `data-flight-clip`, which are written as plain strings in several files.
 
+Note (2026-11-16): CHORE6 splits `shuffled-out-view.tsx` into `shuffled-out-button.tsx`, `pick-card.tsx`, `shuffled-out-panel.tsx` and `shuffled-out-panel-footer.tsx`, and moves the close-on-outside code into `src/hooks/use-dismiss.ts`. If CHORE6 is merged, look for the code below in those files.
+
 Description:
 As a developer I would like the page markers the deck code looks up to be defined once, in one shared file, so a renamed marker can't quietly break the card animations or the panel, and hooks don't import from components.
 
