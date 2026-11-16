@@ -1,4 +1,4 @@
-import { HC_SKY_BUTTON } from '../../../lib/high-contrast-buttons';
+import { buttonClass } from '../../../lib/button-classes';
 import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-panel';
 
 /**
@@ -33,7 +33,7 @@ export function ShuffledOutButton({
       aria-expanded={open}
       aria-controls={SHUFFLED_OUT_PANEL_ID}
       onClick={onToggle}
-      className={`${bumpClass(bump)} shrink-0 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-sky-500 active:scale-95 ${HC_SKY_BUTTON}`}
+      className={`${bumpClass(bump)} shrink-0 whitespace-nowrap ${buttonClass('sky', 'header')}`}
     >
       Shuffled out ({count})<span aria-hidden> {open ? '▴' : '▾'}</span>
     </button>
