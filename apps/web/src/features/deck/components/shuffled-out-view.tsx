@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import {
   FALLBACK_INK,
   PICK_COLORS,
@@ -9,6 +9,7 @@ import {
   type WordEntry,
 } from '@kanji/core';
 import { useColorMode } from '../../../hooks/use-color-mode';
+import { useDismiss } from '../../../hooks/use-dismiss';
 import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
@@ -170,6 +171,12 @@ export const SHUFFLED_OUT_PANEL_ID = 'shuffled-out-panel';
 
 /** The "Shuffled out (N)" button, found by the panel it controls, so focus can go back to it. */
 const toggleButton = () => document.querySelector<HTMLElement>(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`);
+
+/**
+ * Presses that aren't outside the panel, although they are: the "Shuffled out (N)" button toggles
+ * the panel itself, and the colour mode menu leaves it open (FEAT5).
+ */
+const PANEL_KEEP_OPEN = `[aria-controls="${SHUFFLED_OUT_PANEL_ID}"], [${KEEP_PANEL_OPEN_ATTRIBUTE}]`;
 
 /** The cards to pick: two per row (ADJ2). They scroll with the rest of the panel's body. */
 const CARD_GRID = 'grid grid-cols-2 gap-x-2 gap-y-3 p-2';
@@ -336,58 +343,12 @@ export function ShuffledOutPanel({
     if (!active || active === document.body || panelRef.current?.contains(active)) toggleButton()?.focus();
     onClose();
   };
-  const closeFromOutside = useEffectEvent(close);
-
   // Focus goes into the panel when it opens.
   useEffect(() => closeButtonRef.current?.focus(), []);
 
-  // Escape, or a click or tap outside the panel, closes it. The listeners run in the capture phase,
-  // before the click is handled, so a click inside always finds its target still in the panel.
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel) return;
-    // The "Shuffled out (N)" button toggles the panel itself, and the colour mode menu leaves it
-    // open (FEAT5), so presses on them aren't outside it.
-    const isOutside = (target: EventTarget | null) =>
-      target instanceof Node &&
-      !panel.contains(target) &&
-      !(
-        target instanceof Element &&
-        target.closest(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"], [${KEEP_PANEL_OPEN_ATTRIBUTE}]`)
-      );
-    // A press that starts inside the panel (e.g. selecting text) and ends outside doesn't close it:
-    // the click the browser sends for that press is ignored. Only that click (ADJ2_5): a press
-    // that ends without one (dragged away, or cancelled by the browser to scroll) is forgotten, and
-    // a click that isn't the end of a press (e.g. Enter or Space on a button, detail 0) is never
-    // ignored, so the next click outside always closes the panel.
-    let pressedInside = false;
-    const onPointerDown = (e: Event) => {
-      pressedInside = !isOutside(e.target);
-    };
-    const forgetPress = () => {
-      pressedInside = false;
-    };
-    const onClick = (e: MouseEvent) => {
-      const endsPressInside = pressedInside && e.detail > 0;
-      pressedInside = false;
-      if (!endsPressInside && isOutside(e.target)) closeFromOutside();
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeFromOutside();
-    };
-    document.addEventListener('pointerdown', onPointerDown, true);
-    document.addEventListener('pointercancel', forgetPress, true);
-    document.addEventListener('dragstart', forgetPress, true);
-    document.addEventListener('click', onClick, true);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      document.removeEventListener('pointercancel', forgetPress, true);
-      document.removeEventListener('dragstart', forgetPress, true);
-      document.removeEventListener('click', onClick, true);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, []);
+  // Escape, or a click or tap outside the panel, closes it. A press that starts inside the panel
+  // (e.g. selecting text) and ends outside doesn't close it (ADJ2_5, see useDismiss).
+  useDismiss(panelRef, close, { closeOn: 'click', ignore: PANEL_KEEP_OPEN });
 
   const submit = () => {
     // Picks are kept in list order, newest first, whatever order they were ticked in.
