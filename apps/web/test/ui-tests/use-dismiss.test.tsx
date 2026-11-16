@@ -204,6 +204,23 @@ describe('useDismiss: switched off (CHORE6)', () => {
     expect(onDismiss).toHaveBeenCalledWith('outside');
   });
 
+  test.each([CLICK, POINTERDOWN])(
+    'when it is switched off after being on (as the menu is each time it closes), neither Escape nor a press outside closes it (closeOn: $closeOn)',
+    async (options) => {
+      const onDismiss = vi.fn();
+      const user = userEvent.setup();
+      const { rerender } = render(<PopUp onDismiss={onDismiss} options={{ ...options, enabled: true }} />);
+      rerender(<PopUp onDismiss={onDismiss} options={{ ...options, enabled: false }} />);
+      const outside = screen.getByRole('button', { name: 'Outside' });
+      screen.getByRole('button', { name: 'Inside' }).focus();
+      await user.keyboard('{Escape}');
+      await user.click(outside);
+      fireEvent.pointerDown(outside);
+      fireEvent.click(outside, { detail: 0 });
+      expect(onDismiss).not.toHaveBeenCalled();
+    },
+  );
+
   test.each([
     { ...CLICK, escapeFirst: false },
     { ...POINTERDOWN, escapeFirst: false },
