@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { WordEntry } from '@kanji/core';
-import { SHUFFLED_OUT_PANEL_ID } from '../components/shuffled-out-view';
+import { SHUFFLED_OUT_PANEL_ID } from '../components/shuffled-out-panel';
 import { useReducedMotion } from './use-reduced-motion';
 import type { CardsMoved, StudyDeck } from './use-study-deck';
 
