@@ -1,5 +1,6 @@
-import { useEffect, useEffectEvent, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { COLOR_MODES, type ColorMode } from '@kanji/core';
+import { useDismiss } from '../../../hooks/use-dismiss';
 import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import { MODE_ICONS, TickIcon } from './color-mode-icons';
 
@@ -97,32 +98,23 @@ export function ColorModeMenu({
     buttonRef.current?.focus();
   };
 
-  const closeOnEscape = useEffectEvent(closeToButton);
-
-  // While it is open, a press outside it or Escape closes it.
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.target instanceof Node && wrapperRef.current?.contains(e.target)) return;
+  // While it is open, a press outside it (the moment it starts) or Escape closes it. Escape is
+  // caught before anything else on the page sees it, so it closes only the menu, not the
+  // Shuffled-out panel as well.
+  useDismiss(
+    wrapperRef,
+    (reason) => {
+      if (reason === 'escape') {
+        closeToButton();
+        return;
+      }
       // Focus would be lost with the menu, so it goes back to the button; the press then moves it
       // on to whatever it lands on, as usual.
       if (wrapperRef.current?.contains(document.activeElement)) buttonRef.current?.focus();
       setOpen(false);
-    };
-    // Caught before anything else on the page sees it, so Escape closes only the menu, not the
-    // Shuffled-out panel as well.
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      closeOnEscape();
-    };
-    document.addEventListener('pointerdown', onPointerDown, true);
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown, true);
-      document.removeEventListener('keydown', onKeyDown, true);
-    };
-  }, [open]);
+    },
+    { enabled: open, closeOn: 'pointerdown', escapeFirst: true },
+  );
 
   const onButtonKeyDown = (e: ReactKeyboardEvent) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
