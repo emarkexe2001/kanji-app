@@ -4,8 +4,9 @@ import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { HC_EMERALD_BUTTON, HC_ROSE_BUTTON, HC_SKY_BUTTON } from '../utils/high-contrast-buttons';
+import { HC_EMERALD_BUTTON, HC_ROSE_BUTTON } from '../utils/high-contrast-buttons';
 import { PickCard, type ListedCard } from './pick-card';
+import { ClearListConfirm, FOOTER_ROW, PANEL_FOOTER, RecoverButton, panelButton } from './shuffled-out-panel-footer';
 
 const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
@@ -65,36 +66,6 @@ const PANEL_LOOK =
  * added back that is scrolled out of view starts sliding from its edge (`data-flight-clip`, ADJ3).
  */
 const PANEL_BODY = 'min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-2';
-
-/**
- * The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages.
- * In High contrast (FEAT5_5) the line above it is 2px: its 1px border plus a 1px inset shadow.
- */
-const PANEL_FOOTER =
-  'shrink-0 space-y-2 border-t border-panel-line px-3 py-3 hc:shadow-[inset_0_1px_0_0_var(--color-panel-line)]';
-
-/** Add Back Cards and Clear List, side by side (ADJ2). */
-const FOOTER_ROW = 'grid grid-cols-2 gap-2';
-
-/** The panel's buttons have less padding than the header's, so two fit side by side in 300px. */
-const panelButton = 'rounded-xl px-2 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
-
-/** "Recover cleared list (N)" (FEAT2_7): sky blue and filled, like "Shuffled out (N)", and outlined like it in High contrast. */
-function RecoverButton({ study }: { study: StudyDeck }) {
-  return (
-    <button
-      type="button"
-      onClick={study.recoverCleared}
-      className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton} ${HC_SKY_BUTTON}`}
-    >
-      Recover cleared list ({study.clearedCount})
-    </button>
-  );
-}
-
-/** The Clear List confirmation, with the number of cards: it says the list can be recovered. */
-const confirmClearText = (count: number) =>
-  count === 1 ? 'Clear 1 card? You can recover it later.' : `Clear all ${count} cards? You can recover them later.`;
 
 /**
  * The view the "Shuffled out (3)" button opens (FEAT2): the cards that left the deck,
@@ -313,31 +284,17 @@ export function ShuffledOutPanel({
               </button>
             </div>
             {confirmingClear ? (
-              <div className="space-y-2 rounded-lg border border-danger-line bg-card p-2 hc:ring-1 hc:ring-danger-line hc:ring-inset">
-                <p className="font-semibold text-danger-ink-strong">{confirmClearText(shuffledOut.length)}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      study.clearShuffledOut();
-                      setAdding([]);
-                      setTakingOut([]);
-                      setError(null);
-                      setConfirmingClear(false);
-                    }}
-                    className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton} ${HC_ROSE_BUTTON}`}
-                  >
-                    Yes, Clear List
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingClear(false)}
-                    className={`border border-field-line bg-field text-ink-soft hover:bg-field-hover ${panelButton} hc:shadow-none hc:ring-1 hc:ring-field-line hc:ring-inset`}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <ClearListConfirm
+                count={shuffledOut.length}
+                onClear={() => {
+                  study.clearShuffledOut();
+                  setAdding([]);
+                  setTakingOut([]);
+                  setError(null);
+                  setConfirmingClear(false);
+                }}
+                onCancel={() => setConfirmingClear(false)}
+              />
             ) : (
               study.clearedCount > 0 && <RecoverButton study={study} />
             )}
