@@ -231,7 +231,12 @@ export interface ShuffledOutCard {
  * `library` must have at least one deck.
  */
 export function useStudyDeck(library: Library, limit: number): StudyDeck {
-  const [state, setState] = useState(() => loadState(library, loadStudiedDeck(library)!, limit));
+  const [state, setState] = useState(() => {
+    const studied = loadStudiedDeck(library);
+    // Only null for a library with no decks, which the app never studies (see Decks in app.tsx).
+    if (!studied) throw new Error('useStudyDeck needs a library with at least one deck.');
+    return loadState(library, studied, limit);
+  });
 
   useEffect(() => saveStudiedDeck(state.studied), [state.studied]);
   useEffect(

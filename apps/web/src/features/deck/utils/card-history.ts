@@ -28,8 +28,7 @@ export interface BackStep {
 export function goBack(history: string[], cardIds: string[], index: number): BackStep {
   const onScreen = cardIds[index];
   const rest = [...history];
-  while (rest.length) {
-    const id = rest.pop()!;
+  for (let id = rest.pop(); id !== undefined; id = rest.pop()) {
     const position = cardIds.indexOf(id);
     if (position !== -1 && id !== onScreen) return { index: position, history: rest };
   }
