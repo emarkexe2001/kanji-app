@@ -22,7 +22,7 @@ Tests are kept apart from the code (standards 3), in a `test/` folder in each wo
 
 ```
 apps/web/test/
-  unit/           # unit tests, grouped by feature (card-limit/, deck/)
+  unit/           # unit tests, grouped by feature (card-limit/, deck/), plus lib/ for src/lib
   ui-tests/       # UI / component tests, plus helpers.tsx
   e2e/            # end-to-end tests (Playwright), plus helpers.ts
   setup.ts        # Vitest setup for the UI tests
@@ -59,6 +59,7 @@ Test files and folders follow the same kebab-case naming rule as the code (e.g. 
   - `apps/web/test/unit/card-limit/deck-size.test.ts`
   - `apps/web/test/unit/deck/study-deck.test.ts` (deck rules that need a fixed random source, e.g. Random taking each card from a random other deck, or Multiple decks picking across the ticked decks combined)
   - `apps/web/test/unit/deck/card-history.test.ts` (where Back goes: the last card seen still in the deck, skipping gone cards and the card on screen, the card before in deck order when nothing is left, and the 50-card limit)
+  - `apps/web/test/unit/lib/button-classes.test.ts` (CHORE7: `buttonClass(variant, size)` for the filled colour buttons: each colour (sky, indigo, emerald, rose) gives its background, lighter hover and white text, and its High contrast look (black, no shadow, the 2px inset outline in its colour, the hover fill, exactly one text colour, and Clear List's red text turning white under the pointer); each size (header, full, panel) gives its padding and text size; every result has the shared base classes and nothing else; and every class is written out in full)
   - `packages/core/test/unit/segment.test.ts`
   - `packages/core/test/unit/color-modes.test.ts` (FEAT5: the colour modes (Light, Dark and High contrast since FEAT5_5), the Dark palette and reading/pick colours from the ticket, and the 4.5:1 / 3:1 contrast pairs in Dark; FEAT5_5: `modeColor` giving the fallback when a mode's colour, or the whole mode, is missing, the fallback text colour of each mode, the agreed High contrast palette (palette A, the danger, warning and success colours and the fixed `hc-*` colours), black with white text and white lines with no greys, the #262626 and #d4d4d4 hover fills, every agreed colour pair at 7:1 or more (text on its background, palette A on black and black on palette A, the yellow focus ring, the fallback), the reading, pick and JLPT colours still told apart, and Light and Dark unchanged)
   - `scripts/test/jlpt-list.test.ts` (reading the JLPT lists used by `npm run data:build`; runs with `npm run test:scripts`)
