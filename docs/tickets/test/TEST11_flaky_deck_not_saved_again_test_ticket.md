@@ -45,6 +45,7 @@ Requirements / Expected Behaviours:
 - Check the other "is not saved again" tests in `new-card-badge.test.tsx` for the same problem, and fix them the same way if they have it.
 - Check whether the `shuffled-out.test.tsx` failures share the cause. If they don't, note them in TEST8 or a new ticket instead.
 - Update `docs/testing.md` if the fix gives a rule other tests should follow (e.g. "wait for the app's first save before spying on storage").
+- **Added 2026-11-16 (CHORE7 retro):** add Dark mode checks for the two filled buttons the Dark tests don't cover yet: "Yes, Clear List" and "Recover cleared list (N)". `color-mode.test.tsx` checks 5 of the 7 filled buttons in Dark. Check each of the two has its Dark look, the same way the other 5 are checked. Tests only, no app change.
 
 Possible Test Scenarios I would like to see:
 
@@ -55,6 +56,8 @@ When I run `new-card-badge.test.tsx` on its own 50 times, every run passes
 When I run the full web UI tests 10 times (`npm run test:ui:repeat`), this test passes every time
 
 When the app really does save the deck again after Deck Shuffle on a deck with no new cards (a break), the fixed test goes red (break-and-restore)
+
+When the app is in Dark mode, "Yes, Clear List" and "Recover cleared list (N)" each have their Dark look (added 2026-11-16), and a break in either button's colours turns its test red
 
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
