@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useDismiss } from '../../../hooks/use-dismiss';
+import { buttonClass } from '../../../lib/button-classes';
 import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { HC_EMERALD_BUTTON, HC_ROSE_BUTTON } from '../utils/high-contrast-buttons';
 import { PickCard, type ListedCard } from './pick-card';
-import { ClearListConfirm, FOOTER_ROW, PANEL_FOOTER, RecoverButton, panelButton } from './shuffled-out-panel-footer';
+import { ClearListConfirm, FOOTER_ROW, PANEL_FOOTER, RecoverButton } from './shuffled-out-panel-footer';
 
 const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
@@ -269,17 +269,10 @@ export function ShuffledOutPanel({
               </p>
             )}
             <div className={FOOTER_ROW}>
-              <button
-                type="submit"
-                className={`bg-emerald-600 text-white hover:bg-emerald-500 ${panelButton} ${HC_EMERALD_BUTTON}`}
-              >
+              <button type="submit" className={buttonClass('emerald', 'panel')}>
                 Add Back Cards
               </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingClear(true)}
-                className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton} ${HC_ROSE_BUTTON}`}
-              >
+              <button type="button" onClick={() => setConfirmingClear(true)} className={buttonClass('rose', 'panel')}>
                 Clear List
               </button>
             </div>

@@ -1,9 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { buttonClass } from '../../../lib/button-classes';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { usePanelClearance } from '../hooks/use-panel-clearance';
 import { useWideLayout } from '../hooks/use-wide-layout';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { HC_INDIGO_BUTTON } from '../utils/high-contrast-buttons';
 import { CardStack } from './card-stack';
 import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-panel';
 
@@ -117,11 +117,7 @@ export function Deck({
         >
           Next →
         </button>
-        <button
-          type="button"
-          onClick={deckShuffle}
-          className={`col-span-2 min-h-12 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-500 active:scale-95 ${HC_INDIGO_BUTTON}`}
-        >
+        <button type="button" onClick={deckShuffle} className={`col-span-2 min-h-12 ${buttonClass('indigo', 'full')}`}>
           <span aria-hidden>🔀 </span>Deck Shuffle
         </button>
       </nav>

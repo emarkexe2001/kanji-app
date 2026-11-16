@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { buttonClass } from '../../../lib/button-classes';
+import { HC_DISABLED_BUTTON } from '../../../lib/high-contrast-buttons';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { DECK_IDS, DECK_LABELS, isDeckId, type DeckId } from '../utils/decks';
 import {
@@ -10,7 +12,6 @@ import {
   type ShuffleChoice,
   type ShuffleMode,
 } from '../utils/study-deck';
-import { HC_DISABLED_BUTTON, HC_EMERALD_BUTTON } from '../utils/high-contrast-buttons';
 
 /** A dropdown or number field. In High contrast (FEAT5_5) its white line is 2px (border plus a 1px inset ring). */
 const fieldClass =
@@ -261,10 +262,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
           {countError}
         </p>
       )}
-      <button
-        type="submit"
-        className={`w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-500 active:scale-95 ${HC_EMERALD_BUTTON}`}
-      >
+      <button type="submit" className={`w-full ${buttonClass('emerald', 'full')}`}>
         Shuffle In Cards
       </button>
     </form>

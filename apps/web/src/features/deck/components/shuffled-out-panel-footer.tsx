@@ -1,5 +1,5 @@
+import { buttonClass } from '../../../lib/button-classes';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { HC_ROSE_BUTTON, HC_SKY_BUTTON } from '../utils/high-contrast-buttons';
 
 /**
  * The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages.
@@ -11,17 +11,16 @@ export const PANEL_FOOTER =
 /** Add Back Cards and Clear List, side by side (ADJ2). */
 export const FOOTER_ROW = 'grid grid-cols-2 gap-2';
 
-/** The panel's buttons have less padding than the header's, so two fit side by side in 300px. */
-export const panelButton = 'rounded-xl px-2 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
+/**
+ * Cancel's shape: the same as buttonClass's 'panel' size, which the panel's filled buttons use.
+ * Cancel isn't a filled colour button, so it keeps its own look (CHORE7).
+ */
+const panelButton = 'rounded-xl px-2 py-2 text-sm font-semibold shadow-sm transition active:scale-95';
 
 /** "Recover cleared list (N)" (FEAT2_7): sky blue and filled, like "Shuffled out (N)", and outlined like it in High contrast. */
 export function RecoverButton({ study }: { study: StudyDeck }) {
   return (
-    <button
-      type="button"
-      onClick={study.recoverCleared}
-      className={`w-full bg-sky-600 text-white hover:bg-sky-500 ${panelButton} ${HC_SKY_BUTTON}`}
-    >
+    <button type="button" onClick={study.recoverCleared} className={`w-full ${buttonClass('sky', 'panel')}`}>
       Recover cleared list ({study.clearedCount})
     </button>
   );
@@ -48,11 +47,7 @@ export function ClearListConfirm({
     <div className="space-y-2 rounded-lg border border-danger-line bg-card p-2 hc:ring-1 hc:ring-danger-line hc:ring-inset">
       <p className="font-semibold text-danger-ink-strong">{confirmClearText(count)}</p>
       <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={onClear}
-          className={`bg-rose-600 text-white hover:bg-rose-500 ${panelButton} ${HC_ROSE_BUTTON}`}
-        >
+        <button type="button" onClick={onClear} className={buttonClass('rose', 'panel')}>
           Yes, Clear List
         </button>
         <button
