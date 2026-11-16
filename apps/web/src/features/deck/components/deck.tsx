@@ -5,7 +5,7 @@ import { useWideLayout } from '../hooks/use-wide-layout';
 import type { StudyDeck } from '../hooks/use-study-deck';
 import { HC_INDIGO_BUTTON } from '../utils/high-contrast-buttons';
 import { CardStack } from './card-stack';
-import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-view';
+import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-panel';
 
 /**
  * Keyboard shortcuts shouldn't fire while the user is typing in a field or using a list, or while
