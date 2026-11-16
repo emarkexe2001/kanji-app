@@ -31,8 +31,13 @@ When a card's data is missing, Shuffle In Cards, Add Back, Back and the card fli
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. Which shape: `WordEntry | undefined` in the same arrays, or a card object with its id and its data or null?
+   Answer (agreed 2026-11-16): `WordEntry | undefined` in the same arrays.
 2. Should a lint rule ban non-null assertions (`!`) across the app?
+   Answer (agreed 2026-11-16): Yes. Turn on `@typescript-eslint/no-non-null-assertion` for `apps/web/src`, and fix the other three: `document.getElementById('root')!` in `main.tsx`, `loadStudiedDeck(library)!` in `use-study-deck.ts` and `rest.pop()!` in `card-history.ts`. Rewrite each safely, or keep it with an `eslint-disable` comment giving the reason.
 3. CHORE tickets may skip the PR review agent (decided 2026-11-06), but this one changes app code. Should it still get a review agent?
+   Answer (agreed 2026-11-16): Yes, as for CHORE6 and CHORE7.
+4. Today a card with missing data reaches its error boundary by crashing with a TypeError, and `missing-card-data.test.tsx` checks that `console.error` logs that TypeError. Once the types make the code check, should a missing card still crash into the boundary, or show its message directly?
+   Answer (agreed 2026-11-16): Show "This card can't be shown." directly where the card is drawn, with no crash and no console error. The error boundaries stay as a safety net. The one existing check that expects the TypeError in `console.error` may change to say no error is logged. That is the only allowed change to an existing test.
 
 Mockup:
 Changes nothing on screen.
