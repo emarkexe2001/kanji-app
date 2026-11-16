@@ -1,8 +1,9 @@
 // CHORE8: each place that uses a card's data handles a card whose data is missing (FEAT2_6), on purpose.
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { WordEntry } from '@kanji/core';
 import App from '../../src/app/app';
+import { useStudyDeck } from '../../src/features/deck/hooks/use-study-deck';
 import type { Library } from '../../src/features/deck/utils/decks';
 import {
   counter,
@@ -323,6 +324,18 @@ describe('Back in a deck with a missing card (addition)', () => {
       'Error while rendering the deck:',
       expect.objectContaining({ message: 'Card on screen has no data' }),
       expect.anything(),
+    );
+  });
+});
+
+describe('useStudyDeck with no decks (review R1)', () => {
+  test('given a library with no decks, it throws a clear error instead of studying nothing', () => {
+    // React logs the error thrown while rendering; that noise isn't what is being tested.
+    consoleError.mockImplementation(() => {});
+    const empty: Library = { decks: new Map(), byId: new Map() };
+
+    expect(() => renderHook(() => useStudyDeck(empty, 10))).toThrow(
+      'useStudyDeck needs a library with at least one deck.',
     );
   });
 });
