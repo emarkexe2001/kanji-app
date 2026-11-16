@@ -4,7 +4,7 @@ import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { HC_EMERALD_BUTTON, HC_ROSE_BUTTON } from '../utils/high-contrast-buttons';
+import { HC_EMERALD_BUTTON, HC_ROSE_BUTTON } from '../../../lib/high-contrast-buttons';
 import { PickCard, type ListedCard } from './pick-card';
 import { ClearListConfirm, FOOTER_ROW, PANEL_FOOTER, RecoverButton, panelButton } from './shuffled-out-panel-footer';
 

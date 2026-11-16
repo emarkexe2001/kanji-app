@@ -10,7 +10,7 @@ import {
   type ShuffleChoice,
   type ShuffleMode,
 } from '../utils/study-deck';
-import { HC_DISABLED_BUTTON, HC_EMERALD_BUTTON } from '../utils/high-contrast-buttons';
+import { HC_DISABLED_BUTTON, HC_EMERALD_BUTTON } from '../../../lib/high-contrast-buttons';
 
 /** A dropdown or number field. In High contrast (FEAT5_5) its white line is 2px (border plus a 1px inset ring). */
 const fieldClass =

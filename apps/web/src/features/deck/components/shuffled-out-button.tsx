@@ -1,4 +1,4 @@
-import { HC_SKY_BUTTON } from '../utils/high-contrast-buttons';
+import { HC_SKY_BUTTON } from '../../../lib/high-contrast-buttons';
 import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-panel';
 
 /**

@@ -1,5 +1,5 @@
 import type { StudyDeck } from '../hooks/use-study-deck';
-import { HC_ROSE_BUTTON, HC_SKY_BUTTON } from '../utils/high-contrast-buttons';
+import { HC_ROSE_BUTTON, HC_SKY_BUTTON } from '../../../lib/high-contrast-buttons';
 
 /**
  * The bottom of the panel, always in view: the buttons, the Clear List confirmation and messages.
