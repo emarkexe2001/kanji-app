@@ -3,7 +3,9 @@ import { HC_EMERALD_BUTTON, HC_INDIGO_BUTTON, HC_ROSE_BUTTON, HC_SKY_BUTTON } fr
 /**
  * The filled, colour-coded buttons (CHORE7): one place for their Light, Dark and High contrast
  * looks, used on plain `<button>`s as `className={buttonClass('sky', 'header')}`. Where the button
- * sits (e.g. `w-full`, `col-span-2`, `shrink-0`) stays with the button, added after this.
+ * sits stays with the button, added after this (`w-full`, `col-span-2`, `min-h-12`, `shrink-0`,
+ * `whitespace-nowrap`), so a size never adds a class a button doesn't have today: `min-h-12` in
+ * `full` would change Shuffle In Cards.
  *
  * The colour rule (standards §1): each colour says what the button does at a glance, and red
  * (rose) is only for deleting and other dangerous actions.
