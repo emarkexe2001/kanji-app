@@ -38,6 +38,10 @@ Questions / Clarifications:
    Answer (agreed 2026-11-16): Yes, as for CHORE6 and CHORE7.
 4. Today a card with missing data reaches its error boundary by crashing with a TypeError, and `missing-card-data.test.tsx` checks that `console.error` logs that TypeError. Once the types make the code check, should a missing card still crash into the boundary, or show its message directly?
    Answer (agreed 2026-11-16): Show "This card can't be shown." directly where the card is drawn, with no crash and no console error. The error boundaries stay as a safety net. The one existing check that expects the TypeError in `console.error` may change to say no error is logged. That is the only allowed change to an existing test.
+5. The card on screen doesn't show "This card can't be shown." today: a missing card there makes the whole deck show "Something went wrong showing the cards. Please reload the page to try again." Showing the message in the card stack would change what is on screen. What should CHORE8 do? (raised by the feature agent)
+   Answer (agreed 2026-11-16): Keep today's result. `Deck` checks the card on screen and, if it is missing, throws a named error so the deck error boundary shows the same message as today. That case still logs through the boundary, by design. The "held" card keeps today's fall-through, written out on purpose. Showing the message in the card stack is follow-up ticket UI6.
+6. `missing-card-data.test.tsx` checks for the TypeError in `console.error` twice (once in each test), not once. Can both change? (raised by the feature agent)
+   Answer (agreed 2026-11-16): Yes. Both change to check that no error is logged. No other existing test line changes.
 
 Mockup:
 Changes nothing on screen.
