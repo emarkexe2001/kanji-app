@@ -10,6 +10,8 @@ One Place for the Button Styles
 Origin:
 Refactor retro (2026-11-16). The filled, colour-coded buttons (standards §1) build their classes by hand each time: a background, a hover colour, white text, padding, rounding, shadow and `active:scale-95`, plus the matching High contrast class from `features/deck/utils/high-contrast-buttons.ts` (`HC_SKY_BUTTON`, `HC_INDIGO_BUTTON`, `HC_EMERALD_BUTTON`, `HC_ROSE_BUTTON`). That pairing is written out 7 times across `deck.tsx`, `shuffle-in-control.tsx` and `shuffled-out-view.tsx`. A new button has to copy one and remember its High contrast class. `high-contrast-buttons.ts` also sits in the deck feature, so other features (e.g. UI4's Try again in `app/`) can't use it under standards 3.4.
 
+Note (2026-11-16): CHORE6 splits `shuffled-out-view.tsx` into `shuffled-out-button.tsx`, `pick-card.tsx`, `shuffled-out-panel.tsx` and `shuffled-out-panel-footer.tsx`, and moves the close-on-outside code into `src/hooks/use-dismiss.ts`. If CHORE6 is merged, look for the code below in those files.
+
 Description:
 As a developer I would like one way to make a colour-coded button, with its Light, Dark and High contrast looks built in, so every button looks and behaves the same and new buttons can't miss a mode.
 
@@ -31,8 +33,11 @@ Screenshots of every button in Light, Dark and High contrast, before and after, 
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. A `<Button variant="…">` component, or a `buttonClass(variant)` helper that keeps plain `<button>` elements?
+   Answer (agreed 2026-11-16): A `buttonClass(variant, size)` helper in `src/lib/`, used on plain `<button>` elements.
 2. Should Next, Back, the panel's Cancel and the stepper buttons (− +) use it too, or only the filled colour buttons?
+   Answer (agreed 2026-11-16): Only the filled colour buttons: Shuffled out, Deck Shuffle, Shuffle In Cards, Add Back Cards, Clear List, Yes, Clear List and Recover cleared list. Next, Back, Cancel and the stepper buttons keep their own styles.
 3. CHORE tickets may skip the PR review agent (decided 2026-11-06), but this one changes app code. Should it still get a review agent?
+   Answer (agreed 2026-11-16): Yes, it gets a PR review agent.
 
 Mockup:
 Changes nothing on screen.
