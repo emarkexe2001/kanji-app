@@ -79,5 +79,27 @@ Agreed answers (2026-11-17):
 Mockup:
 No change on screen unless a loading state for Shuffle In Cards is added. If it is, mock that state up first (standards 5.1).
 
+Mockup approved 2026-11-17: https://claude.ai/artifact/86vMoX8sgHGtDhkpY3sB2U (Design canvas: today vs after, Light, Dark and High contrast, 360x640 and 1024x768).
+
+Agreed mockup answers (2026-11-17):
+6. **Shuffle In loading state:**
+   - The Shuffle In Cards button keeps its colour and shows a 16px spinner with "Loading cards…". A second press does nothing.
+   - Screen readers hear "Loading cards…". With reduced motion turned on, the spinner stands still.
+   - The box doesn't change size.
+   - The count and ticked-deck checks run before any wait.
+7. **Shuffle In error:** "Couldn't load the cards to shuffle in. Check your connection and press Shuffle In Cards to try again."
+   - It's shown right-aligned in the count message's place and read out to screen readers.
+   - Pressing Shuffle In Cards again retries. Any change clears it. The deck doesn't change.
+8. **Picking a deck to study before its file has loaded (part of ARCH2):**
+   - The current deck stays on screen and usable, with "Loading <deck>…" under the Deck row.
+   - If the file fails, the dropdown goes back to the old deck and shows "Couldn't load <deck>. Check your connection and pick it again."
+9. **While Shuffle In waits:** Next, Back, Deck Shuffle, the keys, Add Back and the Shuffled-out panel stay usable. The cards go in when the file arrives, using the deck as it is then, and the replaced card goes to Shuffled out.
+10. **Cancelling and timing:**
+    - There's no Cancel button. Changing anything in the Shuffle In box, switching decks or changing the card limit cancels the wait.
+    - The loading state shows straight away.
+    - There's no automatic retry for now; ARCH2 follows UI4's answer once it has one.
+    - A file that fails in the background stays silent and is downloaded again when it's needed.
+11. **Common words cards in saved data:** accepted for now. If the saved data holds a Common words card, every file loads before the first card (about 900 KB gzipped, the same as today). The PR notes this as a known gap.
+
 Branch name Examples:
 feature/smaller-deck-download
