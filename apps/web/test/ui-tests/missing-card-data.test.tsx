@@ -54,7 +54,7 @@ describe('Shuffled-out card with missing data (failure path)', () => {
     expect(within(items[0]).getByText('1')).toBeInTheDocument();
     expect(within(items[0]).getByText("This card can't be shown.")).toBeInTheDocument();
     expect(screen.getAllByText("This card can't be shown.")).toHaveLength(1);
-    expect(consoleError).toHaveBeenCalledWith('Error while drawing a card:', expect.any(TypeError), expect.anything());
+    expect(consoleError).not.toHaveBeenCalled();
     expect(addBack.getAllByRole('checkbox').map((c) => c.getAttribute('aria-label'))).toEqual(['N3単語1【たんご1】']);
     expect(screen.getByRole('button', { name: 'Clear List' })).toBeInTheDocument();
 
@@ -101,7 +101,7 @@ describe('Shuffled-out card with missing data (failure path)', () => {
     expect(within(items[2]).getByText('3')).toBeInTheDocument();
     expect(within(items[2]).getByText("This card can't be shown.")).toBeInTheDocument();
     expect(screen.getAllByText("This card can't be shown.")).toHaveLength(1);
-    expect(consoleError).toHaveBeenCalledWith('Error while drawing a card:', expect.any(TypeError), expect.anything());
+    expect(consoleError).not.toHaveBeenCalled();
     expect(takeOut.getAllByRole('checkbox').map((c) => c.getAttribute('aria-label'))).toEqual([
       'Card 1: N5単語1【たんご1】',
       'Card 2: N5単語2【たんご2】',

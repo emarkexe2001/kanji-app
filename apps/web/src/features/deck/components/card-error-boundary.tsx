@@ -1,9 +1,11 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { CardCantBeShown } from './card-cant-be-shown';
 
 /**
  * Wraps one card in a list of cards, so a card whose details can't be drawn (e.g. broken data)
  * shows a friendly message in its place and the rest of the list keeps working. The error is
- * logged to the console for debugging.
+ * logged to the console for debugging. A card whose data is missing is handled before it gets
+ * here (CHORE8); this stays as a safety net.
  */
 export class CardErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -17,13 +19,7 @@ export class CardErrorBoundary extends Component<{ children: ReactNode }, { hasE
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <p className="rounded-lg border border-dashed border-field-line bg-card p-2 text-xs text-muted-strong">
-          This card can&apos;t be shown.
-        </p>
-      );
-    }
+    if (this.state.hasError) return <CardCantBeShown />;
     return this.props.children;
   }
 }

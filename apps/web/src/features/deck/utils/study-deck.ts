@@ -169,9 +169,10 @@ export function addBack({ cards, removed, addIds, takeOut, now }: AddBackRequest
   }
 
   const byId = new Map(removed.map((r) => [r.id, r]));
-  const added = addIds.map((id) => byId.get(id));
+  // Only the picked cards still in the list, so a picked card that has gone shows as a shorter list.
+  const added = addIds.flatMap((id) => byId.get(id) ?? []);
   const inDeck = new Set(cards.map((c) => c.id));
-  if (added.some((r) => !r || inDeck.has(r.id))) {
+  if (added.length !== addIds.length || added.some((r) => inDeck.has(r.id))) {
     return { ok: false, error: 'Some of the picked cards are no longer in the shuffled-out list.' };
   }
   const positions = [...new Set(takeOut)].sort((a, b) => a - b);
@@ -181,7 +182,7 @@ export function addBack({ cards, removed, addIds, takeOut, now }: AddBackRequest
 
   const next = [...cards];
   positions.forEach((position, i) => {
-    const { id, deck } = added[i]!;
+    const { id, deck } = added[i];
     next[position] = { id, deck };
   });
   const takenOut = positions.map((p): RemovedCard => ({ ...cards[p], reason: 'swapped-out', removedAt: now }));

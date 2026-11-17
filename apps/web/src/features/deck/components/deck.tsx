@@ -68,6 +68,8 @@ export function Deck({
   const clearance = usePanelClearance(shuffledOutOpen, SHUFFLED_OUT_PANEL_ID, cardArea, panelTop, wide);
   // The card sits below the pop-up, as the slim card (ADJ2_5).
   const underPopUp = shuffledOutOpen && !wide;
+  // A held card is shown in place of the card on screen, unless there is none (see heldCard).
+  const entry = held ?? cards[index];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -79,6 +81,11 @@ export function Deck({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [next, back, deckShuffle]);
+
+  // The card on screen's data is missing (FEAT2_6). The deck error boundary shows its message in
+  // place of the deck, as it always has (CHORE8, answer 5); showing the message in the card stack
+  // instead is ticket UI6. Thrown after the hooks above, so they always run in the same order.
+  if (!entry) throw new Error('Card on screen has no data');
 
   return (
     <>
@@ -96,7 +103,7 @@ export function Deck({
       >
         <div className="flex w-full max-w-sm justify-center">
           <CardStack
-            entry={held ?? cards[index]}
+            entry={entry}
             move={move}
             isNew={held ? !!flights?.heldIsNew : isNew(index)}
             arrive={!flights?.quietArrival}

@@ -55,6 +55,14 @@ export default tseslint.config(
   { files: ['apps/web/**/*.tsx'], ...react.configs.flat['jsx-runtime'] },
   { files: ['apps/web/**/*.{ts,tsx}'], ...reactHooks.configs.flat['recommended-latest'] },
 
+  // No `!` non-null assertions in the app (CHORE8): something that can be missing, like a card's
+  // data, is checked, so TypeScript makes new code handle it. One that must stay needs an
+  // `eslint-disable-next-line` comment giving the reason.
+  {
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'error' },
+  },
+
   // Naming (standards 2.2): files and folders use kebab-case, tests in test/ included
   // (e.g. deck-size.test.ts, ui-tests/). Config files are exempt.
   {

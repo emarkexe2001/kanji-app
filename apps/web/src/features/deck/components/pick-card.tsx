@@ -10,13 +10,15 @@ import {
 } from '@kanji/core';
 import { useColorMode } from '../../../hooks/use-color-mode';
 import { DECK_LABELS, type DeckId } from '../utils/decks';
+import { CardCantBeShown } from './card-cant-be-shown';
 import { CardErrorBoundary } from './card-error-boundary';
 import { WordCard } from './word-card';
 
 const wordLabel = (w: WordEntry) => `${w.word}【${w.reading}】`;
 
 export interface ListedCard {
-  entry: WordEntry;
+  /** The card's data, or undefined when it is missing (FEAT2_6, CHORE8). */
+  entry: WordEntry | undefined;
   /** The deck it came from, shown as "From JLPT N4". */
   deck: DeckId;
   /** A shuffled-in card that still shows "New" in the deck. */
@@ -53,7 +55,7 @@ const FORCED_COLORS_PICK_CARD = [
 interface PickCardProps {
   /** Put before the word and reading in the card's name, e.g. "Card 3: ". */
   labelPrefix?: string;
-  card: ListedCard;
+  card: ListedCard & { entry: WordEntry };
   kind: PickKind;
   picked: boolean;
   onToggle: () => void;
@@ -65,24 +67,31 @@ interface PickCardProps {
 
 /**
  * One card in a list of cards to pick (FEAT2_5): its number above it, then the compact card,
- * picked by selecting the card itself. The card sits in its own error boundary, so a card that
- * can't be drawn shows "This card can't be shown." and the rest of the list keeps working.
+ * picked by selecting the card itself. A card whose data is missing shows "This card can't be
+ * shown." in its place, with nothing to pick (FEAT2_6, CHORE8), and the rest of the list keeps
+ * working. The card also sits in its own error boundary, as a safety net for a card that throws
+ * while it is drawn: that shows the same message.
  */
-export function PickCard({ number, ...props }: PickCardProps & { number: number }) {
+export function PickCard({
+  number,
+  card,
+  ...props
+}: Omit<PickCardProps, 'card'> & { card: ListedCard; number: number }) {
+  const { entry } = card;
   return (
     <li>
       <span className="mb-1 block text-[10px] font-bold text-muted tabular-nums wide:text-[11px]">{number}</span>
       <CardErrorBoundary>
-        <PickCardBody {...props} />
+        {entry ? <PickCardBody {...props} card={{ ...card, entry }} /> : <CardCantBeShown />}
       </CardErrorBoundary>
     </li>
   );
 }
 
 /**
- * The card itself. Everything drawn from the card's data, its name included, is worked out here,
- * inside the error boundary, so a card whose data is missing completely only breaks itself, not
- * the whole view (FEAT2_6).
+ * The card itself, for a card whose data is there. Everything drawn from the card's data, its name
+ * included, is worked out here, inside the error boundary, so a card whose data is broken only
+ * breaks itself, not the whole view (FEAT2_6).
  *
  * A picked card gets an outline and a tick, green when it is being added back and red when it is
  * being taken out. In a high-contrast (forced colours) mode, where those colours are dropped, see

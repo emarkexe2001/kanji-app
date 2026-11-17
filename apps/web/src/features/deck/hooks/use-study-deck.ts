@@ -141,7 +141,11 @@ export interface StudyDeck {
   choice: ShuffleChoice | null;
   /** Ticked decks that were unticked because they can't be shuffled in from any more (FEAT3), to tell the user. */
   unticked: DeckId[];
-  cards: WordEntry[];
+  /**
+   * The data of each card in the deck, or undefined for a card whose data is missing (FEAT2_6,
+   * CHORE8), so code that draws a card has to handle that.
+   */
+  cards: (WordEntry | undefined)[];
   /**
    * The id of each card in the deck, in the same order as `cards`. Taken from the saved deck, not
    * the card's data, so it is known even when a card's data is missing (FEAT2_6).
@@ -199,14 +203,16 @@ export interface StudyDeck {
  *   the deck now shows. `onScreen` is the card that was on screen before, and `onScreenIsNew`
  *   whether it showed "New" then.
  * `countChange` is how much the length of the shuffled-out list changed.
+ * A card whose data is missing is undefined (CHORE8), so it can be skipped; in `out`, `onScreen`
+ * is null when the card on screen wasn't one of them.
  */
 export type CardsMoved =
-  | { kind: 'out'; onScreen: WordEntry | null; hidden: number; countChange: number }
+  | { kind: 'out'; onScreen: WordEntry | null | undefined; hidden: number; countChange: number }
   | {
       kind: 'back';
       ids: string[];
-      cards: WordEntry[];
-      onScreen: WordEntry;
+      cards: (WordEntry | undefined)[];
+      onScreen: WordEntry | undefined;
       onScreenIsNew: boolean;
       countChange: number;
     };
@@ -215,7 +221,8 @@ export interface ShuffledOutCard {
   id: string;
   /** The deck the card came from. */
   deck: DeckId;
-  word: WordEntry;
+  /** The card's data, or undefined when it is missing (FEAT2_6, CHORE8). */
+  word: WordEntry | undefined;
 }
 
 /**
@@ -224,7 +231,12 @@ export interface ShuffledOutCard {
  * `library` must have at least one deck.
  */
 export function useStudyDeck(library: Library, limit: number): StudyDeck {
-  const [state, setState] = useState(() => loadState(library, loadStudiedDeck(library)!, limit));
+  const [state, setState] = useState(() => {
+    const studied = loadStudiedDeck(library);
+    // Only null for a library with no decks, which the app never studies (see Decks in app.tsx).
+    if (!studied) throw new Error('useStudyDeck needs a library with at least one deck.');
+    return loadState(library, studied, limit);
+  });
 
   useEffect(() => saveStudiedDeck(state.studied), [state.studied]);
   useEffect(
@@ -237,10 +249,11 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
   useEffect(() => saveRemovedCards(state.removed), [state.removed]);
   useEffect(() => saveClearedCards(state.cleared), [state.cleared]);
 
-  const cards = useMemo(() => state.cards.map((c) => library.byId.get(c.id)!), [state.cards, library]);
+  // A card's data can be missing (FEAT2_6), so each lookup can give undefined (CHORE8).
+  const cards = useMemo(() => state.cards.map((c) => library.byId.get(c.id)), [state.cards, library]);
   const cardIds = useMemo(() => state.cards.map((c) => c.id), [state.cards]);
   const shuffledOut = useMemo(
-    () => state.removed.map((r) => ({ id: r.id, deck: r.deck, word: library.byId.get(r.id)! })),
+    () => state.removed.map((r) => ({ id: r.id, deck: r.deck, word: library.byId.get(r.id) })),
     [state.removed, library],
   );
 
@@ -269,7 +282,7 @@ export function useStudyDeck(library: Library, limit: number): StudyDeck {
   const moved = useMemo((): CardsMoved | null => {
     const m = state.moved;
     if (!m) return null;
-    const word = (id: string) => library.byId.get(id)!;
+    const word = (id: string) => library.byId.get(id);
     return m.kind === 'out'
       ? { ...m, onScreen: m.onScreen && word(m.onScreen.id) }
       : { ...m, cards: m.ids.map(word), onScreen: word(m.onScreen.id) };

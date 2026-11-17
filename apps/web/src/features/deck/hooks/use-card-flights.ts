@@ -54,7 +54,10 @@ export interface CardFlights {
   shownCount: number;
   /** Goes up each time a card lands and changes the count, to bump the button. */
   bump: number;
-  /** While cards being added back slide down, and none has landed, the card the deck still shows. */
+  /**
+   * While cards being added back slide down, and none has landed, the card the deck still shows.
+   * Null when no card is held, or when the held card's data is missing (CHORE8).
+   */
   heldCard: WordEntry | null;
   /** Whether the held card showed "New" when it was on screen, so it keeps its ribbon while held. */
   heldIsNew: boolean;
@@ -126,6 +129,7 @@ function plan(moved: CardsMoved): Flight[] {
     // The deck already shows the card that slides in first, so the cards land exactly on it.
     return moved.cards.flatMap((entry, i): Flight[] => {
       const from = sourceBox(moved.ids[i]);
+      // A card whose data is missing (CHORE8), or with nowhere to start from, doesn't slide.
       if (!from || !entry) return [];
       return [
         {
@@ -146,6 +150,7 @@ function plan(moved: CardsMoved): Flight[] {
   }
 
   const flights: Flight[] = [];
+  // The card that was on screen slides out, unless it wasn't one of them or its data is missing (CHORE8).
   if (moved.onScreen) {
     // The deck already shows the new card, centred where the old one was, so the old one starts
     // at the same middle with its own height.
@@ -285,7 +290,9 @@ export function useCardFlights(study: StudyDeck): CardFlights {
     land,
     shownCount: Math.max(0, shuffledOut.length - pending),
     bump,
-    heldCard: held && study.moved?.kind === 'back' ? study.moved.onScreen : null,
+    // A held card whose data is missing (CHORE8) is null, as if none were held, so the deck shows
+    // the card now on screen straight away. That is what it did before; kept on purpose.
+    heldCard: (held && study.moved?.kind === 'back' ? study.moved.onScreen : null) ?? null,
     heldIsNew: !!held && study.moved?.kind === 'back' && study.moved.onScreenIsNew,
     quietArrival: study.moved !== null && study.moved === quietFor,
     whenBackLands,
