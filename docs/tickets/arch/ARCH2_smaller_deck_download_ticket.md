@@ -92,7 +92,7 @@ Agreed mockup answers (2026-11-17):
    - Pressing Shuffle In Cards again retries. Any change clears it. The deck doesn't change.
 8. **Picking a deck to study before its file has loaded (part of ARCH2):**
    - The current deck stays on screen and usable, with "Loading <deck>…" under the Deck row.
-   - If the file fails, the dropdown goes back to the old deck and shows "Couldn't load <deck>. Check your connection and pick it again."
+   - If the file fails, the dropdown goes back to the old deck and shows "Couldn't load <deck>. Pick it again to retry." (shortened by answer 15).
 9. **While Shuffle In waits:** Next, Back, Deck Shuffle, the keys, Add Back and the Shuffled-out panel stay usable. The cards go in when the file arrives, using the deck as it is then, and the replaced card goes to Shuffled out.
 10. **Cancelling and timing:**
     - There's no Cancel button. Changing anything in the Shuffle In box, switching decks or changing the card limit cancels the wait.
@@ -105,6 +105,7 @@ Agreed while writing the UI handover (2026-11-17):
 12. **Picking another deck cancels a Shuffle In wait** as soon as it's picked, even while that deck is still loading. Cards meant for the old deck never land in the new one.
 13. **Changing the card limit doesn't cancel a pending deck pick.** The new deck opens with the new limit once its file arrives.
 14. **The Deck row's loading and error line has reserved space:** a fixed slot under the Deck row, there at all times, so nothing on the page moves when the line appears or clears. This is drawn on the mockup under "Decisions added after approval".
+15. **The slot is one line, and the Deck error text is shorter (2026-11-17).** The slot is 22px (a 6px gap and a 16px line) and is always there, so the card sits 22px lower than today. At 360x640, Back/Next move from y 640 to y 662, which is accepted. The answer 8 error text didn't fit one line at 360px (372px for JLPT N1 and 415px for Common words, in a 328px slot), so it is now "Couldn't load <deck>. Pick it again to retry." (299px at most). The slot doesn't wrap, and its height is tested.
 
 Branch name Examples:
 feature/smaller-deck-download
