@@ -49,6 +49,33 @@ Questions / Clarifications:
 3. Should `deck.json` (and any new files) stay committed to git, or be built in CI and left out of the repo?
 4. Should the Common words deck keep all 17,387 words, or be trimmed?
 
+Measured before answering (2026-11-17, gzip level 9, `deck.json` on `main`):
+
+| Data | Words | Raw | Gzipped |
+|---|---|---|---|
+| Today's whole `deck.json` | 17,400 | 5.45 MB | 901 KB |
+| Same file, smaller format (option b) | 17,400 | 3.18 MB | 740 KB |
+| N5 only | 523 | 0.15 MB | 27 KB |
+| N4 only | 515 | 0.15 MB | 29 KB |
+| N3 only | 1,762 | 0.51 MB | 93 KB |
+| N2 only | 1,299 | 0.41 MB | 77 KB |
+| N1 only | 2,039 | 0.63 MB | 114 KB |
+| Common words | 17,387 | 5.44 MB | 900 KB |
+
+11,250 common words have no JLPT level, and 12 words are in no deck.
+
+Agreed answers (2026-11-17):
+1. **Option d: split files plus background loading (a + c).**
+   - The build writes one file per JLPT level and one file of the common words that have no JLPT level. No word is stored in two files. The Common words deck is built from the common words across all the files.
+   - A small manifest (or the code) lists which decks exist, so the deck menu and the saved-deck check work before every file has loaded.
+   - The first card waits only for the studied deck's files, plus the files of any deck named in the saved data (see answer 5). The other files then load in the background.
+   - If Shuffle In Cards needs a file that hasn't loaded yet, it waits for it with a loading state (to be mocked up first, standards 5.1). If that file fails, the error is handled as the requirements say, and the deck doesn't change.
+   - Option b (the smaller format) is not done: it saved only 18% gzipped.
+2. **Target:** with a JLPT deck studied and nothing from other decks saved, the first card waits for at most **150 KB gzipped** of deck data (N1, the biggest, is 114 KB). The Common words deck is exempt. Time to the first card on throttled Fast 4G is measured before and after and reported in the PR, with no fixed time to hit.
+3. **The built files stay committed to git**, as `deck.json` is today. The app works straight after cloning, and CI3 can publish the files as they are. `deck.json` is replaced by the new files rather than kept alongside them.
+4. **Common words keeps all 17,387 words.** Trimming it would change what is studied, so it would need its own ticket.
+5. **Added while checking the code (2026-11-17): saved cards from other decks.** The saved deck stores each card as `{ id, deck }`, and `toDeckCard` in `saved-deck.ts` drops any card whose id isn't in `library.byId`. With split files, a card shuffled in from another deck would be dropped on reload if its deck's file hadn't loaded yet. So, before the saved deck, the removed list and the cleared list are restored, the app loads the files of every deck named in them. The test "reload with a deck saved before this change" must include cards shuffled in from another deck, including Common words.
+
 Mockup:
 No change on screen unless a loading state for Shuffle In Cards is added. If it is, mock that state up first (standards 5.1).
 
