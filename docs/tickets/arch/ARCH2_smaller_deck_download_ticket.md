@@ -101,5 +101,10 @@ Agreed mockup answers (2026-11-17):
     - A file that fails in the background stays silent and is downloaded again when it's needed.
 11. **Common words cards in saved data:** accepted for now. If the saved data holds a Common words card, every file loads before the first card (about 900 KB gzipped, the same as today). The PR notes this as a known gap.
 
+Agreed while writing the UI handover (2026-11-17):
+12. **Picking another deck cancels a Shuffle In wait** as soon as it's picked, even while that deck is still loading. Cards meant for the old deck never land in the new one.
+13. **Changing the card limit doesn't cancel a pending deck pick.** The new deck opens with the new limit once its file arrives.
+14. **The Deck row's loading and error line has reserved space:** a fixed slot under the Deck row, there at all times, so nothing on the page moves when the line appears or clears. This is drawn on the mockup under "Decisions added after approval".
+
 Branch name Examples:
 feature/smaller-deck-download
