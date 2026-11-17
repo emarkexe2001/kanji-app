@@ -104,12 +104,32 @@ describe('the first card (ARCH2)', () => {
       'kanji.removedCards',
       JSON.stringify([{ id: 'N3-1', deck: 'N3', reason: 'shuffled-out', removedAt: 1 }]),
     );
-    // The no-level common words are named by no saved card, so the first card doesn't wait for them.
-    const { user } = await openWithHeld(['common-no-level.json']);
+    localStorage.setItem(
+      'kanji.clearedCards',
+      JSON.stringify([{ id: 'N2-1', deck: 'N2', reason: 'shuffled-out', removedAt: 1 }]),
+    );
+    const server = serveDeckSlowly(makeDecks({ N5: 30, N4: 30, N3: 30, N2: 30, common: 30 }), [
+      'n4.json',
+      'n3.json',
+      'n2.json',
+      'common-no-level.json',
+    ]);
+    const user = userEvent.setup();
+    render(<App />);
 
-    expect(requestedFiles().slice(0, 4)).toEqual(['decks.json', 'n5.json', 'n4.json', 'n3.json']);
+    // The first card waits for each named deck's file in turn.
+    for (const file of ['n4.json', 'n3.json', 'n2.json']) {
+      expect(await screen.findByText('Loading dictionary…')).toBeInTheDocument();
+      await server.arrive(file);
+    }
+    // The no-level common words are named by no saved card, so the first card doesn't wait for them.
+    expect(await screen.findByText(COUNTER)).toBeInTheDocument();
+    expect(server.requests('common-no-level.json')).toBeLessThanOrEqual(1);
+
     expect((await deckContents(user)).map((c) => c.level)).toEqual(['JLPT N5', 'JLPT N4', 'JLPT N5']);
     expect(shuffledOutButton()).toHaveAccessibleName('Shuffled out (1)');
+    await user.click(shuffledOutButton());
+    expect(screen.getByRole('button', { name: /^Recover/ })).toBeInTheDocument();
   });
 
   test('a Common words card in the saved data makes the first card wait for every file (answer 11, known gap)', async () => {
