@@ -72,4 +72,14 @@ describe('the committed deck files', () => {
       assert.ok(bytes <= TARGET_BYTES, `${file} and the manifest are ${bytes} bytes gzipped`);
     }
   });
+
+  it('are each described in data/README.md, which no longer says the build writes deck.json', () => {
+    const readme = readFileSync(new URL('../../data/README.md', import.meta.url), 'utf8');
+    const section = readme.split('## The deck files')[1]?.split('\n## ')[0] ?? '';
+    assert.ok(section, 'data/README.md has a "The deck files" section');
+    for (const file of [DECK_MANIFEST_FILE, NO_LEVEL_FILE, 'n5.json', 'n1.json']) {
+      assert.ok(section.includes(`\`${file}\``), `${file} is described`);
+    }
+    assert.ok(!readme.includes('deck.json'), 'data/README.md no longer mentions deck.json');
+  });
 });

@@ -1,7 +1,7 @@
 // ARCH2: the first card waits only for the studied deck's file, and the line under the Deck row
 // keeps its 22px whether it is empty, loading or showing an error, so nothing below it moves.
 import { expect, test, type Route } from '@playwright/test';
-import { currentCard, openApp, waitForDeck } from './helpers';
+import { DECK_LOAD_TIMEOUT, currentCard, openApp, waitForDeck } from './helpers';
 
 const counterTop = async (page: import('@playwright/test').Page) =>
   (await page.getByText(/^Card \d+ of \d+$/).boundingBox())?.y;
@@ -34,6 +34,9 @@ test('studying N5 with nothing saved, only decks.json and n5.json download befor
 test('the line under the Deck row is 22px when empty, loading and showing an error, and the card doesn’t move', async ({
   page,
 }) => {
+  // The files this test doesn't need are held back, so tests running side by side don't all
+  // download the whole dictionary from the one preview server at once (that made this test flaky).
+  await page.route(/\/data\/(n3|n2|n1|common-no-level)\.json$/, () => {});
   // Each request for n4.json waits until the test fails it, as when the network drops.
   const waiting: (() => void)[] = [];
   await page.route(/\/data\/n4\.json$/, async (route) => {
@@ -41,7 +44,8 @@ test('the line under the Deck row is 22px when empty, loading and showing an err
     await route.abort('internetdisconnected');
   });
   const failNext = async () => {
-    await expect.poll(() => waiting.length).toBeGreaterThan(0);
+    // The browser downloads only a few files at once, so the request can be queued for a while.
+    await expect.poll(() => waiting.length, { timeout: DECK_LOAD_TIMEOUT }).toBeGreaterThan(0);
     waiting.shift()?.();
   };
   await openApp(page, { colorMode: 'light', viewport: { width: 360, height: 640 } });
