@@ -51,3 +51,6 @@ ARCH3 (study deck reducer) touches the same hook. Do them one after the other. D
 
 Branch name Examples:
 chore/missing-card-data-types
+
+Completed On:
+2026-11-17 (PR #105)
