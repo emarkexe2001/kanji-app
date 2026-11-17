@@ -71,9 +71,9 @@ export async function openApp(page: Page, { colorMode, device = 'light', viewpor
 export const currentCard = (page: Page) => page.getByRole('article');
 
 /**
- * How long to wait for the dictionary to load and the first card to show. The dictionary is
- * 5.4 MB, and when several browsers load it at once it can take longer than `expect`'s usual 5
- * seconds (TEST7 review, R2).
+ * How long to wait for the dictionary to load and the first card to show. A deck that needs every
+ * file (Common words) downloads 5.4 MB, and when several browsers load at once it can take longer
+ * than `expect`'s usual 5 seconds (TEST7 review, R2; ARCH2 split the dictionary into files).
  */
 export const DECK_LOAD_TIMEOUT = 20_000;
 
