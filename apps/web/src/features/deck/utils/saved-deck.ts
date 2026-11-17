@@ -36,11 +36,41 @@ const writeJson = (key: string, value: unknown) => writeStorage(key, JSON.string
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
-/** The deck being studied: the saved choice if that deck still exists, otherwise the first deck. */
-export function loadStudiedDeck(library: Library): DeckId | null {
+/**
+ * The deck being studied, out of the decks that exist (`available`, in DECK_IDS order): the saved
+ * choice if that deck still exists, otherwise the first deck.
+ */
+export function studiedDeckFrom(available: DeckId[]): DeckId | null {
   const saved = readStorage(STUDIED_DECK_KEY);
-  if (isDeckId(saved) && library.decks.has(saved)) return saved;
-  return library.decks.keys().next().value ?? null;
+  if (isDeckId(saved) && available.includes(saved)) return saved;
+  return available[0] ?? null;
+}
+
+/** The deck being studied (see studiedDeckFrom). */
+export const loadStudiedDeck = (library: Library) => studiedDeckFrom(library.available);
+
+/** The decks of the cards in a saved list, without checking anything else about them. */
+const decksNamedIn = (list: unknown): DeckId[] =>
+  Array.isArray(list) ? list.flatMap((item) => (isRecord(item) && isDeckId(item.deck) ? [item.deck] : [])) : [];
+
+/**
+ * The decks whose words must download before the first card shows (ARCH2, answer 5): the studied
+ * deck, and every deck named in the saved deck (when it was saved for the studied deck), the
+ * shuffled-out list and the cleared list. Without them, a card shuffled in from another deck
+ * would be dropped as unknown when they are restored. Only decks that exist (`available`).
+ */
+export function decksToLoadFirst(available: DeckId[]): DeckId[] {
+  const studied = studiedDeckFrom(available);
+  if (!studied) return [];
+  const saved = readJson(SAVED_DECK_KEY);
+  const savedCards = isRecord(saved) && saved.deck === studied ? saved.cards : [];
+  const named = new Set<DeckId>([
+    studied,
+    ...decksNamedIn(savedCards),
+    ...decksNamedIn(readJson(REMOVED_KEY)),
+    ...decksNamedIn(readJson(CLEARED_KEY)),
+  ]);
+  return available.filter((d) => named.has(d));
 }
 
 export const saveStudiedDeck = (deck: DeckId) => writeStorage(STUDIED_DECK_KEY, deck);

@@ -7,9 +7,9 @@ test-results/
 playwright-report/
 blob-report/
 
-# Dictionary data and the generated deck (large, not hand-written)
+# Dictionary data and the generated deck files (large, not hand-written)
 data/
-apps/web/public/data/deck.json
+apps/web/public/data/
 
 # Docs and tickets are hand-written prose, not code. Prettier would re-indent the
 # plain-text lines that follow a list in the ticket template, so leave them alone.

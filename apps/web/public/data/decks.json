@@ -1,0 +1,45 @@
+{
+  "files": [
+    {
+      "file": "n5.json",
+      "decks": [
+        "N5",
+        "common"
+      ]
+    },
+    {
+      "file": "n4.json",
+      "decks": [
+        "N4",
+        "common"
+      ]
+    },
+    {
+      "file": "n3.json",
+      "decks": [
+        "N3",
+        "common"
+      ]
+    },
+    {
+      "file": "n2.json",
+      "decks": [
+        "N2",
+        "common"
+      ]
+    },
+    {
+      "file": "n1.json",
+      "decks": [
+        "N1",
+        "common"
+      ]
+    },
+    {
+      "file": "common-no-level.json",
+      "decks": [
+        "common"
+      ]
+    }
+  ]
+}

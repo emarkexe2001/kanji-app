@@ -29,8 +29,8 @@ vi.mock('../../src/features/deck/utils/decks', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../src/features/deck/utils/decks')>();
   return {
     ...real,
-    buildLibrary: (words: WordEntry[]) => {
-      const library = real.buildLibrary(words);
+    buildLibrary: (...args: Parameters<typeof real.buildLibrary>) => {
+      const library = real.buildLibrary(...args);
       for (const id of missing.ids) library.byId.set(id, undefined as unknown as WordEntry);
       missing.library = library;
       return library;
@@ -332,9 +332,9 @@ describe('useStudyDeck with no decks (review R1)', () => {
   test('given a library with no decks, it throws a clear error instead of studying nothing', () => {
     // React logs the error thrown while rendering; that noise isn't what is being tested.
     consoleError.mockImplementation(() => {});
-    const empty: Library = { decks: new Map(), byId: new Map() };
+    const empty: Library = { available: [], decks: new Map(), byId: new Map() };
 
-    expect(() => renderHook(() => useStudyDeck(empty, 10))).toThrow(
+    expect(() => renderHook(() => useStudyDeck(empty, 10, async () => empty))).toThrow(
       'useStudyDeck needs a library with at least one deck.',
     );
   });

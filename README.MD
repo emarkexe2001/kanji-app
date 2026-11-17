@@ -30,7 +30,7 @@ To run the checks locally please run the following commands
 `npm run lint` runs ESLint (`eslint.config.js`) over the whole repo. As well as general code quality, it checks the naming and import rules from `docs/standards/standards.md` (kebab-case file and folder names, no imports between features, shared folders don't import from features or app).
 
 ## Formatting
-All code is formatted by [Prettier](https://prettier.io/) (`.prettierrc`: single quotes, semicolons, 2-space indent, 120-character lines, Tailwind classes sorted by `prettier-plugin-tailwindcss`). Files listed in `.prettierignore` (build output, `node_modules`, `data/`, the generated `deck.json` and Markdown docs) are skipped.
+All code is formatted by [Prettier](https://prettier.io/) (`.prettierrc`: single quotes, semicolons, 2-space indent, 120-character lines, Tailwind classes sorted by `prettier-plugin-tailwindcss`). Files listed in `.prettierignore` (build output, `node_modules`, `data/`, the generated deck files in `apps/web/public/data/` and Markdown docs) are skipped.
 
 `npm run format` formats every file in place.
 

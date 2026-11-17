@@ -39,6 +39,16 @@ export function choiceSource({ mode, deck, ticked }: ShuffleChoice): ShuffleSour
   return { kind: 'deck', deck };
 }
 
+/**
+ * The decks Shuffle In Cards takes cards from while studying `studied`, whose words must have
+ * downloaded first (ARCH2): the chosen deck, every other deck for Random, or the ticked decks.
+ */
+export function sourceDecks(source: ShuffleSource, library: Library, studied: DeckId): DeckId[] {
+  if (source.kind === 'deck') return source.deck === studied ? [] : [source.deck];
+  if (source.kind === 'random') return otherDecks(library, studied);
+  return source.decks.filter((d) => d !== studied);
+}
+
 /** Multiple decks needs at least this many decks ticked, so it can only be chosen with this many other decks. */
 export const MIN_TICKED_DECKS = 2;
 

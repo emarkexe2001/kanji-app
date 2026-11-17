@@ -5,7 +5,14 @@ import { StrictMode } from 'react';
 import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { JLPT_COLORS, MODE_COLORS, READING_COLORS_BY_MODE, type ColorMode, type WordEntry } from '@kanji/core';
+import {
+  DECK_MANIFEST_FILE,
+  JLPT_COLORS,
+  MODE_COLORS,
+  READING_COLORS_BY_MODE,
+  type ColorMode,
+  type WordEntry,
+} from '@kanji/core';
 import App from '../../src/app/app';
 import { COLOR_MODE_KEY } from '../../src/lib/color-mode';
 import {
@@ -15,7 +22,9 @@ import {
   firstVisit,
   makeDecks,
   renderStartPage,
+  requestedFile,
   serveDeck,
+  serveDeckSlowly,
   startPageHeading,
   startPageTile,
   stubDevice,
@@ -145,8 +154,11 @@ describe('Choosing a mode on the start page (FEAT5_1)', () => {
     expect(await screen.findByText(COUNTER)).toBeInTheDocument();
     expect(modeButton()).toBeInTheDocument();
     expect(shuffledOutButton()).toHaveAccessibleName('Shuffled out (0)');
-    // The dictionary was asked for once, when the page opened: the app carried on, nothing reloaded.
-    expect(fetch).toHaveBeenCalledTimes(1);
+    // The dictionary was asked for when the page opened: the app carried on, nothing reloaded, so
+    // no file was asked for twice (ARCH2: the dictionary is now several files).
+    const files = vi.mocked(fetch).mock.calls.map(([url]) => requestedFile(url));
+    expect(files.length).toBeGreaterThan(0);
+    expect(new Set(files).size).toBe(files.length);
   });
 
   test('after I choose, focus moves to the colour mode button, so a screen reader says the mode', async () => {
@@ -448,17 +460,13 @@ describe('The start page with the keyboard (FEAT5_1)', () => {
 });
 
 describe('The start page and the dictionary (FEAT5_1)', () => {
-  /** Makes the request for deck.json wait until `finish` is called. */
+  /**
+   * Makes the dictionary wait until `finish` is called. The app asks for the manifest first and
+   * the word files once it has it (ARCH2), so holding back the manifest holds back the lot.
+   */
   function slowDeck(words: WordEntry[]) {
-    let finish = () => {};
-    const fetchMock = vi.fn(
-      () =>
-        new Promise((resolve) => {
-          finish = () => resolve({ ok: true, status: 200, json: async () => structuredClone(words) });
-        }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    return { fetchMock, finish: () => act(async () => finish()) };
+    const deck = serveDeckSlowly(words, [DECK_MANIFEST_FILE]);
+    return { fetchMock: vi.mocked(fetch), finish: () => deck.arrive(DECK_MANIFEST_FILE) };
   }
 
   test('the dictionary loads in the background while the start page is open, with no "Loading dictionary…" on it', () => {
