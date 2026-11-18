@@ -10,6 +10,7 @@ import {
 } from '@kanji/core';
 import { useColorMode } from '../../../hooks/use-color-mode';
 import { DECK_LABELS, type DeckId } from '../utils/decks';
+import { flightSourceMarker } from '../utils/dom-markers';
 import { CardCantBeShown } from './card-cant-be-shown';
 import { CardErrorBoundary } from './card-error-boundary';
 import { WordCard } from './word-card';
@@ -115,7 +116,7 @@ function PickCardBody({ labelPrefix = '', card, kind, picked, onToggle, sourceId
     // picked cards) and keyboard focus is a 2px yellow outline 5px out, clear of that ring.
     <label
       style={{ '--pick': outline } as CSSProperties}
-      data-flight-source={sourceId}
+      {...flightSourceMarker(sourceId)}
       className={`${gone ? 'invisible' : ''} relative block cursor-pointer rounded-lg transition has-checked:ring-2 has-checked:ring-(--pick) has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink-soft hc:has-checked:ring-3 hc:has-focus-visible:outline-offset-[5px] hc:has-focus-visible:outline-hc-focus ${FORCED_COLORS_PICK_CARD}`}
     >
       <input
