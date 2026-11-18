@@ -16,9 +16,21 @@ function watchResponses(page: Page): Response[] {
   return responses;
 }
 
-/** The responses with an error status (400 or more), as "status url", so a failure names them. */
+/**
+ * The responses for a missing file, as "status url", so a failure names them: an error status (400
+ * or more), or the page itself sent for something that isn't the page. vite preview (like the dev
+ * server) answers any unknown path with index.html and a 200, where a plain static host (CI3) would
+ * send a 404, so an HTML answer to a script, style, icon or data request means the file is missing.
+ */
 const failed = (responses: Response[]) =>
-  responses.filter((response) => response.status() >= 400).map((response) => `${response.status()} ${response.url()}`);
+  responses
+    .filter(
+      (response) =>
+        response.status() >= 400 ||
+        (response.request().resourceType() !== 'document' &&
+          /^text\/html\b/.test(response.headers()['content-type'] ?? '')),
+    )
+    .map((response) => `${response.status()} ${response.headers()['content-type']} ${response.url()}`);
 
 test('the page title is exactly "Kanji Reading Highlighter"', async ({ page }) => {
   const errors = await openApp(page, { colorMode: 'light' });
