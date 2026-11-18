@@ -1,4 +1,5 @@
 import { readStorage, writeStorage } from '../../../lib/storage';
+import { parseWholeNumber, type WholeNumberMessages, type WholeNumberResult } from '../../../lib/whole-number';
 
 /**
  * Card-limit rules from docs/tickets/completed_tickets/feat/selectable-card_limit_ticket.md:
@@ -10,22 +11,18 @@ export const DEFAULT_DECK_SIZE = 10;
 
 const SIZE_KEY = 'kanji.deckSize';
 
-export type DeckSizeResult = { ok: true; value: number } | { ok: false; error: string };
+export type DeckSizeResult = WholeNumberResult;
+
+const DECK_SIZE_MESSAGES: WholeNumberMessages = {
+  empty: 'Enter a card limit.',
+  notWhole: 'Card limit must be a whole number.',
+  tooSmall: `Card limit can't be 0 — enter at least ${MIN_DECK_SIZE}.`,
+  tooBig: `Card limit can't be more than ${MAX_DECK_SIZE}.`,
+};
 
 /** Validates a raw card-limit input (from the number field) against the 1–150 rule. */
 export function parseDeckSizeInput(raw: string): DeckSizeResult {
-  const trimmed = raw.trim();
-  if (trimmed === '') return { ok: false, error: 'Enter a card limit.' };
-  if (!/^\d+$/.test(trimmed)) return { ok: false, error: 'Card limit must be a whole number.' };
-
-  const value = Number(trimmed);
-  if (value < MIN_DECK_SIZE) {
-    return { ok: false, error: `Card limit can't be 0 — enter at least ${MIN_DECK_SIZE}.` };
-  }
-  if (value > MAX_DECK_SIZE) {
-    return { ok: false, error: `Card limit can't be more than ${MAX_DECK_SIZE}.` };
-  }
-  return { ok: true, value };
+  return parseWholeNumber(raw, { min: MIN_DECK_SIZE, max: MAX_DECK_SIZE, messages: DECK_SIZE_MESSAGES });
 }
 
 /** Clamps a size (e.g. from the +/- stepper buttons) into the valid 1–150 range. */
