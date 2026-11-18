@@ -82,7 +82,7 @@ describe('standards 5.1 one finalised mockup', () => {
 });
 
 describe('standards 5.4 parallel ticket work', () => {
-  const limit = () => bullet(pullRequests(), 'At most 2 code tickets at once, until TOOL6.');
+  const limit = () => bullet(pullRequests(), 'At most 2 code tickets at once.');
   const oneAtATime = () => bullet(pullRequests(), 'Merge one pull request at a time.');
 
   it('allows at most 2 code tickets at the same time, not counting docs-only pull requests', () => {
@@ -95,10 +95,10 @@ describe('standards 5.4 parallel ticket work', () => {
     assert.match(limit(), /treat CI as the gate/);
   });
 
-  it('says to look at the limit again once TOOL6 is merged, and to keep it until it is changed', () => {
+  it('says to look at the limit and the --workers=1 advice again once TOOL6 is merged, and to keep both until they are changed', () => {
     assert.match(limit(), new RegExp(TOOL6_PATH.replace(/\./g, '\\.')));
-    assert.match(limit(), /look at the 2-ticket limit again/);
-    assert.match(limit(), /keep it until it is changed/);
+    assert.match(limit(), /look at this limit and the `--workers=1` advice again/);
+    assert.match(limit(), /keep both until they are changed/);
   });
 
   it('points to a TOOL6 ticket that exists', () => {
