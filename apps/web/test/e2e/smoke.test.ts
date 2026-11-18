@@ -1,5 +1,5 @@
 import { expect, test, type Locator } from '@playwright/test';
-import { currentCard, openApp, waitForDeck } from './helpers';
+import { DECK_LOAD_TIMEOUT, currentCard, openApp, waitForDeck } from './helpers';
 
 /** Presses `button` and checks the card on screen changes (its word, reading and meaning). */
 async function pressAndExpectNewCard(card: Locator, button: Locator) {
@@ -15,6 +15,9 @@ async function pressAndExpectNewCard(card: Locator, button: Locator) {
 test('opens in the saved colour mode with a card, and Next, Deck Shuffle and Shuffle In Cards each change the card, with no page errors', async ({
   page,
 }) => {
+  // Shuffle In Cards takes cards from JLPT N4, whose file downloads in the background after the
+  // first card (ARCH2). Watched from the start, as it can arrive before the first card shows.
+  const n4Arrived = page.waitForResponse(/\/data\/n4\.json$/, { timeout: DECK_LOAD_TIMEOUT });
   // Dark is saved on a light device, so the page can only be dark if the saved mode was used.
   const errors = await openApp(page, { colorMode: 'dark', device: 'light' });
 
@@ -31,6 +34,8 @@ test('opens in the saved colour mode with a card, and Next, Deck Shuffle and Shu
 
   await pressAndExpectNewCard(card, page.getByRole('button', { name: 'Deck Shuffle', exact: true }));
 
+  // Wait for N4's words first, so the card changes on the press itself rather than after a download.
+  await n4Arrived;
   await pressAndExpectNewCard(card, page.getByRole('button', { name: 'Shuffle In Cards', exact: true }));
   await expect(page.getByRole('button', { name: /^Shuffled out \(1\)/ })).toBeVisible();
 
