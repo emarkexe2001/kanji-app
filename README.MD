@@ -14,7 +14,7 @@ The repo is an npm workspaces monorepo:
 |---|---|
 | `apps/web` | The web app (`@kanji/web`): the code in `src/`, its tests in `test/` |
 | `packages/core` | Shared code with no UI (`@kanji/core`): word types, splitting a word into its kanji readings, and splitting the dictionary into deck files |
-| `scripts/` | Repo scripts (building the deck, the commit message check, repeating the UI tests) and their tests in `scripts/test/` |
+| `scripts/` | Repo scripts (building the deck, the commit message check, CI's docs-only check, repeating the UI tests) and their tests in `scripts/test/` |
 | `data/` | The source dictionaries the deck is built from (see [data/README.md](data/README.md)) |
 | `docs/` | The standards, the testing guide, the tickets and the daily work diary |
 
@@ -102,14 +102,11 @@ In VS Code, install the recommended Prettier extension (`esbenp.prettier-vscode`
 Line endings are always LF (`.gitattributes`). If an older Windows checkout still has CRLF files and `npm run format:check` complains about them, run `npm run format` once (git will show no changes). To get LF files back from git instead, commit your work first, then run `git rm -r --cached -q . && git reset --hard` (this discards uncommitted changes), or make a fresh clone.
 
 ## Continuous integration
-The checks run automatically on GitHub (see `.github/workflows/ci.yml`) on every pull request to `main` and every push to `main`. The workflow installs the project with `npm ci`, then runs `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`, and the end-to-end tests in their own job. A docs-only pull request (every file under `docs/` or a Markdown file) runs only the commit message check and the scripts tests (standards 5.4). On pull requests it also checks every commit message against the rules in standards 5.5; a `commit-msg` hook (installed by `npm install`) checks them when you commit too. See `docs/testing.md` to run the check by hand. `main` is protected: changes can only reach it through a pull request, and a pull request can only be merged once this check is green. Direct pushes to `main` are rejected. An approving review is not required yet, because the project has a single maintainer; it will be added when someone else joins.
+The checks run automatically on GitHub (see `.github/workflows/ci.yml`) on every pull request to `main` and every push to `main`. The workflow installs the project with `npm ci`, then runs `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`, and the end-to-end tests in their own job. On pull requests it also checks every commit message against the rules in standards 5.5; a `commit-msg` hook (installed by `npm install`) checks them when you commit too. See `docs/testing.md` to run the check by hand. A docs-only pull request (every file under `docs/` or a Markdown file) runs only the commit message check and the scripts tests; the end-to-end job still starts and passes without running the tests (standards 5.4). `main` is protected: changes can only reach it through a pull request, and a pull request can only be merged once the required checks "Typecheck and test" and "End-to-end tests" are green. Direct pushes to `main` are rejected. An approving review is not required yet, because the project has a single maintainer; it will be added when someone else joins.
 
 ## Dictionary data and licences
 
-The words and readings come from the [EDRDG](https://www.edrdg.org/) dictionaries, through the JSON versions by [jmdict-simplified](https://github.com/scriptin/jmdict-simplified). The JLPT levels come from [open-anki-jlpt-decks](https://github.com/jamsinclair/open-anki-jlpt-decks). The app's footer credits them:
-
-- JMdict and KANJIDIC2 © EDRDG, used under [CC BY-SA 4.0](https://www.edrdg.org/edrdg/licence.html).
-- The JLPT lists from open-anki-jlpt-decks, under the MIT License (`data/raw/jlpt/LICENSE`), based on the lists at [tanos.co.uk](http://www.tanos.co.uk/jlpt/).
+The words and readings come from the [EDRDG](https://www.edrdg.org/) dictionaries, through the JSON versions by [jmdict-simplified](https://github.com/scriptin/jmdict-simplified). The JLPT levels come from [open-anki-jlpt-decks](https://github.com/jamsinclair/open-anki-jlpt-decks). The app's footer credits JMdict and KANJIDIC2 (© EDRDG, used under [CC BY-SA 4.0](https://www.edrdg.org/edrdg/licence.html)), and the JLPT levels from open-anki-jlpt-decks, based on the lists at [tanos.co.uk](http://www.tanos.co.uk/jlpt/). The JLPT lists are under the MIT License (`data/raw/jlpt/LICENSE`).
 
 [data/README.md](data/README.md) lists the exact source files and how to rebuild the deck.
 
