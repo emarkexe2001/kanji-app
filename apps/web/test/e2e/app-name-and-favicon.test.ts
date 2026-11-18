@@ -1,7 +1,8 @@
 // UI5: one app name, and a favicon. On the production build: the page title is the agreed name
 // (answer 1), the tab icon loads and nothing gets a 404 (answers 2 and 4), the head has the agreed
-// description (answer 7) and exactly the two icon links, with no manifest, home-screen icon or
-// theme colour (answers 3 and 5), and the header name stays on one line at 320px (FEAT5 rule).
+// description (answer 7) and exactly the two icon links, the same in every colour mode (answer 6),
+// with no manifest, home-screen icon or theme colour (answers 3 and 5), and the header name stays
+// on one line at 320px (FEAT5 rule).
 // The icon files themselves are checked in test/ui-tests/favicon-files.test.ts.
 import { expect, test, type Page, type Response } from '@playwright/test';
 import { openApp, waitForDeck } from './helpers';
@@ -14,6 +15,13 @@ function watchResponses(page: Page): Response[] {
   const responses: Response[] = [];
   page.on('response', (response) => responses.push(response));
   return responses;
+}
+
+/** Records, as "error url", every request from now on that got no answer at all (refused, dropped). */
+function watchDroppedRequests(page: Page): string[] {
+  const dropped: string[] = [];
+  page.on('requestfailed', (request) => dropped.push(`${request.failure()?.errorText} ${request.url()}`));
+  return dropped;
 }
 
 /**
@@ -44,6 +52,7 @@ test('the favicon loads, and no request gets a 404 or any other error, on the st
   page,
 }) => {
   const responses = watchResponses(page);
+  const dropped = watchDroppedRequests(page);
   // A first visit opens on the start page; choosing a mode then loads the deck files too.
   const errors = await openApp(page);
   await page.getByRole('button', { name: 'Light', exact: true }).click();
@@ -52,7 +61,9 @@ test('the favicon loads, and no request gets a 404 or any other error, on the st
 
   // The page's own requests (the page, its scripts and styles, and the deck files) all succeeded.
   expect(responses.some((response) => /\/data\/.+\.json$/.test(response.url()))).toBe(true);
+  expect(responses.some((response) => /\/assets\/.+\.js$/.test(response.url()))).toBe(true);
   expect(failed(responses)).toEqual([]);
+  expect(dropped).toEqual([]);
 
   // Headless Chromium doesn't fetch tab icons itself, so each icon link's address, as the page
   // resolves it (a wrong path or base would show here), is requested and checked.
@@ -67,6 +78,45 @@ test('the favicon loads, and no request gets a 404 or any other error, on the st
     expect(icon.headers()['content-type'], address).toMatch(/^image\//);
   }
   expect(errors).toEqual([]);
+});
+
+// The check above only fails if it sees a missing file as missing. vite preview answers a missing
+// file with the page and a 200, so this proves that answer is caught for a data request, a
+// stylesheet and an image, and that the page's own answer to "/" is not counted.
+test('the missing-file check counts a file the server does not have, though vite preview answers it with a 200', async ({
+  page,
+}) => {
+  const responses = watchResponses(page);
+  await openApp(page, { colorMode: 'light' });
+  await waitForDeck(page);
+  expect(failed(responses)).toEqual([]);
+
+  await page.evaluate(async () => {
+    await fetch('/data/no-such-file.json');
+    const style = document.createElement('link');
+    style.rel = 'stylesheet';
+    style.href = '/no-such-style.css';
+    const image = document.createElement('img');
+    image.src = '/no-such-icon.ico';
+    const settled = (element: HTMLElement) =>
+      new Promise((done) => {
+        element.addEventListener('load', done);
+        element.addEventListener('error', done);
+      });
+    const waits = [settled(style), settled(image)];
+    document.head.append(style);
+    document.body.append(image);
+    await Promise.all(waits);
+  });
+
+  const missing = failed(responses);
+  for (const path of ['/data/no-such-file.json', '/no-such-style.css', '/no-such-icon.ico']) {
+    expect(
+      missing.filter((line) => line.endsWith(path)),
+      path,
+    ).toEqual([expect.stringMatching(/^200 text\/html\b/)]);
+  }
+  expect(missing).toHaveLength(3);
 });
 
 test('/favicon.svg and /favicon.ico are served from the site root with icon content types', async ({ request }) => {
@@ -108,6 +158,28 @@ test('the head has exactly two icon links, the SVG then the .ico at 32x32, both 
     ['icon', '/favicon.svg', 'image/svg+xml', null],
     ['icon', '/favicon.ico', null, '32x32'],
   ]);
+});
+
+test('the icon links are the same in every colour mode, so the tab icon never changes (answer 6)', async ({
+  browser,
+}) => {
+  const linksIn = async (colorMode: string | undefined, device: 'light' | 'dark') => {
+    const page = await browser.newPage();
+    await openApp(page, { colorMode, device });
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    const links = await page
+      .locator('link[rel~="icon"]')
+      .evaluateAll((elements) => elements.map((element) => element.outerHTML));
+    await page.close();
+    return links;
+  };
+
+  const light = await linksIn('light', 'light');
+  expect(light).toHaveLength(2);
+  expect(await linksIn('dark', 'dark')).toEqual(light);
+  expect(await linksIn('high-contrast', 'light')).toEqual(light);
+  // A first visit on a dark device opens on the start page in Dark.
+  expect(await linksIn(undefined, 'dark')).toEqual(light);
 });
 
 test('there is no web app manifest, no home-screen icon and no theme colour (answers 3 and 5)', async ({

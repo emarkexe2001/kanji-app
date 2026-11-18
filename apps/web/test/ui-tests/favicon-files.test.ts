@@ -3,7 +3,7 @@
 // rules. favicon.ico holds the same icon at 16px and 32px, as PNGs, for browsers and tools that
 // ask for /favicon.ico. The built site serving them (with no 404) is checked in
 // test/e2e/app-name-and-favicon.test.ts.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { JLPT_COLORS } from '@kanji/core';
@@ -93,5 +93,24 @@ describe('favicon.ico (UI5, answer 4)', () => {
       end += entry.size;
     }
     expect(end).toBe(ICO.length);
+  });
+});
+
+describe('the icon files in public/ (UI5, answers 3, 4 and 5)', () => {
+  const INDEX_HTML = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8');
+  const head = new DOMParser().parseFromString(INDEX_HTML, 'text/html').head;
+
+  // The dev server serves public/ at the site root as it is (the build copies it, checked in the
+  // e2e test), so a link to a file that isn't in public/ would be a missing icon in dev.
+  test('each icon link in index.html points at a file in public/, so the dev server has it too', () => {
+    const hrefs = [...head.querySelectorAll('link[rel~="icon"]')].map((link) => link.getAttribute('href'));
+    expect(hrefs).toEqual(['/favicon.svg', '/favicon.ico']);
+    const files = readdirSync(PUBLIC);
+    for (const href of hrefs) expect(files).toContain(href!.slice(1));
+  });
+
+  test('public/ has no web app manifest, home-screen icon or PNG icons, only the two tab icons', () => {
+    const files = readdirSync(PUBLIC).filter((name) => statSync(resolve(PUBLIC, name)).isFile());
+    expect(files.sort()).toEqual(['favicon.ico', 'favicon.svg']);
   });
 });
