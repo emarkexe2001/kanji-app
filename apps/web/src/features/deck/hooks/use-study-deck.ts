@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { WordEntry } from '@kanji/core';
-import type { Move } from '../components/card-stack';
 import { goBack, rememberCard } from '../utils/card-history';
 import { DECK_LABELS, otherDecks, type DeckId, type Library } from '../utils/decks';
 import type { EnsureDecks } from './use-deck';
@@ -35,6 +34,12 @@ import {
   type RemovedCard,
   type ShuffleChoice,
 } from '../utils/study-deck';
+
+/**
+ * How the card on screen got there: dealt as the first card (the page loading or another deck
+ * studied), Next, Back, Deck Shuffle (or adding cards back), or Shuffle In Cards.
+ */
+export type Move = 'deal' | 'next' | 'back' | 'shuffle' | 'shuffle-in';
 
 interface StudyState {
   studied: DeckId;
