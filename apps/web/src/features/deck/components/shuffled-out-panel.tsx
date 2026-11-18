@@ -5,6 +5,12 @@ import { KEEP_PANEL_OPEN_ATTRIBUTE } from '../../../lib/keep-panel-open';
 import type { CardFlights } from '../hooks/use-card-flights';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { StudyDeck } from '../hooks/use-study-deck';
+import {
+  FLIGHT_CLIP_MARKER,
+  SHUFFLED_OUT_BUTTON_SELECTOR,
+  SHUFFLED_OUT_PANEL_ID,
+  findShuffledOutButton,
+} from '../utils/dom-markers';
 import { PickCard, type ListedCard } from './pick-card';
 import { ClearListConfirm, FOOTER_ROW, PANEL_FOOTER, RecoverButton } from './shuffled-out-panel-footer';
 
@@ -20,17 +26,11 @@ interface PanelView {
   deck: { id: string; card: ListedCard }[];
 }
 
-/** The id of the panel, which the "Shuffled out (N)" button controls (aria-controls). */
-export const SHUFFLED_OUT_PANEL_ID = 'shuffled-out-panel';
-
-/** The "Shuffled out (N)" button, found by the panel it controls, so focus can go back to it. */
-const toggleButton = () => document.querySelector<HTMLElement>(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`);
-
 /**
  * Presses that aren't outside the panel, although they are: the "Shuffled out (N)" button toggles
  * the panel itself, and the colour mode menu leaves it open (FEAT5).
  */
-const PANEL_KEEP_OPEN = `[aria-controls="${SHUFFLED_OUT_PANEL_ID}"], [${KEEP_PANEL_OPEN_ATTRIBUTE}]`;
+const PANEL_KEEP_OPEN = `${SHUFFLED_OUT_BUTTON_SELECTOR}, [${KEEP_PANEL_OPEN_ATTRIBUTE}]`;
 
 /** The cards to pick: two per row (ADJ2). They scroll with the rest of the panel's body. */
 const CARD_GRID = 'grid grid-cols-2 gap-x-2 gap-y-3 p-2';
@@ -132,7 +132,7 @@ export function ShuffledOutPanel({
   /** Closes the panel, with focus back on "Shuffled out (N)" unless it has just gone elsewhere. */
   const close = () => {
     const active = document.activeElement;
-    if (!active || active === document.body || panelRef.current?.contains(active)) toggleButton()?.focus();
+    if (!active || active === document.body || panelRef.current?.contains(active)) findShuffledOutButton()?.focus();
     onClose();
   };
   // Focus goes into the panel when it opens.
@@ -215,7 +215,7 @@ export function ShuffledOutPanel({
             submit();
           }}
         >
-          <div data-flight-clip className={PANEL_BODY}>
+          <div {...FLIGHT_CLIP_MARKER} className={PANEL_BODY}>
             <fieldset>
               <legend className="font-semibold text-ink-soft">Add back</legend>
               <ul className={CARD_GRID}>

@@ -1,5 +1,5 @@
 import { buttonClass } from '../../../lib/button-classes';
-import { SHUFFLED_OUT_PANEL_ID } from './shuffled-out-panel';
+import { SHUFFLED_OUT_PANEL_ID } from '../utils/dom-markers';
 
 /**
  * The "Shuffled out (N)" button bumps each time a card lands in it (ADJ3). `bump` goes up by one

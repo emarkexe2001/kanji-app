@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { WordEntry } from '@kanji/core';
-import { SHUFFLED_OUT_PANEL_ID } from '../components/shuffled-out-panel';
+import {
+  findCardStack,
+  findFlightClip,
+  findFlightSource,
+  findShuffledOutButton,
+  isSlimStack,
+} from '../utils/dom-markers';
 import { useReducedMotion } from './use-reduced-motion';
 import type { CardsMoved, StudyDeck } from './use-study-deck';
 
@@ -82,19 +88,19 @@ const boxOf = (el: Element): Box => {
  * card (ADJ2_5, while the pop-up is open), which has no blank cards or room for them below it.
  */
 function measureDeck() {
-  const stack = document.querySelector<HTMLElement>('[data-card-stack]');
+  const stack = findCardStack();
   if (!stack) return null;
   const box = boxOf(stack);
   const width = stack.offsetWidth;
   const scale = width ? box.w / width : 1;
-  const slim = stack.hasAttribute('data-slim');
+  const slim = isSlimStack(stack);
   const front = { ...box, h: Math.max(0, box.h - (slim ? 0 : STACK_PADDING) * scale) };
   return { stack: box, front, width, scale, slim };
 }
 
 /** Where a card shuffled out lands: shrunk onto the middle of the "Shuffled out (N)" button. */
 function intoButton(from: Box): Box {
-  const button = document.querySelector(`[aria-controls="${SHUFFLED_OUT_PANEL_ID}"]`);
+  const button = findShuffledOutButton();
   const b = button ? boxOf(button) : { x: from.x, y: 0, w: from.w, h: 0 };
   const w = from.w * AT_BUTTON_SCALE;
   const h = from.h * AT_BUTTON_SCALE;
@@ -106,10 +112,10 @@ function intoButton(from: Box): Box {
  * that shows (a card scrolled out of view starts from the panel's edge).
  */
 function sourceBox(id: string): Box | null {
-  const el = document.querySelector(`[data-flight-source="${CSS.escape(id)}"]`);
+  const el = findFlightSource(id);
   if (!el) return null;
   const box = boxOf(el);
-  const clip = el.closest('[data-flight-clip]');
+  const clip = findFlightClip(el);
   if (!clip) return box;
   const c = boxOf(clip);
   return { ...box, y: Math.min(Math.max(box.y, c.y), Math.max(c.y, c.y + c.h - box.h)) };

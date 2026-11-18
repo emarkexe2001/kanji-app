@@ -102,6 +102,12 @@ export default tseslint.config(
               except: [`./${feature}`],
               message: 'Features must not import from other features. Combine them in src/app/ instead.',
             })),
+            // Inside a feature, hooks and utils don't import from its components (CHORE9).
+            ...features.map((feature) => ({
+              target: ['hooks', 'utils'].map((dir) => `${WEB_SRC}/features/${feature}/${dir}`),
+              from: `${WEB_SRC}/features/${feature}/components`,
+              message: 'Hooks and utils must not import from components. Move the shared code to utils/ or hooks/.',
+            })),
             {
               target: `${WEB_SRC}/features`,
               from: `${WEB_SRC}/app`,
