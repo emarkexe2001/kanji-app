@@ -36,10 +36,13 @@ Every script named in the README exists in a `package.json`, and every link in i
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. Should a scripts test check that every script and link in the README exists, so it can't go stale again? A new test would make the PR no longer docs-only.
+   Answer (agreed 2026-11-18): No. The PR stays docs-only. Every script and link in the README is checked by hand, and the check is noted in the PR.
 2. Should the mobile app line stay ("Mobile platform stack (TBD)") or be removed until a mobile ticket exists?
+   Answer (agreed 2026-11-18): Remove it until a mobile ticket exists.
 
 Dependencies:
 UI5 decides the app name. Agree the name first.
+Note (2026-11-18): the name is agreed: "Kanji Reading Highlighter" (UI5 answer 1). The user chose to finish UI5 before CHORE5 starts.
 
 Branch name Examples:
 docs/update-readme

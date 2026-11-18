@@ -36,6 +36,7 @@ When the screen is 320px wide, the header name stays on one line (e2e)
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. Which name: "Kanji Reading Highlighter", "Colour Coded Kanji Card App", or something new?
+   Answer (agreed 2026-11-18): "Kanji Reading Highlighter", the name the page title and header already use. CHORE5 uses it in the README.
 2. What should the icon show (e.g. a kanji such as 読 or 字 on a JLPT-coloured card)? The mockup will show options side by side.
 3. Should this also add a home-screen icon and web app manifest (so it can be added to a phone's home screen), or leave that to CI3 or a later ticket?
 
