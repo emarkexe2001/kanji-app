@@ -1,6 +1,7 @@
 import type { WordEntry } from '@kanji/core';
 import { useReducedMotion } from '../hooks/use-reduced-motion';
 import type { Move } from '../hooks/use-study-deck';
+import { cardStackMarkers } from '../utils/dom-markers';
 import { WordCard } from './word-card';
 
 const ARRIVE_CLASS: Record<Move, string> = {
@@ -40,7 +41,7 @@ export function CardStack({
   const reducedMotion = useReducedMotion();
 
   return (
-    <div data-card-stack data-slim={slim || undefined} className={`relative w-full max-w-sm ${slim ? '' : 'pb-8'}`}>
+    <div {...cardStackMarkers(slim)} className={`relative w-full max-w-sm ${slim ? '' : 'pb-8'}`}>
       {!slim && (
         <>
           <div aria-hidden className="deck-back deck-back-far" />
