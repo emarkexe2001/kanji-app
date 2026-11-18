@@ -46,3 +46,6 @@ Note (2026-11-18): the name is agreed: "Kanji Reading Highlighter" (UI5 answer 1
 
 Branch name Examples:
 docs/update-readme
+
+Completed On:
+2026-11-18 (PR #127)
