@@ -48,5 +48,7 @@ Changes nothing on screen.
 Dependencies:
 ARCH2 would make the published app much faster on mobile data, but isn't needed first. UI5 (name and favicon) is worth doing before the app is shared.
 
+Note from UI5 (2026-11-18): UI5 left the web app manifest and the home-screen icons (including the iPhone `apple-touch-icon`) for CI3 or a new ticket (UI5 answers 3 and 5), because the manifest's start address depends on the sub-path chosen here. UI5's icon links in `apps/web/index.html` use root paths (`/favicon.svg`, `/favicon.ico`), so Vite adds the base path to them in the build. When this ticket sets `base`, check that both icons still load from the published address with no 404.
+
 Branch name Examples:
 ci/deploy-to-github-pages
