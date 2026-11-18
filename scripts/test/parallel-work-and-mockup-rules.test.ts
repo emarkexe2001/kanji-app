@@ -115,6 +115,9 @@ describe('standards 5.4 parallel ticket work', () => {
   it('is pointed to from the e2e section of testing.md', () => {
     const e2e = flat(section(read(TESTING_PATH), /^###\s+End-to-end \(e2e\) tests/));
     assert.match(e2e, /in parallel on one machine, run them with `npm run test:e2e -- --workers=1`/);
-    assert.match(e2e, /treat CI as the gate \(\[standards 5\.4\]\(standards\/standards\.md#54-pull-requests-and-merging\)\)/);
+    assert.match(
+      e2e,
+      /treat CI as the gate \(\[standards 5\.4\]\(standards\/standards\.md#54-pull-requests-and-merging\)\)/,
+    );
   });
 });
