@@ -1,6 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { WordEntry } from '@kanji/core';
 import { ColorModeMenu } from '../features/color-mode/components/color-mode-menu';
 import { ColorModeStartPage } from '../features/color-mode/components/color-mode-start-page';
 import { useColorModeChoice } from '../features/color-mode/hooks/use-color-mode-choice';
@@ -14,9 +13,9 @@ import { ShuffledOutButton } from '../features/deck/components/shuffled-out-butt
 import { ShuffledOutPanel } from '../features/deck/components/shuffled-out-panel';
 import { usePanelTop } from '../features/deck/hooks/use-panel-top';
 import { useCardFlights } from '../features/deck/hooks/use-card-flights';
-import { useDeck } from '../features/deck/hooks/use-deck';
+import { useDeck, type EnsureDecks } from '../features/deck/hooks/use-deck';
 import { useStudyDeck } from '../features/deck/hooks/use-study-deck';
-import { buildLibrary, type Library } from '../features/deck/utils/decks';
+import type { Library } from '../features/deck/utils/decks';
 import { ColorModeContext } from '../hooks/use-color-mode';
 import { DeckErrorBoundary } from './deck-error-boundary';
 
@@ -29,9 +28,17 @@ import { DeckErrorBoundary } from './deck-error-boundary';
  * open on a phone or tablet, the deck card moves below it as a slim card (see Deck).
  * Cards slide between the deck and the button or the panel as they move (ADJ3, see useCardFlights).
  */
-function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTMLElement | null }) {
+function StudyDeck({
+  library,
+  ensure,
+  headerSlot,
+}: {
+  library: Library;
+  ensure: EnsureDecks;
+  headerSlot: HTMLElement | null;
+}) {
   const [limit, setLimit] = useCardLimit();
-  const study = useStudyDeck(library, limit);
+  const study = useStudyDeck(library, limit, ensure);
   const [shuffledOutOpen, setShuffledOutOpen] = useState(false);
   const closeShuffledOut = useCallback(() => setShuffledOutOpen(false), []);
   const flights = useCardFlights(study);
@@ -52,7 +59,12 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
       {shuffledOutOpen && (
         <ShuffledOutPanel study={study} onClose={closeShuffledOut} flights={flights} top={panelTop} />
       )}
-      <DeckPicker decks={study.decks} value={study.studied} onChange={study.chooseDeck} />
+      <DeckPicker
+        decks={study.decks}
+        value={study.pendingDeck ?? study.studied}
+        message={study.deckMessage}
+        onChange={study.chooseDeck}
+      />
       <Deck study={study} shuffledOutOpen={shuffledOutOpen} panelTop={panelTop} flights={flights}>
         <ShuffleInControl study={study} />
         <CardLimitControl
@@ -68,17 +80,24 @@ function StudyDeck({ library, headerSlot }: { library: Library; headerSlot: HTML
   );
 }
 
-/** Builds the decks from the dictionary; there must be at least one to study. */
-function Decks({ words, headerSlot }: { words: WordEntry[]; headerSlot: HTMLElement | null }) {
-  const library = useMemo(() => buildLibrary(words), [words]);
-  if (!library.decks.size) {
+/** There must be at least one deck to study. */
+function Decks({
+  library,
+  ensure,
+  headerSlot,
+}: {
+  library: Library;
+  ensure: EnsureDecks;
+  headerSlot: HTMLElement | null;
+}) {
+  if (!library.available.length) {
     return (
       <p className="flex flex-1 items-center justify-center text-center text-danger-ink">
         The word deck has no words to study.
       </p>
     );
   }
-  return <StudyDeck library={library} headerSlot={headerSlot} />;
+  return <StudyDeck library={library} ensure={ensure} headerSlot={headerSlot} />;
 }
 
 export default function App() {
@@ -119,7 +138,7 @@ export default function App() {
         )}
         {colorModeChosen && deck.status === 'ready' && (
           <DeckErrorBoundary>
-            <Decks words={deck.words} headerSlot={headerSlot} />
+            <Decks library={deck.library} ensure={deck.ensure} headerSlot={headerSlot} />
           </DeckErrorBoundary>
         )}
 

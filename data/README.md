@@ -32,11 +32,49 @@ stay with the files). Jonathan Waller's original JLPT lists are shared under
 
 ## Rebuilding the deck
 
+Unzip the two release archives first (the unzipped `.json` files are gitignored), then build:
+
 ```bash
+unzip -o 'data/raw/*.zip' -d data/raw
 npm run data:build
 ```
 
-Reads `raw/*.json` and `raw/jlpt/*.csv` and writes `apps/web/public/data/deck.json`.
+Reads `raw/*.json` and `raw/jlpt/*.csv` and writes the deck files to `apps/web/public/data/`.
+The built files are committed, so the app works straight after cloning.
+
+## The deck files
+
+The dictionary is split so the app only downloads what the deck being studied needs (ARCH2). No
+word is in two files.
+
+| File | What it holds |
+|---|---|
+| `n5.json` … `n1.json` | the words of that JLPT level (common or not) |
+| `common-no-level.json` | the common words that have no JLPT level |
+| `decks.json` | the manifest: each word file, and the decks it has at least one word for |
+
+Each word file is an array of `WordEntry` (see `packages/core/src/types.ts`). The split itself is
+`splitDeckFiles` in `packages/core/src/deck-files.ts`, which the build and the app's tests share.
+A word that is neither common nor on a JLPT list is in no deck, so it isn't written (12 words in
+the 2026-10-20 build). The build prints each file's word count and size.
+
+Sizes in the 2026-10-20 build:
+
+| File | Words | Size | Gzipped (level 9) |
+|---|---|---|---|
+| `n5.json` | 523 | 142 KB | 27 KB |
+| `n4.json` | 515 | 149 KB | 29 KB |
+| `n3.json` | 1,762 | 499 KB | 91 KB |
+| `n2.json` | 1,299 | 399 KB | 75 KB |
+| `n1.json` | 2,039 | 616 KB | 111 KB |
+| `common-no-level.json` | 11,250 | 3,509 KB | 611 KB |
+
+How the app uses them: it downloads `decks.json` first, so every deck is listed straight away.
+The first card waits only for the files of the deck being studied and of any deck named in the
+saved data (the saved deck, the shuffled-out list and the cleared list); the other files then
+download in the background. A JLPT deck needs its own file. Common words needs every file, as it
+is made from the common words in all of them, so a Common words card in the saved data makes the
+first card wait for every file.
 
 Each word gets the JLPT level of the list it is on (`jlpt`). A list entry is matched to a JMdict
 word when one of the word's writings and readings is the same as the entry's (notes such as
@@ -44,8 +82,8 @@ word when one of the word's writings and readings is the same as the entry's (no
 JLPT decks never overlap. List entries written only in kana are skipped, because the deck only
 has words with kanji. The build prints how many entries of each level were matched.
 
-The app builds its decks from `deck.json`: JLPT N5–N1 from the `jlpt` field, and Common words
-from every word with `common: true`.
+The app builds its decks from the deck files: JLPT N5–N1 from the `jlpt` field, and Common words
+from every word with `common: true`, across all the files.
 
 Matched in the 2026-10-20 build:
 

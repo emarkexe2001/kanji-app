@@ -15,8 +15,8 @@ vi.mock('../../src/features/deck/utils/decks', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../src/features/deck/utils/decks')>();
   return {
     ...real,
-    buildLibrary: (words: WordEntry[]) => {
-      const library = real.buildLibrary(words);
+    buildLibrary: (...args: Parameters<typeof real.buildLibrary>) => {
+      const library = real.buildLibrary(...args);
       for (const id of missing.ids) library.byId.set(id, undefined as unknown as WordEntry);
       return library;
     },

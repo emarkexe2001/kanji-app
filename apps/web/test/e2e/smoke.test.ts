@@ -1,5 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test';
-import { currentCard, openApp, waitForDeck } from './helpers';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { DECK_LOAD_TIMEOUT, currentCard, openApp, waitForDeck } from './helpers';
 
 /** Presses `button` and checks the card on screen changes (its word, reading and meaning). */
 async function pressAndExpectNewCard(card: Locator, button: Locator) {
@@ -9,6 +9,28 @@ async function pressAndExpectNewCard(card: Locator, button: Locator) {
   expect(before).not.toBe('');
   await button.click();
   await expect(card).not.toHaveText(before);
+}
+
+/**
+ * Waits until the page has downloaded `file` from the deck data, going by the page's own record of
+ * what it downloaded (Resource Timing), so it works whether the file arrived before or after now.
+ */
+async function waitForDeckFile(page: Page, file: string) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          (name) =>
+            performance
+              .getEntriesByType('resource')
+              .some(
+                (entry) => entry.name.endsWith(`/data/${name}`) && (entry as PerformanceResourceTiming).responseEnd > 0,
+              ),
+          file,
+        ),
+      { timeout: DECK_LOAD_TIMEOUT },
+    )
+    .toBe(true);
 }
 
 // The main flow, quickly (TEST7): if this fails, the app is broken for everyone.
@@ -31,6 +53,9 @@ test('opens in the saved colour mode with a card, and Next, Deck Shuffle and Shu
 
   await pressAndExpectNewCard(card, page.getByRole('button', { name: 'Deck Shuffle', exact: true }));
 
+  // Shuffle In Cards takes cards from JLPT N4, whose file downloads in the background after the
+  // first card (ARCH2). Waiting for it first means the card changes on the press itself.
+  await waitForDeckFile(page, 'n4.json');
   await pressAndExpectNewCard(card, page.getByRole('button', { name: 'Shuffle In Cards', exact: true }));
   await expect(page.getByRole('button', { name: /^Shuffled out \(1\)/ })).toBeVisible();
 

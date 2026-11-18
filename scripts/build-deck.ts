@@ -4,16 +4,22 @@
  *
  *   npm run data:build
  *
- * Output: apps/web/public/data/deck.json — an array of WordEntry, one per JMdict word
- * that contains kanji and whose reading can be split across its kanji. Words on the JLPT
- * vocabulary lists in data/raw/jlpt/ get their `jlpt` level; the app builds its decks
- * (JLPT N5–N1 and Common words) from that field and the `common` flag.
+ * Output, in apps/web/public/data/ (ARCH2): one file per JLPT level (n5.json … n1.json), one
+ * file of the common words with no JLPT level (common-no-level.json) and a manifest (decks.json)
+ * listing the files and the decks each one has words for. Each word file is an array of
+ * WordEntry: JMdict words that contain kanji and whose reading can be split across their kanji.
+ * Words on the JLPT vocabulary lists in data/raw/jlpt/ get their `jlpt` level; the app builds its
+ * decks (JLPT N5–N1 and Common words) from that field and the `common` flag. No word is in two
+ * files, and words in no deck (not common, no level) aren't written.
  */
-import { readFileSync, readdirSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import {
+  DECK_MANIFEST_FILE,
   segmentWord,
+  splitDeckFiles,
   toHiragana,
   type KanjiIndex,
   type KanjiInfo,
@@ -26,7 +32,7 @@ import { JLPT_LEVELS, matchKey, parseJlptCsv, type JlptListEntry } from './jlpt-
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RAW = join(ROOT, 'data', 'raw');
 const JLPT_DIR = join(RAW, 'jlpt');
-const OUT = join(ROOT, 'apps', 'web', 'public', 'data', 'deck.json');
+const OUT_DIR = join(ROOT, 'apps', 'web', 'public', 'data');
 
 const findRaw = (prefix: string): string => {
   const f = readdirSync(RAW).find((n) => n.startsWith(prefix) && n.endsWith('.json'));
@@ -228,10 +234,21 @@ for (const w of words) {
   deck.push(entry);
 }
 
-mkdirSync(dirname(OUT), { recursive: true });
-writeFileSync(OUT, JSON.stringify(deck));
-
-const kb = (statSync(OUT).size / 1024).toFixed(0);
+mkdirSync(OUT_DIR, { recursive: true });
+// deck.json held every word in one file before ARCH2; the split files replace it.
+rmSync(join(OUT_DIR, 'deck.json'), { force: true });
+const split = splitDeckFiles(deck);
+const kb = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
+const written: string[] = [];
+for (const [file, fileWords] of split.files) {
+  const json = JSON.stringify(fileWords);
+  writeFileSync(join(OUT_DIR, file), json);
+  written.push(
+    `  ${file.padEnd(22)} ${String(fileWords.length).padStart(6)} words, ${kb(Buffer.byteLength(json))} ` +
+      `(${kb(gzipSync(json, { level: 9 }).length)} gzipped)`,
+  );
+}
+writeFileSync(join(OUT_DIR, DECK_MANIFEST_FILE), `${JSON.stringify(split.manifest, null, 2)}\n`);
 console.log(`KANJIDIC kanji indexed : ${kanjiIndex.size}`);
 console.log(`JMdict words (common)  : ${words.length}`);
 console.log(`  …containing kanji    : ${withKanji}`);
@@ -252,4 +269,7 @@ for (const [level, entries] of jlptLists) {
         .join(' ')}); ${tagged} deck words tagged ${level}`,
   );
 }
-console.log(`Wrote ${OUT} (${kb} KB)`);
+console.log(`Wrote ${OUT_DIR}:`);
+console.log(`  ${DECK_MANIFEST_FILE} (the files and the decks each one has words for)`);
+for (const line of written) console.log(line);
+console.log(`  Not written (in no deck: not common, no JLPT level): ${split.left.length} words`);

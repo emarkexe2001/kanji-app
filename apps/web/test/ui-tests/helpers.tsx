@@ -1,4 +1,4 @@
-import type { JlptLevel, WordEntry } from '@kanji/core';
+import { DECK_MANIFEST_FILE, splitDeckFiles, type JlptLevel, type WordEntry } from '@kanji/core';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
@@ -34,12 +34,65 @@ export function makeDecks(sizes: Partial<Record<JlptLevel | 'common', number>>):
   );
 }
 
-/** Makes the app's request for deck.json succeed with `words`. */
+/**
+ * The files the app downloads for `words`, by file name: the manifest (decks.json) and each word
+ * file, split the way `npm run data:build` splits the dictionary (ARCH2).
+ */
+export function deckFiles(words: unknown): Map<string, unknown> {
+  const { manifest, files } = splitDeckFiles(words as WordEntry[]);
+  return new Map<string, unknown>([[DECK_MANIFEST_FILE, manifest], ...files]);
+}
+
+/** The file name at the end of a request's URL, e.g. "n5.json". */
+export const requestedFile = (url: unknown) => String(url).split('/').pop() ?? '';
+
+/** A response to a fetch: `body` as JSON, or a 404 when it is undefined. */
+const respond = (body: unknown) =>
+  body === undefined
+    ? { ok: false, status: 404, json: async () => null }
+    : { ok: true, status: 200, json: async () => structuredClone(body) };
+
+/** Makes the app's requests for the dictionary's files succeed, serving `words` (see deckFiles). */
 export function serveDeck(words: unknown) {
+  const files = deckFiles(words);
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => ({ ok: true, status: 200, json: async () => structuredClone(words) })),
+    vi.fn(async (url: unknown) => respond(files.get(requestedFile(url)))),
   );
+}
+
+/**
+ * Serves `words` like serveDeck, but the files named in `held` wait until the test answers them
+ * (ARCH2): `arrive(file)` sends one, `fail(file)` makes it fail as when the network drops. Each
+ * request for a held file waits on its own, so a file asked for again after it failed waits again.
+ * `requests(file)` counts how often a file was asked for.
+ */
+export function serveDeckSlowly(words: unknown, held: string[]) {
+  const files = deckFiles(words);
+  const waiting = new Map<string, { resolve: (value: unknown) => void; reject: (e: unknown) => void }[]>();
+  const fetchMock = vi.fn((url: unknown) => {
+    const file = requestedFile(url);
+    if (!held.includes(file)) return Promise.resolve(respond(files.get(file)));
+    return new Promise((resolve, reject) => {
+      waiting.set(file, [...(waiting.get(file) ?? []), { resolve, reject }]);
+    });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  const settle = async (file: string, how: 'arrive' | 'fail') => {
+    const list = waiting.get(file) ?? [];
+    waiting.delete(file);
+    await act(async () => {
+      for (const { resolve, reject } of list) {
+        if (how === 'arrive') resolve(respond(files.get(file)));
+        else reject(new TypeError('Failed to fetch'));
+      }
+    });
+  };
+  return {
+    arrive: (file: string) => settle(file, 'arrive'),
+    fail: (file: string) => settle(file, 'fail'),
+    requests: (file: string) => fetchMock.mock.calls.filter(([url]) => requestedFile(url) === file).length,
+  };
 }
 
 export const COUNTER = /^Card \d+ of \d+$/;

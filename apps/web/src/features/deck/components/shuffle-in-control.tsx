@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { buttonClass } from '../../../lib/button-classes';
 import { HC_DISABLED_BUTTON } from '../../../lib/high-contrast-buttons';
-import type { StudyDeck } from '../hooks/use-study-deck';
+import type { ShuffleInResult, StudyDeck } from '../hooks/use-study-deck';
 import { DECK_IDS, DECK_LABELS, isDeckId, type DeckId } from '../utils/decks';
 import {
   MIN_TICKED_DECKS,
@@ -133,21 +133,41 @@ function TickedDecks({ sources, ticked, error, onChange }: TickedDecksProps) {
   );
 }
 
-type ShuffleInError = { at: 'decks' | 'count'; text: string };
+/**
+ * `load`: a source deck's words couldn't be downloaded (ARCH2). It shows in the count message's
+ * place, but isn't about the count field.
+ */
+type ShuffleInError = { at: 'decks' | 'count' | 'load'; text: string };
+
+const LOAD_ERROR =
+  "Couldn't load the cards to shuffle in. Check your connection and press Shuffle In Cards to try again.";
+
+/** The spinner in the button while it waits (ARCH2): 16px, in the text colour, still with reduced motion. */
+function Spinner() {
+  return (
+    <svg className="size-4 shrink-0 animate-spin motion-reduce:animate-none" viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
+      <path d="M8 1a7 7 0 0 1 7 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /**
  * Shuffle In Cards: swaps the card on screen (and, for more than one card, other random cards)
  * for new cards from other decks. The user picks where they come from (one deck, a random deck
- * for each card, or several ticked decks) and how many.
+ * for each card, or several ticked decks) and how many. If a source deck's words haven't
+ * downloaded yet, the button shows "Loading cards…" until they have (ARCH2).
  */
 export function ShuffleInControl({ study }: { study: StudyDeck }) {
   const [count, setCount] = useState('1');
   const [error, setError] = useState<ShuffleInError | null>(null);
   const { choice, sources, unticked } = study;
+  const loading = study.shuffleInWaiting;
 
-  // Picking another deck to study or changing the card limit makes the messages out of date, so
-  // they are cleared (adjusting state while rendering, as React recommends over an effect).
-  const deckKey = `${study.studied}:${study.cards.length}`;
+  // Picking another deck to study (even one still loading) or changing the card limit makes the
+  // messages out of date, so they are cleared (adjusting state while rendering, as React
+  // recommends over an effect).
+  const deckKey = `${study.studied}:${study.cards.length}:${study.pendingDeck ?? ''}`;
   const [errorDeckKey, setErrorDeckKey] = useState(deckKey);
   if (errorDeckKey !== deckKey) {
     setErrorDeckKey(deckKey);
@@ -172,21 +192,35 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
     );
   }
 
-  // Any change the user makes clears the messages.
+  // Any change the user makes clears the messages, and cancels a Shuffle In Cards that is waiting.
   const change = (next: Partial<ShuffleChoice>) => {
+    study.cancelShuffleIn();
     study.setChoice({ ...choice, ...next });
     setError(null);
   };
 
+  const show = (result: ShuffleInResult) => {
+    if (result.status === 'failed') setError({ at: 'count', text: result.error });
+    else if (result.status === 'load-failed') setError({ at: 'load', text: LOAD_ERROR });
+    else if (result.status === 'done') setError(null);
+  };
+
   const submit = () => {
+    // A second press while waiting does nothing.
+    if (loading) return;
+    // The checks run first, with no waiting.
     const tickError = choice.mode === 'multiple' ? checkTicked(choice.ticked) : null;
     if (tickError) return setError({ at: 'decks', text: tickError });
     const parsed = parseShuffleInCount(count, study.cards.length);
-    const failed = parsed.ok ? study.shuffleIn(parsed.value) : parsed.error;
-    setError(failed ? { at: 'count', text: failed } : null);
+    if (!parsed.ok) return setError({ at: 'count', text: parsed.error });
+    setError(null);
+    const result = study.shuffleIn(parsed.value);
+    if (result instanceof Promise) result.then(show);
+    else show(result);
   };
 
   const countError = error?.at === 'count' ? error.text : null;
+  const loadError = error?.at === 'load' ? error.text : null;
 
   return (
     <form
@@ -197,6 +231,12 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
         submit();
       }}
     >
+      {/* Always rendered, so screen readers hear "Loading cards…" when it starts. First in the box,
+        where its spacing can't move anything, as it takes no room. aria-live rather than
+        role="status", so it isn't taken for the unticked notice (the box's status message). */}
+      <p aria-live="polite" aria-atomic="true" className="sr-only">
+        {loading ? 'Loading cards…' : ''}
+      </p>
       <ModeSwitch
         mode={choice.mode}
         multipleAllowed={sources.length >= MIN_TICKED_DECKS}
@@ -248,6 +288,7 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
           max={study.cards.length}
           value={count}
           onChange={(e) => {
+            study.cancelShuffleIn();
             setCount(e.target.value);
             setError(null);
             study.clearUnticked();
@@ -262,9 +303,32 @@ export function ShuffleInControl({ study }: { study: StudyDeck }) {
           {countError}
         </p>
       )}
-      <button type="submit" className={`w-full ${buttonClass('emerald', 'full')}`}>
-        Shuffle In Cards
-      </button>
+      {loadError && (
+        <p id="shuffle-in-load-error" role="alert" className={`text-right ${errorClass}`}>
+          {loadError}
+        </p>
+      )}
+      {loading ? (
+        // aria-disabled, not disabled, so focus stays on the button; it keeps its colour, as it is
+        // working, not unavailable. onSubmit ignores a second press.
+        <button
+          type="submit"
+          aria-disabled="true"
+          aria-busy="true"
+          className={`flex w-full cursor-wait items-center justify-center gap-2 ${buttonClass('emerald', 'full')}`}
+        >
+          <Spinner />
+          Loading cards…
+        </button>
+      ) : (
+        <button
+          type="submit"
+          aria-describedby={loadError ? 'shuffle-in-load-error' : undefined}
+          className={`w-full ${buttonClass('emerald', 'full')}`}
+        >
+          Shuffle In Cards
+        </button>
+      )}
     </form>
   );
 }
