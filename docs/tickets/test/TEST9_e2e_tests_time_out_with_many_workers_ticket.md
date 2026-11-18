@@ -17,6 +17,13 @@ TEST7 review (PR #80, finding R2, 2026-11-11), left as an open question in that 
 
 The R2 fix (`waitForDeck(page)` in `test/e2e/helpers.ts`, which waits up to 20s for the first card while the 5.4 MB dictionary loads) didn't help at 8 workers. Only 2 of the 10 "after" failures were that deck wait. The rest hit Playwright's 30s *test* timeout in `page.goto`, `page.reload` or even "while setting up "page"", so the machine seems overloaded by 8 browsers plus one `vite preview` server, not only by the dictionary download. CI uses 2 workers (GitHub's runner has 2 cores) and passes. There are only 2 e2e tests today, so a normal `npm run test:e2e` doesn't hit this yet, but it will as TEST7_5 and later tickets add e2e tests.
 
+Found again while testing ARCH2 (PR #113, 2026-11-17). ARCH2 splits the dictionary into seven files, so each page now makes about ten requests to the `vite preview` server instead of four. On that branch, 8 workers:
+- `npm run test:e2e -- smoke --repeat-each=16`: 1 failed, 15 passed (42.5s). On main `88b5d9c`: 16 passed (23.8s).
+- The failing requests waited about 10 seconds for the server's first byte (Playwright trace timings: `wait` 10,022 to 10,112 ms for five deck files, while the same files take 8 to 26 ms when one test runs alone).
+- A plain Node script that fetched every deck file from 8 clients at once (keep-alive, 6 sockets each) never waited more than a second. The same build opened by 6 or more Chromium browsers at once had one browser wait 9,996 ms for `n5.json` (and, in another try, time out on `page.goto`). Copying the build out of the OneDrive folder didn't help. So the stall seems to need several real browsers, not just many requests.
+- At 2 or 4 workers the same tests passed (e.g. `--workers=2 --repeat-each=6`: 6 passed).
+- ARCH2's new e2e tests hold back the deck files they don't need (`page.route`) to keep the load down, and the full run passes at 8 workers (14 passed), but the smoke test still downloads every file in the background.
+
 Description:
 As a developer I would like `npm run test:e2e` to pass on my machine with its default settings, so that a red e2e run always means the code is broken, never that too many tests ran at once.
 
