@@ -32,8 +32,11 @@ No file in `features/deck/hooks/` imports from `features/deck/components/` (chec
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. Should an ESLint import rule stop hooks and utils from importing components (like the existing feature import rules, standards 3.4)?
+   Answer (agreed 2026-11-18): Yes. Add an ESLint import rule that stops files in `features/*/hooks/` and `features/*/utils/` from importing from `features/*/components/`, next to the existing feature import rules.
 2. Should refs (React `ref`s passed down) replace some of the page lookups instead? That is a bigger change.
+   Answer (agreed 2026-11-18): No. Keep the page lookups, behind the helpers in the one shared file. Refs can be a later ticket if wanted.
 3. CHORE tickets may skip the PR review agent (decided 2026-11-06), but this one changes app code. Should it still get a review agent?
+   Answer (agreed 2026-11-18): Yes, as for CHORE6, CHORE7 and CHORE8.
 
 Mockup:
 Changes nothing on screen.
