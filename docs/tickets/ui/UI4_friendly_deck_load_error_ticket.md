@@ -46,6 +46,11 @@ Questions / Clarifications:
 3. Should dev builds still show the `npm run data:build` hint on screen, or only in the console?
 4. Should the app try again by itself once (e.g. after 2 seconds) before showing the button?
 
+Note from ARCH2 (review R5, 2026-11-18):
+- After ARCH2 (PR #113), start-up no longer loads `deck.json`. It loads the `decks.json` manifest and the files the studied deck needs (`n5.json` … `n1.json`, `common-no-level.json`), and the rest in the background. "The deck fails to load" now means the manifest or one of those first files failing.
+- If any of them fails, the app still shows the old "Did you run `npm run data:build`?" message, and doesn't try again until the page is reloaded. This ticket's error screen and Try again should cover that case. The loader forgets a file that failed, so Try again can ask for just the failed files again.
+- ARCH2's own Shuffle In and Deck pick load errors will follow this ticket's answer to question 4 (ARCH2 answer 10).
+
 Mockup:
 Needed before work starts (standards 5.1): today's error screen and the new one, at 360px and 1024px, in Light, Dark and High contrast.
 
