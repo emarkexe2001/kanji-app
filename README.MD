@@ -1,4 +1,4 @@
-# Colour Coded Kanji Card App
+# Kanji Reading Highlighter
 
 A kanji card styled application (Web and Mobile) with colour coding for the different types of reading that can be encountered when looking at different kanjis (Based off onyomi and kunyomi readings). I was really struggling to understand and recall different kanji readings so I decided to make this application to help me better understand different readings! Built using Angular + Tailwind CSS (Web App)
 
