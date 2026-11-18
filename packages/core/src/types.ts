@@ -18,7 +18,7 @@ export interface ReadingSegment {
 
 /** Everything a popover card needs to render one word. */
 export interface WordEntry {
-  /** JMdict entry id (absent for hand-written samples). */
+  /** JMdict entry id (absent for hand-written words, e.g. in tests). */
   id?: string;
   /** Surface form, e.g. "食べる". */
   word: string;

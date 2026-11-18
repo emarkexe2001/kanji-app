@@ -3,6 +3,7 @@
  * limit changes, and shuffling new cards in from other decks. Plain functions so they are easy
  * to test; the hook in hooks/use-study-deck.ts keeps the state and saves it.
  */
+import { parseWholeNumber, type WholeNumberResult } from '../../../lib/whole-number';
 import { DECK_IDS, DECK_LABELS, cardId, otherDecks, type DeckId, type Library } from './decks';
 
 /** A card in the saved deck, and the deck it came from (shown by FEAT2 once it is shuffled out). */
@@ -236,24 +237,22 @@ export function resizeCards(
   };
 }
 
-export type CountResult = { ok: true; value: number } | { ok: false; error: string };
+export type CountResult = WholeNumberResult;
 
 const cardsWord = (n: number) => (n === 1 ? 'card' : 'cards');
 
 /** Validates the "Cards to shuffle in" field: a whole number from 1 up to the card limit. */
 export function parseShuffleInCount(raw: string, cardLimit: number): CountResult {
-  const trimmed = raw.trim();
-  if (trimmed === '') return { ok: false, error: 'Enter how many cards to shuffle in.' };
-  if (!/^\d+$/.test(trimmed)) return { ok: false, error: 'Cards to shuffle in must be a whole number.' };
-  const value = Number(trimmed);
-  if (value < 1) return { ok: false, error: 'Shuffle in at least 1 card.' };
-  if (value > cardLimit) {
-    return {
-      ok: false,
-      error: `You can't shuffle in more than ${cardLimit} ${cardsWord(cardLimit)}, your card limit.`,
-    };
-  }
-  return { ok: true, value };
+  return parseWholeNumber(raw, {
+    min: 1,
+    max: cardLimit,
+    messages: {
+      empty: 'Enter how many cards to shuffle in.',
+      notWhole: 'Cards to shuffle in must be a whole number.',
+      tooSmall: 'Shuffle in at least 1 card.',
+      tooBig: `You can't shuffle in more than ${cardLimit} ${cardsWord(cardLimit)}, your card limit.`,
+    },
+  });
 }
 
 export type ShuffleInResult =

@@ -3,6 +3,7 @@
  * jamsinclair/open-anki-jlpt-decks, see data/README.md) so build-deck.ts can tag JMdict words
  * with their JLPT level. The files are treated as plain data: they are only parsed here.
  */
+import { toHiragana } from '../packages/core/src/segment';
 import type { JlptLevel } from '../packages/core/src/types';
 
 /** Easiest first: a word listed under several levels is put in the easiest one. */
@@ -50,7 +51,6 @@ export function parseCsv(text: string): string[][] {
 }
 
 const hasKanji = (s: string) => /[㐀-䶿一-鿿々]/.test(s);
-const toHiragana = (s: string) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
 /**
  * Removes the notes the lists add around a word: "(かん)" style comments, "～" placeholders for
