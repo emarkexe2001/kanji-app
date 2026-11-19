@@ -64,6 +64,7 @@ When the app is in Dark mode, "Yes, Clear List" and "Recover cleared list (N)" e
 Questions / Clarifications:
 (Before starting, read the ticket against docs/standards/standards.md. Write each conflict or unclear point here as a question, then write the agreed answer and its date under it. Write "None" if there are no questions.)
 1. If the `shuffled-out.test.tsx` failures turn out to be TEST8's slowness, should they be added to TEST8 or left alone?
+   Answer (agreed 2026-11-19): Add them to TEST8 with the evidence (test names, times, error text), so they are fixed with the other slow tests.
 
 Mockup:
 Changes nothing on screen.
