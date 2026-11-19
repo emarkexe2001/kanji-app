@@ -618,6 +618,28 @@ describe('Dark mode colours (FEAT5)', () => {
     expect(MODE_COLORS.dark['back-line']).not.toBe('transparent');
   });
 
+  // The other two filled buttons (TEST11), checked the same way as the five above.
+  test('in Dark "Yes, Clear List" keeps its colour', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleOutOne(user);
+    await choose(user, 'Dark');
+    await user.click(shuffledOutButton());
+    await user.click(screen.getByRole('button', { name: 'Clear List' }));
+
+    expect(screen.getByRole('button', { name: 'Yes, Clear List' })).toHaveClass('bg-rose-600', 'text-white');
+  });
+
+  test('in Dark "Recover cleared list (N)" keeps its colour', async () => {
+    const user = await renderApp(DECKS);
+    await shuffleOutOne(user);
+    await choose(user, 'Dark');
+    await user.click(shuffledOutButton());
+    await user.click(screen.getByRole('button', { name: 'Clear List' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, Clear List' }));
+
+    expect(screen.getByRole('button', { name: 'Recover cleared list (1)' })).toHaveClass('bg-sky-600', 'text-white');
+  });
+
   test('the whole app takes its colours from the mode: no fixed light colours are left on the page', async () => {
     const user = await renderApp(COLOURFUL);
     await shuffleOutOne(user);
