@@ -42,6 +42,8 @@ Questions / Clarifications:
    Answer (agreed 2026-11-19): Both. `docs/testing.md` explains how, and one line in standards 5.4, next to the "At most 2 code tickets at once" rule (PR #129), says each e2e run that shares a machine uses its own `E2E_PORT`. The 2-ticket limit and the `--workers=1` advice stay as they are. They are looked at again after this ticket merges (agreed 2026-11-18).
 3. Busy-machine timeouts in the web UI tests (TEST8) were the other cost of running agents at once. Should this ticket also cap the web UI tests' workers when a variable is set, or leave that to TEST8 and TEST9?
    Answer (agreed 2026-11-19): Leave it to TEST8 and TEST9. This ticket only changes the e2e port.
+4. (Added 2026-11-19, from the feature agent.) Should a value with a leading zero, e.g. `04180`, be accepted as port 4180, or rejected?
+   Answer (agreed 2026-11-19): Accept it as 4180. It is the same port, so it does no harm. A test covers it, so it is a deliberate choice.
 
 Dependencies:
 None. It changes `playwright.config.ts`, which TEST9 (e2e flakiness at 8 workers) may also change, so don't run the two at the same time. Agreed order (2026-11-18): after the CHORE tickets, with TEST9.
