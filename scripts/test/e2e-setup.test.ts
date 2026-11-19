@@ -1,19 +1,20 @@
 // TEST7: the end-to-end (e2e) test setup: the npm scripts, the Playwright config, the CI job,
 // the ignored output folders and the docs. The e2e tests themselves are in apps/web/test/e2e/
-// and run with `npm run test:e2e`.
+// and run with `npm run test:e2e`. TOOL6 added the port per run, set with `E2E_PORT`.
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { ESLint } from 'eslint';
 import * as prettier from 'prettier';
-import config from '../../apps/web/playwright.config.ts';
+import config, { e2ePort } from '../../apps/web/playwright.config.ts';
 import { job, SKIPPED_ON_DOCS_ONLY, stepFor, stepRunning, stepsOf, workflowCode } from './ci-workflow.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const read = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const scriptsOf = (path: string): Record<string, string> => JSON.parse(read(path)).scripts;
+const CONFIG_URL = new URL('../../apps/web/playwright.config.ts', import.meta.url).href;
 
 describe('the e2e npm scripts', () => {
   const root = scriptsOf('package.json');
@@ -68,6 +69,95 @@ describe('the Playwright config', () => {
   });
 });
 
+/**
+ * Loads playwright.config.ts in a new Node process with `E2E_PORT` set to `port` (left out when
+ * `undefined`), as `npm run test:e2e` does, so the port this test process was started with doesn't
+ * matter. Returns the exit code, the server's command and url and `use.baseURL`, and stderr.
+ */
+function loadConfig(port: string | undefined) {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  delete env.E2E_PORT;
+  if (port !== undefined) env.E2E_PORT = port;
+  const code = `const { default: c } = await import(${JSON.stringify(CONFIG_URL)});
+    console.log(JSON.stringify({ command: c.webServer.command, url: c.webServer.url, baseURL: c.use.baseURL }));`;
+  const run = spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', code], {
+    cwd: ROOT,
+    env,
+    encoding: 'utf8',
+  });
+  const loaded = run.status === 0 ? (JSON.parse(run.stdout) as ReturnType<typeof servedOn>) : null;
+  return { status: run.status, loaded, stderr: run.stderr };
+}
+
+/** What the config should hold for a run on `port`. */
+function servedOn(port: number) {
+  return {
+    command: `npm run build && npx vite preview --port ${port} --strictPort`,
+    url: `http://localhost:${port}`,
+    baseURL: `http://localhost:${port}`,
+  };
+}
+
+/** The message a bad `E2E_PORT` stops the run with. */
+const badPortMessage = (value: string) => `E2E_PORT must be a whole number from 1024 to 65535, not "${value}".`;
+
+describe('the e2e port, set with E2E_PORT (TOOL6)', () => {
+  it('is 4174 when E2E_PORT is unset or empty, for the server command, its url and baseURL', () => {
+    assert.equal(e2ePort(undefined), 4174);
+    assert.equal(e2ePort(''), 4174);
+    for (const port of [undefined, '']) {
+      const { status, loaded, stderr } = loadConfig(port);
+      assert.equal(status, 0, stderr);
+      assert.deepEqual(loaded, servedOn(4174), `E2E_PORT ${port === undefined ? 'unset' : 'empty'}`);
+    }
+  });
+
+  it('uses a valid E2E_PORT for the server command (keeping --strictPort), its url and baseURL', () => {
+    for (const [value, port] of [
+      ['4180', 4180],
+      ['1024', 1024],
+      ['65535', 65535],
+    ] as const) {
+      assert.equal(e2ePort(value), port);
+    }
+    const { status, loaded, stderr } = loadConfig('4180');
+    assert.equal(status, 0, stderr);
+    assert.deepEqual(loaded, servedOn(4180));
+  });
+
+  it("throws a message naming E2E_PORT for each kind of value that isn't a whole number from 1024 to 65535", () => {
+    const bad = {
+      'not a number': ['abc', '4180abc'],
+      'below 1024': ['0', '80', '1023'],
+      'above 65535': ['65536', '70000'],
+      'not whole': ['4174.5', '4180.0'],
+      'with spaces': [' 4180', '4180 '],
+      'with a sign': ['-4180', '+4180'],
+      'another way of writing a number': ['0x10F4', '1e4', '4_180', '4,180'],
+    };
+    for (const [kind, values] of Object.entries(bad)) {
+      for (const value of values) {
+        assert.throws(() => e2ePort(value), { message: badPortMessage(value) }, `${kind}: "${value}"`);
+      }
+    }
+  });
+
+  it('stops the run with that message when the config loads, before Playwright starts a server', () => {
+    const { status, loaded, stderr } = loadConfig('abc');
+    assert.notEqual(status, 0);
+    assert.equal(loaded, null);
+    assert.ok(stderr.includes(badPortMessage('abc')), stderr);
+  });
+
+  // Agreed answer 4 (2026-11-19, #133): a leading zero is the same port, so it is accepted.
+  it('accepts "04180" as port 4180, serving on --port 4180 (agreed answer 4)', () => {
+    assert.equal(e2ePort('04180'), 4180);
+    const { status, loaded, stderr } = loadConfig('04180');
+    assert.equal(status, 0, stderr);
+    assert.deepEqual(loaded, servedOn(4180));
+  });
+});
+
 describe('the e2e CI job', () => {
   it('is its own job, "End-to-end tests", that doesn\'t wait for "Typecheck and test"', () => {
     assert.match(job('e2e'), /^ {4}name: End-to-end tests$/m);
@@ -102,6 +192,10 @@ describe('the e2e CI job', () => {
     assert.doesNotMatch(workflowCode, /paths-ignore/);
     assert.doesNotMatch(job('e2e'), /^ {4}if:/m);
     assert.doesNotMatch(stepRunning('e2e', 'npm ci'), /docs_only/);
+  });
+
+  it("doesn't set E2E_PORT, so CI serves on port 4174 (TOOL6)", () => {
+    assert.doesNotMatch(workflowCode, /E2E_PORT/);
   });
 
   it('runs everything on a push to main: the docs-only check only runs on pull requests', () => {
@@ -177,6 +271,57 @@ describe('the e2e docs', () => {
       assert.ok(checks, `no checks line in standards ${name}`);
       assert.match(checks, /`npm run test:e2e`.* for any change outside `docs\/`/, `standards ${name}`);
     }
+  });
+});
+
+describe('the e2e port docs (TOOL6)', () => {
+  const lf = (text: string) => text.replace(/\r\n/g, '\n');
+  const flat = (text: string) => text.replace(/\s+/g, ' ').trim();
+  const e2e = () => lf(read('docs/testing.md')).split('### End-to-end (e2e) tests')[1]?.split('\n## ')[0] ?? '';
+
+  it('explain E2E_PORT in docs/testing.md in a row straight after the port 4174 row, for bash and PowerShell', () => {
+    const lines = e2e().split('\n');
+    const row4174 = lines.findIndex((line) => line.startsWith('| `npm run test:e2e` |') && line.includes('port 4174'));
+    assert.ok(row4174 !== -1, 'no `npm run test:e2e` row saying port 4174');
+    const next = lines[row4174 + 1] ?? '';
+    assert.ok(next.includes('`E2E_PORT=4180 npm run test:e2e` (bash)'), `the row after the 4174 row: ${next}`);
+    assert.ok(
+      next.includes("`$env:E2E_PORT = '4180'; npm run test:e2e` (PowerShell)"),
+      `the row after the 4174 row: ${next}`,
+    );
+  });
+
+  it('give the rule "when several runs share a machine, give each its own port", the 1024 to 65535 range and --strictPort', () => {
+    const paragraph = flat(e2e().split('**A port per run (TOOL6).**')[1]?.split('\n\n')[0] ?? '');
+    assert.ok(paragraph, 'no "A port per run (TOOL6)." paragraph in the e2e section of docs/testing.md');
+    assert.match(paragraph, /\*\*When several runs share a machine, give each its own port\*\*/);
+    assert.match(paragraph, /Left unset \(or empty\), it is 4174/);
+    assert.match(paragraph, /whole number from 1024 to 65535/);
+    assert.match(paragraph, /message naming `E2E_PORT`/);
+    assert.match(paragraph, /`--strictPort` stays/);
+  });
+
+  it('show a bash and a Windows PowerShell example, each with --workers=1', () => {
+    const block = (lang: string) => new RegExp('```' + lang + '\\n([\\s\\S]*?)```').exec(e2e())?.[1] ?? '';
+    assert.match(block('bash'), /^E2E_PORT=4180 npm run test:e2e -- --workers=1$/m);
+    assert.match(block('powershell'), /^\$env:E2E_PORT = '4180'; npm run test:e2e -- --workers=1$/m);
+    assert.match(block('powershell'), /Remove-Item Env:E2E_PORT goes back to 4174/);
+  });
+
+  it('say in standards 5.4, straight after "At most 2 code tickets at once", that each e2e run sharing a machine uses its own E2E_PORT', () => {
+    const rules = lf(read('docs/standards/standards.md')).split('### 5.4')[1]?.split('\n### ')[0] ?? '';
+    const bullets = rules
+      .split(/^- /m)
+      .slice(1)
+      .map((text) => flat(text));
+    const limit = bullets.findIndex((text) => text.startsWith('**At most 2 code tickets at once.**'));
+    assert.ok(limit !== -1, 'no "At most 2 code tickets at once." bullet in standards 5.4');
+    const rule = bullets[limit + 1] ?? '';
+    assert.ok(rule.startsWith('**A port per e2e run.**'), `the bullet after the 2-ticket bullet: ${rule}`);
+    assert.match(rule, /Each e2e run that shares a machine with another uses its own port, set with `E2E_PORT`/);
+    assert.match(rule, /\(see \[testing\.md\]\(\.\.\/testing\.md#end-to-end-e2e-tests\)\)/);
+    const mentions = bullets.filter((text) => text.includes('E2E_PORT'));
+    assert.equal(mentions.length, 1, 'expected one standards 5.4 bullet about E2E_PORT');
   });
 });
 
