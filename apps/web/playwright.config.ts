@@ -7,9 +7,26 @@ import { defineConfig, devices } from '@playwright/test';
 // Any *.test.ts file under test/e2e/ is picked up, so a new test file runs without changing any
 // script.
 
-/** The port the production build is served on. Not Vite's usual 4173, so a preview server you
- * started yourself isn't mistaken for this one. */
-const PORT = 4174;
+/** The port the production build is served on when `E2E_PORT` isn't set. Not Vite's usual 4173,
+ * so a preview server you started yourself isn't mistaken for this one. */
+const DEFAULT_PORT = 4174;
+
+/**
+ * The port for this run: `E2E_PORT` if it is set, otherwise 4174 (TOOL6). Runs that share a
+ * machine each set their own, so they don't take each other's port. Anything that isn't a whole
+ * number from 1024 to 65535 stops the run here, with a message naming `E2E_PORT`, before
+ * Playwright starts a server.
+ */
+export function e2ePort(value: string | undefined): number {
+  if (value === undefined || value === '') return DEFAULT_PORT;
+  const port = Number(value);
+  if (!/^\d+$/.test(value) || port < 1024 || port > 65535) {
+    throw new Error(`E2E_PORT must be a whole number from 1024 to 65535, not "${value}".`);
+  }
+  return port;
+}
+
+const PORT = e2ePort(process.env.E2E_PORT);
 
 export default defineConfig({
   testDir: 'test/e2e',
@@ -30,7 +47,8 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   // Builds the app and serves the build with `vite preview`, the closest to what users get. The
   // server is started before the tests and stopped after them. It is never reused, so the tests
-  // always run against a fresh build of the code in front of them.
+  // always run against a fresh build of the code in front of them. `--strictPort` makes a port
+  // that is already in use stop the run, rather than Vite quietly moving to the next one.
   webServer: {
     command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
