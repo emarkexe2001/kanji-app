@@ -1,5 +1,5 @@
 // FEAT2_5: the "New" badge on shuffled-in cards, and the slide animations for cards shuffled in and out.
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { NEW_COLOR } from '@kanji/core';
@@ -181,12 +181,19 @@ describe('the "New" badge when moving between cards', () => {
    * Renders the app, waits for the app's own first save of the deck it opened with, then starts
    * counting saves from zero. That save runs in an effect, and on a busy machine React can still
    * be holding it when the first card shows, so a spy started straight after renderApp counted it
-   * as a save "again" (TEST11).
+   * as a save "again" (TEST11). After that save it lets React and timers run one more turn and
+   * checks there was still only one, so a second save on opening isn't cleared away unseen: this
+   * fails if the app ever saves the deck twice when it opens.
    */
   async function renderAppAndCountSaves() {
+    const onlyOnce = 'the app should save its deck once when it opens';
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
     const user = await renderApp(DECKS);
-    await waitFor(() => expect(deckSaves(setItem)).toHaveLength(1));
+    await waitFor(() => expect(deckSaves(setItem), onlyOnce).toHaveLength(1));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(deckSaves(setItem), onlyOnce).toHaveLength(1);
     setItem.mockClear();
     return { user, setItem };
   }
